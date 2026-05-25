@@ -1,177 +1,229 @@
 import customtkinter as ctk
 import cv2
-import threading
-import sys
 from PIL import Image
-import os
+import sys
 
-# --- UI Configuration ---
-ctk.set_appearance_mode("dark")
+ctk.set_appearance_mode("light")
 ctk.set_default_color_theme("dark-blue")
 
-class ProfessionalSplashScreen(ctk.CTk):
+class DashboardWindow(ctk.CTkToplevel):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.title("Military Drill Analysis - Dashboard")
+        self.geometry("1400x800")
+        self.configure(fg_color="#f0f2f5")
+        
+        # Make it full screen / maximizable
+        self.state('zoomed') 
+        
+        # Protocol to cleanly release cameras when closing
+        self.protocol("WM_DELETE_WINDOW", self.on_closing)
+        
+        # Grid Layout for Main Dashboard
+        # Left side (Videos) gets more space (weight=3), Right side (Sidebar) gets less (weight=1)
+        self.grid_columnconfigure(0, weight=4) 
+        self.grid_columnconfigure(1, weight=1) 
+        self.grid_rowconfigure(0, weight=1)
+        
+        # ==========================================
+        # LEFT: VIDEO FEED AREA
+        # ==========================================
+        self.video_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.video_frame.grid(row=0, column=0, sticky="nsew", padx=20, pady=20)
+        
+        # We need 3 columns for the top row
+        # Top row gets weight=1 (smaller height), bottom row gets weight=2 (larger height)
+        self.video_frame.grid_columnconfigure((0, 1, 2), weight=1, uniform="col")
+        self.video_frame.grid_rowconfigure(0, weight=1)
+        self.video_frame.grid_rowconfigure(1, weight=2)
+        
+        # Helper to create camera containers
+        def create_cam_container(parent_frame, title, row, col, columnspan=1):
+            container = ctk.CTkFrame(parent_frame, corner_radius=15, fg_color="#ffffff", border_width=1, border_color="#e1e4e8")
+            container.grid(row=row, column=col, columnspan=columnspan, sticky="nsew", padx=10, pady=10)
+            
+            lbl_title = ctk.CTkLabel(container, text=title, font=ctk.CTkFont("Inter", 12, "bold"), text_color="#6b7280")
+            lbl_title.pack(pady=(5, 0))
+            
+            lbl_video = ctk.CTkLabel(container, text="")
+            lbl_video.pack(expand=True, fill="both", padx=0, pady=0)
+            return lbl_video
+            
+        # Top 3 Cameras (Smaller)
+        self.cam4_label = create_cam_container(self.video_frame, "CAM 4 - FEET ANGLE", 0, 0)
+        self.cam2_label = create_cam_container(self.video_frame, "CAM 2 - SIDE ANGLE", 0, 1)
+        self.cam3_label = create_cam_container(self.video_frame, "CAM 3 - TOP ANGLE", 0, 2)
+        
+        # Bottom Left Camera (Cam 1) - Spans 2 columns to be wider and taller
+        self.cam1_label = create_cam_container(self.video_frame, "CAM 1 - FRONT ANGLE", 1, 0, columnspan=2)
+        
+        # The remaining bottom space (col 2 in row 1) for charts/data
+        self.data_frame = ctk.CTkFrame(self.video_frame, corner_radius=15, fg_color="#ffffff", border_width=1, border_color="#e1e4e8")
+        self.data_frame.grid(row=1, column=2, sticky="nsew", padx=10, pady=10)
+        ctk.CTkLabel(self.data_frame, text="Real-time Biometric\nCharts Will Appear Here", font=ctk.CTkFont("Inter", 14), text_color="#9ca3af", justify="center").pack(expand=True)
+        
+        # ==========================================
+        # RIGHT: SIDE PANEL
+        # ==========================================
+        self.side_panel = ctk.CTkFrame(self, fg_color="#ffffff", corner_radius=0, border_width=1, border_color="#e1e4e8")
+        self.side_panel.grid(row=0, column=1, sticky="nsew")
+        
+        ctk.CTkLabel(self.side_panel, text="LIVE ANALYTICS", font=ctk.CTkFont("Inter", 18, "bold"), text_color="#111827").pack(pady=(30, 20))
+        
+        # Status Card
+        status_card = ctk.CTkFrame(self.side_panel, fg_color="#f3f4f6", corner_radius=10)
+        status_card.pack(fill="x", padx=20, pady=10)
+        ctk.CTkLabel(status_card, text="Drill Stance:", font=ctk.CTkFont("Inter", 12)).pack(anchor="w", padx=15, pady=(15, 0))
+        ctk.CTkLabel(status_card, text="SAVDHAN (ATTENTION)", font=ctk.CTkFont("Inter", 16, "bold"), text_color="#059669").pack(anchor="w", padx=15, pady=(0, 15))
+        
+        # Metrics
+        def add_metric(title, val):
+            frm = ctk.CTkFrame(self.side_panel, fg_color="transparent")
+            frm.pack(fill="x", padx=25, pady=8)
+            ctk.CTkLabel(frm, text=title, font=ctk.CTkFont("Inter", 13), text_color="#4b5563").pack(side="left")
+            ctk.CTkLabel(frm, text=val, font=ctk.CTkFont("Inter", 13, "bold"), text_color="#111827").pack(side="right")
+            
+        add_metric("Spine Alignment:", "98% (Perfect)")
+        add_metric("Heel Distance:", "0.0 cm")
+        add_metric("Feet Angle:", "28°")
+        add_metric("Hand Position:", "Locked")
+        
+        # Divider
+        ctk.CTkFrame(self.side_panel, fg_color="#e5e7eb", height=2).pack(fill="x", padx=20, pady=20)
+        
+        # Action Buttons
+        self.record_btn = ctk.CTkButton(self.side_panel, text="START RECORDING", font=ctk.CTkFont("Inter", 14, "bold"), fg_color="#dc2626", hover_color="#b91c1c", corner_radius=8, height=45)
+        self.record_btn.pack(fill="x", padx=20, pady=10)
+        
+        # ==========================================
+        # VIDEO CAPTURE LOGIC
+        # ==========================================
+        # Initialize 4 separate cameras. If a user only has 1, the others will gracefully fail and show NO SIGNAL.
+        self.caps = [cv2.VideoCapture(i) for i in range(4)]
+        self.update_video_feeds()
+
+    def update_video_feeds(self):
+        import numpy as np
+        cam_labels = [self.cam1_label, self.cam2_label, self.cam3_label, self.cam4_label]
+        # Pushing the sizes to the absolute maximum for a 1080p screen
+        sizes = [(950, 600), (460, 310), (460, 310), (460, 310)]
+        
+        self.current_images = [] # Prevent garbage collection
+        
+        for i, cap in enumerate(self.caps):
+            ret, frame = cap.read()
+            if ret:
+                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            else:
+                w, h = sizes[i]
+                frame = np.zeros((h, w, 3), dtype=np.uint8)
+                frame[:] = (240, 242, 245)
+                # Center the text
+                cv2.putText(frame, "NO SIGNAL", (w//2 - 60, h//2), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (150, 150, 150), 2)
+
+            img = Image.fromarray(frame)
+            ctk_img = ctk.CTkImage(light_image=img, size=sizes[i])
+            self.current_images.append(ctk_img)
+            cam_labels[i].configure(image=ctk_img)
+            
+        # Call this function again after 30 milliseconds (~30fps)
+        self.after(30, self.update_video_feeds)
+
+    def on_closing(self):
+        for cap in self.caps:
+            cap.release()
+        self.destroy()
+
+
+class MinimalistSplashScreen(ctk.CTk):
     def __init__(self):
         super().__init__()
         
-        # Window configuration
-        self.title("Military Drill Analysis Engine")
-        self.geometry("1100x650")
-        self.resizable(False, False)
+        self.title("Military Drill Analysis System")
+        self.geometry("1100x700")
+        self.resizable(True, True)
+        self.configure(fg_color="#f0f2f5") 
         
         # Center window
         self.update_idletasks()
         screen_width = self.winfo_screenwidth()
         screen_height = self.winfo_screenheight()
         x = int((screen_width / 2) - (1100 / 2))
-        y = int((screen_height / 2) - (650 / 2))
-        self.geometry(f"1100x650+{x}+{y}")
+        y = int((screen_height / 2) - (700 / 2))
+        self.geometry(f"1100x700+{x}+{y}")
         
-        # Main Grid Layout
-        self.grid_columnconfigure(0, weight=1)
-        self.grid_columnconfigure(1, weight=1)
-        self.grid_rowconfigure(0, weight=1)
+        self.card = ctk.CTkFrame(self, fg_color="#ffffff", corner_radius=30, border_width=1, border_color="#e1e4e8")
+        self.card.place(relx=0.5, rely=0.5, anchor="center", relwidth=0.75, relheight=0.7)
         
-        # -----------------------------------------------------
-        # LEFT PANEL: Typography, Context, and Actions
-        # -----------------------------------------------------
-        self.left_panel = ctk.CTkFrame(self, fg_color="#0d0e15", corner_radius=0)
-        self.left_panel.grid(row=0, column=0, sticky="nsew")
+        self.content = ctk.CTkFrame(self.card, fg_color="transparent")
+        self.content.pack(expand=True, fill="both", padx=80, pady=80)
         
-        # Inner wrapper for left panel to control padding
-        self.content_frame = ctk.CTkFrame(self.left_panel, fg_color="transparent")
-        self.content_frame.pack(expand=True, fill="both", padx=60, pady=80)
-        
-        # Top-left indicator / Version
-        self.version_label = ctk.CTkLabel(
-            self.content_frame,
-            text="SYSTEM V2.4  |  SECURE CONNECTION",
-            font=ctk.CTkFont(family="Roboto Mono", size=11, weight="bold"),
-            text_color="#00a8ff"
+        self.org_label = ctk.CTkLabel(
+            self.content,
+            text="SIMULATION DEVELOPMENT DIVISION (SDD), MCEME",
+            font=ctk.CTkFont(family="Inter", size=11, weight="bold"),
+            text_color="#8c92a6"
         )
-        self.version_label.pack(anchor="w", pady=(0, 20))
+        self.org_label.pack(anchor="w", pady=(0, 30))
         
-        # Main Title
         self.title_label = ctk.CTkLabel(
-            self.content_frame, 
-            text="MILITARY DRILL\nINTELLIGENCE", 
-            font=ctk.CTkFont(family="Inter", size=48, weight="bold"),
-            text_color="#ffffff",
+            self.content, 
+            text="Military Drill\nAnalysis System.", 
+            font=ctk.CTkFont(family="Inter", size=46, weight="bold"),
+            text_color="#111827",
             justify="left"
         )
-        self.title_label.pack(anchor="w", pady=(0, 10))
+        self.title_label.pack(anchor="w", pady=(0, 20))
         
-        # Subtitle
-        self.subtitle_label = ctk.CTkLabel(
-            self.content_frame,
-            text="AI-Powered Pose Estimation & Compliance",
-            font=ctk.CTkFont(family="Inter", size=18, weight="normal"),
-            text_color="#a0aabf"
-        )
-        self.subtitle_label.pack(anchor="w", pady=(0, 30))
+        self.divider = ctk.CTkFrame(self.content, fg_color="#e5e7eb", height=2, width=80)
+        self.divider.pack(anchor="w", pady=(0, 25))
         
-        # Description / Mission Statement
         desc_text = (
-            "Initiating real-time biomechanical analysis engine. "
-            "This system evaluates cadet posture, alignment, and "
-            "drill compliance using high-precision spatial tracking "
-            "and rule-based heuristics."
+            "A professional evaluation suite designed for rigorous posture and alignment tracking. "
+            "Initialize the workspace to begin real-time, camera-based drill compliance assessment."
         )
         self.desc_label = ctk.CTkLabel(
-            self.content_frame,
+            self.content,
             text=desc_text,
-            font=ctk.CTkFont(family="Inter", size=14),
-            text_color="#737b8c",
+            font=ctk.CTkFont(family="Inter", size=15),
+            text_color="#4b5563",
             justify="left",
-            wraplength=400
+            wraplength=600
         )
-        self.desc_label.pack(anchor="w", pady=(0, 60))
+        self.desc_label.pack(anchor="w", pady=(0, 45))
         
-        # Launch Button
         self.launch_btn = ctk.CTkButton(
-            self.content_frame,
-            text="INITIALIZE TRACKER",
-            font=ctk.CTkFont(family="Inter", size=15, weight="bold"),
-            fg_color="#0052cc",
-            hover_color="#003d99",
+            self.content,
+            text="Start Assessment",
+            font=ctk.CTkFont(family="Inter", size=14, weight="bold"),
+            fg_color="#111827",      
+            hover_color="#374151",   
             text_color="#ffffff",
-            height=55,
-            width=260,
-            corner_radius=4,
+            height=50,
+            width=220,
+            corner_radius=25,
             command=self.start_system
         )
-        self.launch_btn.pack(anchor="w", pady=(0, 20))
-        
-        # Footer in left panel
-        self.footer_label = ctk.CTkLabel(
-            self.content_frame,
-            text="Crafted by Simulation Development Division (SDD), MCEME",
-            font=ctk.CTkFont(family="Inter", size=11, slant="italic"),
-            text_color="#464b59"
-        )
-        self.footer_label.pack(side="bottom", anchor="w")
-        
-        # -----------------------------------------------------
-        # RIGHT PANEL: Branding & Visuals
-        # -----------------------------------------------------
-        self.right_panel = ctk.CTkFrame(self, fg_color="#14161f", corner_radius=0)
-        self.right_panel.grid(row=0, column=1, sticky="nsew")
-        
-        # Load the generated AI Logo Image
-        image_path = r"C:\Users\AR-ENG\.gemini\antigravity\brain\f733a48f-7c32-48c1-92f6-81717b7a908e\drill_ai_logo_1779683975259.png"
-        if os.path.exists(image_path):
-            img = Image.open(image_path)
-            # Create CTkImage
-            self.logo_image = ctk.CTkImage(light_image=img, dark_image=img, size=(500, 500))
-            
-            self.image_label = ctk.CTkLabel(self.right_panel, text="", image=self.logo_image)
-            self.image_label.pack(expand=True, fill="both", padx=20, pady=20)
-        else:
-            # Fallback if image path is not found
-            self.fallback_label = ctk.CTkLabel(
-                self.right_panel,
-                text="[ VISUAL ASSET LOAD ERROR ]",
-                font=ctk.CTkFont(family="Inter", size=14),
-                text_color="#464b59"
-            )
-            self.fallback_label.pack(expand=True)
+        self.launch_btn.pack(anchor="w")
 
     def start_system(self):
-        # Update button to show loading state
-        self.launch_btn.configure(text="LOADING FEED...", state="disabled", fg_color="#002966")
+        self.launch_btn.configure(text="Initializing Workspace...", state="disabled", fg_color="#9ca3af")
         self.update()
         
-        # Close splash and open camera
-        self.after(500, self._launch)
+        # Wait a moment for visual feedback, then open dashboard
+        self.after(400, self.open_dashboard)
         
-    def _launch(self):
-        self.destroy()
-        threading.Thread(target=run_camera_interface, daemon=True).start()
-
-
-def run_camera_interface():
-    cap = cv2.VideoCapture(0)
-    if not cap.isOpened():
-        print("[ERROR] Unable to access the camera.")
-        sys.exit(1)
-
-    cv2.namedWindow("Military Drill Intelligence - Active Feed", cv2.WINDOW_NORMAL)
-    cv2.resizeWindow("Military Drill Intelligence - Active Feed", 1024, 768)
-    
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            print("[WARN] Frame capture failed, exiting.")
-            break
-            
-        cv2.imshow("Military Drill Intelligence - Active Feed", frame)
+    def open_dashboard(self):
+        # Hide the splash screen
+        self.withdraw()
         
-        # Press 'q' to quit
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-            
-    cap.release()
-    cv2.destroyAllWindows()
+        # Open the new dashboard window
+        dashboard = DashboardWindow(self)
+        
+        # When dashboard closes, close the entire application
+        dashboard.protocol("WM_DELETE_WINDOW", lambda: sys.exit(0))
+
 
 if __name__ == "__main__":
-    app = ProfessionalSplashScreen()
+    app = MinimalistSplashScreen()
     app.mainloop()
