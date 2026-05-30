@@ -85,12 +85,14 @@ class DashboardWindow(ctk.CTkToplevel):
             frm = ctk.CTkFrame(self.side_panel, fg_color="transparent")
             frm.pack(fill="x", padx=25, pady=8)
             ctk.CTkLabel(frm, text=title, font=ctk.CTkFont("Inter", 13), text_color="#4b5563").pack(side="left")
-            ctk.CTkLabel(frm, text=val, font=ctk.CTkFont("Inter", 13, "bold"), text_color="#111827").pack(side="right")
+            val_lbl = ctk.CTkLabel(frm, text=val, font=ctk.CTkFont("Inter", 13, "bold"), text_color="#111827")
+            val_lbl.pack(side="right")
+            return val_lbl
             
-        add_metric("Spine Alignment:", "98% (Perfect)")
-        add_metric("Heel Distance:", "0.0 cm")
-        add_metric("Feet Angle:", "28°")
-        add_metric("Hand Position:", "Locked")
+        self.lbl_spine = add_metric("Torso Posture:", "Evaluating...")
+        self.lbl_heel = add_metric("Heel Alignment:", "Evaluating...")
+        self.lbl_feet = add_metric("Foot Angle:", "Evaluating...")
+        self.lbl_hand = add_metric("Arm Alignment:", "Evaluating...")
         
         # Divider
         ctk.CTkFrame(self.side_panel, fg_color="#e5e7eb", height=2).pack(fill="x", padx=20, pady=20)
@@ -100,23 +102,73 @@ class DashboardWindow(ctk.CTkToplevel):
         self.record_btn.pack(fill="x", padx=20, pady=10)
         
         # ==========================================
-        # VIDEO CAPTURE LOGIC
+        # VIDEO CAPTURE LOGIC & ML BACKEND
         # ==========================================
-        # Initialize 4 separate cameras. If a user only has 1, the others will gracefully fail and show NO SIGNAL.
-        self.caps = [cv2.VideoCapture(i) for i in range(4)]
+        # Future-proof pipeline: Initializing only the primary camera (index 0) to avoid 
+        # 30-second driver timeouts on Windows for missing devices. 
+        self.caps = [None, None, None, None]
+        try:
+            cap0 = cv2.VideoCapture(0)
+            if cap0.isOpened():
+                self.caps[0] = cap0
+        except Exception as e:
+            print("Camera 0 failed:", e)
+
+        # ML Backend Setup
+        self.pose_estimator = None
+        self.evaluator = None
+        try:
+            from backend.inference.pose_estimator import YoloPoseEstimator
+            from backend.evaluation.evaluator import StaticPostureEvaluator
+            current_mode = (workflow_actions[0] if workflow_actions else "SAVDHAN").upper()
+            
+            # Using ultra-fast YOLO version if available
+            self.pose_estimator = YoloPoseEstimator(model_path="yolo11n-pose.pt")
+            self.evaluator = StaticPostureEvaluator(current_mode)
+            print(f"Loaded ML Engine for {current_mode}")
+        except Exception as e:
+            print("Failed to load ML Backend:", e)
+
         self.update_video_feeds()
 
     def update_video_feeds(self):
         import numpy as np
         cam_labels = [self.cam1_label, self.cam2_label, self.cam3_label, self.cam4_label]
-        # Pushing the sizes to the absolute maximum for a 1080p screen
         sizes = [(950, 600), (460, 310), (460, 310), (460, 310)]
         
         self.current_images = [] # Prevent garbage collection
         
         for i, cap in enumerate(self.caps):
-            ret, frame = cap.read()
+            ret = False
+            if cap is not None:
+                ret, frame = cap.read()
+                
             if ret:
+                if i == 0 and self.pose_estimator and self.evaluator:
+                    try:
+                        # Process frame through ML
+                        detections = self.pose_estimator.infer(frame)
+                        if detections:
+                            det = detections[0] # Focus on primary subject
+                            det.evaluation = self.evaluator.evaluate(det)
+                            
+                            # Draw overlays
+                            from backend.visualization.debug_view import _draw_skeleton
+                            _draw_skeleton(frame, det.keypoints)
+                            
+                            # Update UI Metrics dynamically
+                            scores = det.evaluation.scores
+                            if "Torso Posture" in scores:
+                                self.lbl_spine.configure(text=f"{scores['Torso Posture']}%")
+                            if "Heel Alignment" in scores:
+                                self.lbl_heel.configure(text=f"{scores['Heel Alignment']}%")
+                            if "Foot Angle" in scores:
+                                self.lbl_feet.configure(text=f"{scores['Foot Angle']}%")
+                            if "Arm Alignment" in scores:
+                                self.lbl_hand.configure(text=f"{scores['Arm Alignment']}%")
+                    except Exception as e:
+                        pass
+                
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             else:
                 w, h = sizes[i]
