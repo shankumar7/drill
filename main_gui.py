@@ -123,7 +123,14 @@ class DashboardWindow(ctk.CTkToplevel):
             current_mode = (workflow_actions[0] if workflow_actions else "SAVDHAN").upper()
             
             # Using ultra-fast YOLO version if available
-            self.pose_estimator = YoloPoseEstimator(model_path="yolo11n-pose.pt")
+            self.pose_estimator = YoloPoseEstimator(
+                model_path="yolo11n-pose.pt",
+                confidence=0.5,
+                image_size=640,
+                prefer_half_precision=False,
+                tracking_enabled=False,
+                tracker_config=None
+            )
             self.evaluator = StaticPostureEvaluator(current_mode)
             print(f"Loaded ML Engine for {current_mode}")
         except Exception as e:
