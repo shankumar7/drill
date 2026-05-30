@@ -7,7 +7,7 @@ ctk.set_appearance_mode("light")
 ctk.set_default_color_theme("dark-blue")
 
 class DashboardWindow(ctk.CTkToplevel):
-    def __init__(self, parent):
+    def __init__(self, parent, workflow_actions=None):
         super().__init__(parent)
         self.title("Military Drill Analysis - Dashboard")
         self.geometry("1400x800")
@@ -73,8 +73,12 @@ class DashboardWindow(ctk.CTkToplevel):
         # Status Card
         status_card = ctk.CTkFrame(self.side_panel, fg_color="#f3f4f6", corner_radius=10)
         status_card.pack(fill="x", padx=20, pady=10)
-        ctk.CTkLabel(status_card, text="Drill Stance:", font=ctk.CTkFont("Inter", 12)).pack(anchor="w", padx=15, pady=(15, 0))
-        ctk.CTkLabel(status_card, text="SAVDHAN (ATTENTION)", font=ctk.CTkFont("Inter", 16, "bold"), text_color="#059669").pack(anchor="w", padx=15, pady=(0, 15))
+        ctk.CTkLabel(status_card, text="Drill Sequence:", font=ctk.CTkFont("Inter", 12)).pack(anchor="w", padx=15, pady=(15, 0))
+        if workflow_actions:
+            actions_text = " -> ".join(workflow_actions)
+        else:
+            actions_text = "SAVDHAN"
+        ctk.CTkLabel(status_card, text=actions_text, font=ctk.CTkFont("Inter", 14, "bold"), text_color="#059669", wraplength=250).pack(anchor="w", padx=15, pady=(0, 15))
         
         # Metrics
         def add_metric(title, val):
@@ -135,16 +139,116 @@ class DashboardWindow(ctk.CTkToplevel):
         self.destroy()
 
 
-class MinimalistSplashScreen(ctk.CTk):
+class LoadingFrame(ctk.CTkFrame):
+    def __init__(self, parent, controller):
+        super().__init__(parent, fg_color="transparent")
+        self.controller = controller
+        
+        self.logo_size = 20
+        self.logo_max_size = 180
+        try:
+            self.logo_pil = Image.open("logo.jpeg")
+            self.logo_aspect = self.logo_pil.width / self.logo_pil.height
+            self.logo_img = ctk.CTkImage(light_image=self.logo_pil, size=(int(self.logo_size * self.logo_aspect), self.logo_size))
+            self.logo_label = ctk.CTkLabel(self, text="", image=self.logo_img)
+            self.logo_label.pack(expand=True)
+            self.animate_logo()
+        except Exception as e:
+            print("Could not load logo:", e)
+            
+        # Auto transition after 2.5 seconds
+        self.after(2500, lambda: self.controller.show_frame(InfoFrame))
+        
+    def animate_logo(self):
+        if hasattr(self, 'logo_size') and self.logo_size < self.logo_max_size:
+            self.logo_size += 5
+            self.logo_img.configure(size=(int(self.logo_size * self.logo_aspect), self.logo_size))
+            self.after(20, self.animate_logo)
+
+
+class InfoFrame(ctk.CTkFrame):
+    def __init__(self, parent, controller):
+        super().__init__(parent, fg_color="transparent")
+        self.controller = controller
+        
+        self.org_label = ctk.CTkLabel(self, text="SIMULATION DEVELOPMENT DIVISION (SDD), MCEME", font=ctk.CTkFont(family="Inter", size=11, weight="bold"), text_color="#8c92a6")
+        self.org_label.pack(anchor="w", pady=(0, 30))
+        
+        self.title_label = ctk.CTkLabel(self, text="Military Drill\nAnalysis System.", font=ctk.CTkFont(family="Inter", size=46, weight="bold"), text_color="#111827", justify="left")
+        self.title_label.pack(anchor="w", pady=(0, 20))
+        
+        self.divider = ctk.CTkFrame(self, fg_color="#e5e7eb", height=2, width=80)
+        self.divider.pack(anchor="w", pady=(0, 25))
+        
+        desc_text = "A professional evaluation suite designed for rigorous posture and alignment tracking. Initialize the workspace to begin real-time, camera-based drill compliance assessment."
+        self.desc_label = ctk.CTkLabel(self, text=desc_text, font=ctk.CTkFont(family="Inter", size=15), text_color="#4b5563", justify="left", wraplength=600)
+        self.desc_label.pack(anchor="w", pady=(0, 45))
+        
+        self.launch_btn = ctk.CTkButton(self, text="Get Started", font=ctk.CTkFont(family="Inter", size=14, weight="bold"), fg_color="#111827", hover_color="#374151", text_color="#ffffff", height=50, width=220, corner_radius=25, command=lambda: self.controller.show_frame(WorkflowSelectionFrame))
+        self.launch_btn.pack(anchor="w")
+
+
+class WorkflowSelectionFrame(ctk.CTkFrame):
+    def __init__(self, parent, controller):
+        super().__init__(parent, fg_color="transparent")
+        self.controller = controller
+        self.workflow_actions = []
+        
+        ctk.CTkLabel(self, text="Configure Drill Workflow", font=ctk.CTkFont(family="Inter", size=32, weight="bold"), text_color="#111827").pack(anchor="w", pady=(0, 20))
+        ctk.CTkLabel(self, text="Select the actions to include in this drill session.", font=ctk.CTkFont(family="Inter", size=15), text_color="#4b5563").pack(anchor="w", pady=(0, 30))
+        
+        input_frame = ctk.CTkFrame(self, fg_color="transparent")
+        input_frame.pack(fill="x", pady=(0, 20))
+        
+        self.action_var = ctk.StringVar(value="Savadhan")
+        self.action_dropdown = ctk.CTkOptionMenu(input_frame, variable=self.action_var, values=["Savadhan", "Vishram", "Salute", "Turn Right", "Turn Left", "About Turn"], font=ctk.CTkFont("Inter", 14), height=40, width=250)
+        self.action_dropdown.pack(side="left", padx=(0, 15))
+        
+        self.add_btn = ctk.CTkButton(input_frame, text="Add Action", font=ctk.CTkFont(family="Inter", size=14, weight="bold"), height=40, command=self.add_action)
+        self.add_btn.pack(side="left")
+        
+        self.queue_label = ctk.CTkLabel(self, text="Current Workflow:", font=ctk.CTkFont(family="Inter", size=16, weight="bold"), text_color="#111827")
+        self.queue_label.pack(anchor="w", pady=(10, 5))
+        
+        self.queue_display = ctk.CTkTextbox(self, height=150, font=ctk.CTkFont("Inter", 14), state="disabled")
+        self.queue_display.pack(fill="x", pady=(0, 30))
+        
+        self.start_btn = ctk.CTkButton(self, text="Initialize Drill", font=ctk.CTkFont(family="Inter", size=14, weight="bold"), fg_color="#059669", hover_color="#047857", height=50, width=220, corner_radius=25, command=self.start_drill)
+        self.start_btn.pack(anchor="w")
+        self.start_btn.configure(state="disabled")
+
+    def add_action(self):
+        action = self.action_var.get()
+        self.workflow_actions.append(action)
+        self.queue_display.configure(state="normal")
+        self.queue_display.delete("1.0", "end")
+        self.queue_display.insert("end", " -> ".join(self.workflow_actions))
+        self.queue_display.configure(state="disabled")
+        self.start_btn.configure(state="normal")
+
+    def start_drill(self):
+        self.controller.workflow_actions = self.workflow_actions
+        self.controller.show_frame(CameraLoadingFrame)
+        self.after(100, self.controller.launch_dashboard)
+
+
+class CameraLoadingFrame(ctk.CTkFrame):
+    def __init__(self, parent, controller):
+        super().__init__(parent, fg_color="transparent")
+        self.controller = controller
+        
+        ctk.CTkLabel(self, text="Initializing Camera System...", font=ctk.CTkFont(family="Inter", size=24, weight="bold"), text_color="#111827").pack(expand=True, pady=(0, 10))
+        ctk.CTkLabel(self, text="Please wait while video feeds are connected.", font=ctk.CTkFont(family="Inter", size=14), text_color="#6b7280").pack()
+
+
+class AppManager(ctk.CTk):
     def __init__(self):
         super().__init__()
         
         self.title("Military Drill Analysis System")
         self.geometry("1100x700")
-        self.resizable(True, True)
         self.configure(fg_color="#f0f2f5") 
         
-        # Center window
         self.update_idletasks()
         screen_width = self.winfo_screenwidth()
         screen_height = self.winfo_screenheight()
@@ -155,94 +259,28 @@ class MinimalistSplashScreen(ctk.CTk):
         self.card = ctk.CTkFrame(self, fg_color="#ffffff", corner_radius=30, border_width=1, border_color="#e1e4e8")
         self.card.place(relx=0.5, rely=0.5, anchor="center", relwidth=0.75, relheight=0.7)
         
-        self.content = ctk.CTkFrame(self.card, fg_color="transparent")
-        self.content.pack(expand=True, fill="both", padx=80, pady=80)
+        self.frames = {}
+        self.workflow_actions = []
         
-        # Load and set up Logo Image
-        self.logo_size = 20
-        self.logo_max_size = 120
-        try:
-            self.logo_pil = Image.open("logo.jpeg")
-            self.logo_aspect = self.logo_pil.width / self.logo_pil.height
-            self.logo_img = ctk.CTkImage(light_image=self.logo_pil, size=(int(self.logo_size * self.logo_aspect), self.logo_size))
-            self.logo_label = ctk.CTkLabel(self.content, text="", image=self.logo_img)
-            self.logo_label.pack(anchor="w", pady=(0, 20))
-            self.animate_logo()
-        except Exception as e:
-            print("Could not load logo:", e)
+        for F in (LoadingFrame, InfoFrame, WorkflowSelectionFrame, CameraLoadingFrame):
+            frame = F(parent=self.card, controller=self)
+            self.frames[F] = frame
+            frame.grid(row=0, column=0, sticky="nsew", padx=80, pady=80)
+            
+        self.card.grid_rowconfigure(0, weight=1)
+        self.card.grid_columnconfigure(0, weight=1)
         
-        self.org_label = ctk.CTkLabel(
-            self.content,
-            text="SIMULATION DEVELOPMENT DIVISION (SDD), MCEME",
-            font=ctk.CTkFont(family="Inter", size=11, weight="bold"),
-            text_color="#8c92a6"
-        )
-        self.org_label.pack(anchor="w", pady=(0, 30))
-        
-        self.title_label = ctk.CTkLabel(
-            self.content, 
-            text="Military Drill\nAnalysis System.", 
-            font=ctk.CTkFont(family="Inter", size=46, weight="bold"),
-            text_color="#111827",
-            justify="left"
-        )
-        self.title_label.pack(anchor="w", pady=(0, 20))
-        
-        self.divider = ctk.CTkFrame(self.content, fg_color="#e5e7eb", height=2, width=80)
-        self.divider.pack(anchor="w", pady=(0, 25))
-        
-        desc_text = (
-            "A professional evaluation suite designed for rigorous posture and alignment tracking. "
-            "Initialize the workspace to begin real-time, camera-based drill compliance assessment."
-        )
-        self.desc_label = ctk.CTkLabel(
-            self.content,
-            text=desc_text,
-            font=ctk.CTkFont(family="Inter", size=15),
-            text_color="#4b5563",
-            justify="left",
-            wraplength=600
-        )
-        self.desc_label.pack(anchor="w", pady=(0, 45))
-        
-        self.launch_btn = ctk.CTkButton(
-            self.content,
-            text="Start Assessment",
-            font=ctk.CTkFont(family="Inter", size=14, weight="bold"),
-            fg_color="#111827",      
-            hover_color="#374151",   
-            text_color="#ffffff",
-            height=50,
-            width=220,
-            corner_radius=25,
-            command=self.start_system
-        )
-        self.launch_btn.pack(anchor="w")
+        self.show_frame(LoadingFrame)
 
-    def animate_logo(self):
-        if hasattr(self, 'logo_size') and self.logo_size < self.logo_max_size:
-            self.logo_size += 5
-            self.logo_img.configure(size=(int(self.logo_size * self.logo_aspect), self.logo_size))
-            self.after(20, self.animate_logo)
+    def show_frame(self, cont):
+        frame = self.frames[cont]
+        frame.tkraise()
 
-    def start_system(self):
-        self.launch_btn.configure(text="Initializing Workspace...", state="disabled", fg_color="#9ca3af")
-        self.update()
-        
-        # Wait a moment for visual feedback, then open dashboard
-        self.after(400, self.open_dashboard)
-        
-    def open_dashboard(self):
-        # Hide the splash screen
+    def launch_dashboard(self):
         self.withdraw()
-        
-        # Open the new dashboard window
-        dashboard = DashboardWindow(self)
-        
-        # When dashboard closes, close the entire application
+        dashboard = DashboardWindow(self, self.workflow_actions)
         dashboard.protocol("WM_DELETE_WINDOW", lambda: sys.exit(0))
 
-
 if __name__ == "__main__":
-    app = MinimalistSplashScreen()
+    app = AppManager()
     app.mainloop()
