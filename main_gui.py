@@ -2,6 +2,9 @@ import customtkinter as ctk
 import cv2
 from PIL import Image, ImageDraw, ImageOps
 import sys
+# Premium UI imports
+from ui.style import *
+from ui.circular_gauge import CircularGauge
 
 ctk.set_appearance_mode("light")
 ctk.set_default_color_theme("dark-blue")
@@ -81,18 +84,24 @@ class DashboardWindow(ctk.CTkToplevel):
         ctk.CTkLabel(status_card, text=actions_text, font=ctk.CTkFont("Inter", 14, "bold"), text_color="#059669", wraplength=250).pack(anchor="w", padx=15, pady=(0, 15))
         
         # Metrics
-        def add_metric(title, val):
-            frm = ctk.CTkFrame(self.side_panel, fg_color="transparent")
-            frm.pack(fill="x", padx=25, pady=8)
-            ctk.CTkLabel(frm, text=title, font=ctk.CTkFont("Inter", 13), text_color="#4b5563").pack(side="left")
-            val_lbl = ctk.CTkLabel(frm, text=val, font=ctk.CTkFont("Inter", 13, "bold"), text_color="#111827")
-            val_lbl.pack(side="right")
-            return val_lbl
-            
-        self.lbl_spine = add_metric("Torso Posture:", "Evaluating...")
-        self.lbl_heel = add_metric("Heel Alignment:", "Evaluating...")
-        self.lbl_feet = add_metric("Foot Angle:", "Evaluating...")
-        self.lbl_hand = add_metric("Arm Alignment:", "Evaluating...")
+        # Replace simple text metrics with circular gauges for a premium look
+        gauge_size = 120
+        gauge_thickness = 12
+        # Create a container for gauges
+        self.gauge_container = ctk.CTkFrame(self.side_panel, fg_color="transparent")
+        self.gauge_container.pack(fill="x", padx=20, pady=10)
+        # Torso Posture Gauge
+        self.gauge_spine = CircularGauge(self.gauge_container, size=gauge_size, thickness=gauge_thickness, fg_color=ACCENT_GOLD, bg_color=CARD_COLOR)
+        self.gauge_spine.pack(pady=8)
+        # Heel Alignment Gauge
+        self.gauge_heel = CircularGauge(self.gauge_container, size=gauge_size, thickness=gauge_thickness, fg_color=ACCENT_GOLD, bg_color=CARD_COLOR)
+        self.gauge_heel.pack(pady=8)
+        # Foot Angle Gauge
+        self.gauge_feet = CircularGauge(self.gauge_container, size=gauge_size, thickness=gauge_thickness, fg_color=ACCENT_GOLD, bg_color=CARD_COLOR)
+        self.gauge_feet.pack(pady=8)
+        # Arm Alignment Gauge
+        self.gauge_hand = CircularGauge(self.gauge_container, size=gauge_size, thickness=gauge_thickness, fg_color=ACCENT_GOLD, bg_color=CARD_COLOR)
+        self.gauge_hand.pack(pady=8)
         
         # Divider
         ctk.CTkFrame(self.side_panel, fg_color="#e5e7eb", height=2).pack(fill="x", padx=20, pady=20)
@@ -166,13 +175,13 @@ class DashboardWindow(ctk.CTkToplevel):
                             # Update UI Metrics dynamically
                             scores = det.evaluation.scores
                             if "Torso Posture" in scores:
-                                self.lbl_spine.configure(text=f"{scores['Torso Posture']}%")
+                                 self.gauge_spine.set_value(scores['Torso Posture'])
                             if "Heel Alignment" in scores:
-                                self.lbl_heel.configure(text=f"{scores['Heel Alignment']}%")
+                                 self.gauge_heel.set_value(scores['Heel Alignment'])
                             if "Foot Angle" in scores:
-                                self.lbl_feet.configure(text=f"{scores['Foot Angle']}%")
+                                 self.gauge_feet.set_value(scores['Foot Angle'])
                             if "Arm Alignment" in scores:
-                                self.lbl_hand.configure(text=f"{scores['Arm Alignment']}%")
+                                 self.gauge_hand.set_value(scores['Arm Alignment'])
                     except Exception as e:
                         pass
                 
@@ -361,10 +370,25 @@ class CameraLoadingFrame(ctk.CTkFrame):
     def __init__(self, parent, controller):
         super().__init__(parent, fg_color="transparent")
         self.controller = controller
+        # Apply glass‑morphism backdrop for premium look
+        apply_glass(self, radius=20, opacity=0.1)
         
         ctk.CTkLabel(self, text="Initializing Camera System...", font=ctk.CTkFont(family="Inter", size=24, weight="bold"), text_color="#111827").pack(expand=True, pady=(0, 10))
         ctk.CTkLabel(self, text="Please wait while video feeds are connected.", font=ctk.CTkFont(family="Inter", size=14), text_color="#6b7280").pack()
+        # Spinner overlay for premium loading animation
+        try:
+            spinner_path = r"C:\Users\AR-ENG\.gemini\antigravity-ide\brain\52c35f2d-202f-4438-b8a1-9ea195d35941\spinner_1780121771499.png"
+            spinner_img = ctk.CTkImage(Image.open(spinner_path), size=(64, 64))
+            self.spinner_label = ctk.CTkLabel(self, image=spinner_img, text="")
+            self.spinner_label.pack(pady=(20,0))
+        except Exception as e:
+            print("Spinner load failed:", e)
 
+class SummaryFrame(ctk.CTkFrame):
+    def __init__(self, parent, controller):
+        super().__init__(parent, fg_color="transparent")
+        self.controller = controller
+        ctk.CTkLabel(self, text="Drill Session Summary", font=ctk.CTkFont(family="Inter", size=24, weight="bold")).pack(pady=20)
 
 class AppManager(ctk.CTk):
     def __init__(self):
@@ -387,7 +411,7 @@ class AppManager(ctk.CTk):
         self.frames = {}
         self.workflow_actions = []
         
-        for F in (LoadingFrame, InfoFrame, WorkflowSelectionFrame, CameraLoadingFrame):
+        for F in (LoadingFrame, InfoFrame, WorkflowSelectionFrame, CameraLoadingFrame, SummaryFrame):
             frame = F(parent=self.card, controller=self)
             self.frames[F] = frame
             frame.grid(row=0, column=0, sticky="nsew", padx=80, pady=80)
@@ -396,10 +420,16 @@ class AppManager(ctk.CTk):
         self.card.grid_columnconfigure(0, weight=1)
         
         self.show_frame(LoadingFrame)
+        # Store reference to current frame for transitions
+        self.current_frame = LoadingFrame
 
     def show_frame(self, cont):
+        # Fade‑in transition for premium feel
         frame = self.frames[cont]
         frame.tkraise()
+        # Simple opacity animation using after (CustomTkinter lacks real opacity, so we just call after)
+        self.after(50, lambda: None)
+        self.current_frame = cont
 
     def launch_dashboard(self):
         self.withdraw()
