@@ -8,3 +8,5 @@ pydantic
 PyYAML
 lapx
 pytest
+customtkinter
+Pillow

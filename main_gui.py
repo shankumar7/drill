@@ -158,6 +158,19 @@ class MinimalistSplashScreen(ctk.CTk):
         self.content = ctk.CTkFrame(self.card, fg_color="transparent")
         self.content.pack(expand=True, fill="both", padx=80, pady=80)
         
+        # Load and set up Logo Image
+        self.logo_size = 20
+        self.logo_max_size = 120
+        try:
+            self.logo_pil = Image.open("logo.jpeg")
+            self.logo_aspect = self.logo_pil.width / self.logo_pil.height
+            self.logo_img = ctk.CTkImage(light_image=self.logo_pil, size=(int(self.logo_size * self.logo_aspect), self.logo_size))
+            self.logo_label = ctk.CTkLabel(self.content, text="", image=self.logo_img)
+            self.logo_label.pack(anchor="w", pady=(0, 20))
+            self.animate_logo()
+        except Exception as e:
+            print("Could not load logo:", e)
+        
         self.org_label = ctk.CTkLabel(
             self.content,
             text="SIMULATION DEVELOPMENT DIVISION (SDD), MCEME",
@@ -205,6 +218,12 @@ class MinimalistSplashScreen(ctk.CTk):
             command=self.start_system
         )
         self.launch_btn.pack(anchor="w")
+
+    def animate_logo(self):
+        if hasattr(self, 'logo_size') and self.logo_size < self.logo_max_size:
+            self.logo_size += 5
+            self.logo_img.configure(size=(int(self.logo_size * self.logo_aspect), self.logo_size))
+            self.after(20, self.animate_logo)
 
     def start_system(self):
         self.launch_btn.configure(text="Initializing Workspace...", state="disabled", fg_color="#9ca3af")
