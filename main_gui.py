@@ -232,11 +232,23 @@ class LoadingFrame(ctk.CTkFrame):
             self.logo_label = ctk.CTkLabel(self.center_container, text="", image=self.logo_img)
             self.logo_label.pack(pady=(0, 30))
             
-            # Add premium progress bar
-            self.loading_text = ctk.CTkLabel(self.center_container, text="INITIALIZING SYSTEM...", font=ctk.CTkFont(family="Inter", size=12, weight="bold"), text_color="#6b7280", letter_spacing=2)
+            # Add premium progress bar (letter_spacing not supported in CTkLabel)
+            self.loading_text = ctk.CTkLabel(
+                self.center_container,
+                text="INITIALIZING SYSTEM...",
+                font=ctk.CTkFont(family="Inter", size=12, weight="bold"),
+                text_color="#6b7280"
+            )
             self.loading_text.pack(pady=(0, 10))
             
-            self.progress = ctk.CTkProgressBar(self.center_container, width=250, height=6, corner_radius=3, fg_color="#e5e7eb", progress_color="#2563eb")
+            self.progress = ctk.CTkProgressBar(
+                self.center_container,
+                width=250,
+                height=6,
+                corner_radius=3,
+                fg_color="#e5e7eb",
+                progress_color="#2563eb"
+            )
             self.progress.pack()
             self.progress.set(0)
             
@@ -248,27 +260,35 @@ class LoadingFrame(ctk.CTkFrame):
         self.after(3000, lambda: self.controller.show_frame(InfoFrame))
         
     def animate_logo(self):
+        # Pulsating bounce animation with easing
         if hasattr(self, 'logo_size') and self.logo_size < self.logo_max_size:
-            # Ease out animation for logo size
             diff = self.logo_max_size - self.logo_size
-            step = max(2, int(diff * 0.15))
+            step = max(3, int(diff * 0.18))  # slightly faster ramp
             self.logo_size += step
             self.logo_img.configure(size=(self.logo_size, self.logo_size))
-            
-            # Update progress bar to sync with animation length roughly
-            progress_val = self.progress.get()
-            if progress_val < 1.0:
-                self.progress.set(progress_val + 0.05)
-                
-            self.after(20, self.animate_logo)
+            # Sync progress bar with size animation
+            prog = self.progress.get()
+            if prog < 1.0:
+                self.progress.set(min(1.0, prog + 0.06))
+            self.after(15, self.animate_logo)
         else:
-            # Once logo reaches max size, keep progressing the bar smoothly until transition
-            def fill_progress():
-                val = self.progress.get()
-                if val < 1.0:
-                    self.progress.set(val + 0.02)
-                    self.after(30, fill_progress)
-            fill_progress()
+            # Gentle breathing effect after reaching max size
+            def breathing():
+                # oscillate size +/- 5px around max for subtle effect
+                import math, time
+                t = time.time()
+                offset = int(5 * math.sin(t * 2))
+                size = self.logo_max_size + offset
+                self.logo_img.configure(size=(size, size))
+                # keep progress filling until full
+                prog = self.progress.get()
+                if prog < 1.0:
+                    self.progress.set(min(1.0, prog + 0.01))
+                    self.after(50, breathing)
+                else:
+                    # After progress complete, move to next frame after short pause
+                    self.after(500, lambda: self.controller.show_frame(InfoFrame))
+            breathing()
 
 
 class InfoFrame(ctk.CTkFrame):
