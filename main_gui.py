@@ -1,6 +1,6 @@
 import customtkinter as ctk
 import cv2
-from PIL import Image
+from PIL import Image, ImageDraw, ImageOps
 import sys
 
 ctk.set_appearance_mode("light")
@@ -196,26 +196,72 @@ class LoadingFrame(ctk.CTkFrame):
         super().__init__(parent, fg_color="transparent")
         self.controller = controller
         
+        # Center container for logo and progress bar
+        self.center_container = ctk.CTkFrame(self, fg_color="transparent")
+        self.center_container.place(relx=0.5, rely=0.5, anchor="center")
+        
         self.logo_size = 20
-        self.logo_max_size = 180
+        self.logo_max_size = 160
         try:
-            self.logo_pil = Image.open("logo.jpeg")
-            self.logo_aspect = self.logo_pil.width / self.logo_pil.height
-            self.logo_img = ctk.CTkImage(light_image=self.logo_pil, size=(int(self.logo_size * self.logo_aspect), self.logo_size))
-            self.logo_label = ctk.CTkLabel(self, text="", image=self.logo_img)
-            self.logo_label.pack(expand=True)
+            pil_img = Image.open("logo.jpeg").convert("RGBA")
+            
+            # Make circular mask
+            min_dim = min(pil_img.size)
+            left = (pil_img.size[0] - min_dim) / 2
+            top = (pil_img.size[1] - min_dim) / 2
+            right = (pil_img.size[0] + min_dim) / 2
+            bottom = (pil_img.size[1] + min_dim) / 2
+            pil_img = pil_img.crop((left, top, right, bottom))
+            
+            mask = Image.new('L', pil_img.size, 0)
+            draw = ImageDraw.Draw(mask)
+            draw.ellipse((0, 0) + pil_img.size, fill=255)
+            
+            self.logo_pil = Image.new('RGBA', pil_img.size, (0, 0, 0, 0))
+            self.logo_pil.paste(pil_img, (0, 0), mask)
+            
+            self.logo_aspect = 1.0 # Circular is always 1:1
+            self.logo_img = ctk.CTkImage(light_image=self.logo_pil, size=(self.logo_size, self.logo_size))
+            self.logo_label = ctk.CTkLabel(self.center_container, text="", image=self.logo_img)
+            self.logo_label.pack(pady=(0, 30))
+            
+            # Add premium progress bar
+            self.loading_text = ctk.CTkLabel(self.center_container, text="INITIALIZING SYSTEM...", font=ctk.CTkFont(family="Inter", size=12, weight="bold"), text_color="#6b7280", letter_spacing=2)
+            self.loading_text.pack(pady=(0, 10))
+            
+            self.progress = ctk.CTkProgressBar(self.center_container, width=250, height=6, corner_radius=3, fg_color="#e5e7eb", progress_color="#2563eb")
+            self.progress.pack()
+            self.progress.set(0)
+            
             self.animate_logo()
         except Exception as e:
             print("Could not load logo:", e)
             
-        # Auto transition after 2.5 seconds
-        self.after(2500, lambda: self.controller.show_frame(InfoFrame))
+        # Auto transition after 3 seconds
+        self.after(3000, lambda: self.controller.show_frame(InfoFrame))
         
     def animate_logo(self):
         if hasattr(self, 'logo_size') and self.logo_size < self.logo_max_size:
-            self.logo_size += 5
-            self.logo_img.configure(size=(int(self.logo_size * self.logo_aspect), self.logo_size))
+            # Ease out animation for logo size
+            diff = self.logo_max_size - self.logo_size
+            step = max(2, int(diff * 0.15))
+            self.logo_size += step
+            self.logo_img.configure(size=(self.logo_size, self.logo_size))
+            
+            # Update progress bar to sync with animation length roughly
+            progress_val = self.progress.get()
+            if progress_val < 1.0:
+                self.progress.set(progress_val + 0.05)
+                
             self.after(20, self.animate_logo)
+        else:
+            # Once logo reaches max size, keep progressing the bar smoothly until transition
+            def fill_progress():
+                val = self.progress.get()
+                if val < 1.0:
+                    self.progress.set(val + 0.02)
+                    self.after(30, fill_progress)
+            fill_progress()
 
 
 class InfoFrame(ctk.CTkFrame):
