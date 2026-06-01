@@ -5,6 +5,10 @@ import sys
 # Premium UI imports
 from ui.style import *
 from ui.circular_gauge import CircularGauge
+# Component imports
+from ui.components.navigation_bar import NavigationBar
+from ui.components.header import Header
+from ui.components.dashboard import DashboardContent
 
 ctk.set_appearance_mode("light")
 ctk.set_default_color_theme("dark-blue")
@@ -31,11 +35,18 @@ class DashboardWindow(ctk.CTkToplevel):
         # ==========================================
         # LEFT: VIDEO FEED AREA
         # ==========================================
-        self.video_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.video_frame.grid(row=0, column=0, sticky="nsew", padx=20, pady=20)
-        
-        # We need 3 columns for the top row
-        # Top row gets weight=1 (smaller height), bottom row gets weight=2 (larger height)
+        # Use modular dashboard component
+        self.dashboard = DashboardContent(self, workflow_actions)
+        self.dashboard.grid(row=0, column=0, columnspan=2, sticky="nsew", padx=20, pady=20)
+
+        # Alias video frame and camera labels for backward compatibility
+        self.video_frame = self.dashboard.video_frame
+        self.cam1_label = self.dashboard.cam1_label
+        self.cam2_label = self.dashboard.cam2_label
+        self.cam3_label = self.dashboard.cam3_label
+        self.cam4_label = self.dashboard.cam4_label
+
+        # Configure grid for video_frame columns/rows
         self.video_frame.grid_columnconfigure((0, 1, 2), weight=1, uniform="col")
         self.video_frame.grid_rowconfigure(0, weight=1)
         self.video_frame.grid_rowconfigure(1, weight=2)
@@ -62,53 +73,10 @@ class DashboardWindow(ctk.CTkToplevel):
         
         # The remaining bottom space (col 2 in row 1) for charts/data
         self.data_frame = ctk.CTkFrame(self.video_frame, corner_radius=15, fg_color="#ffffff", border_width=1, border_color="#e1e4e8")
-        self.data_frame.grid(row=1, column=2, sticky="nsew", padx=10, pady=10)
-        ctk.CTkLabel(self.data_frame, text="Real-time Biometric\nCharts Will Appear Here", font=ctk.CTkFont("Inter", 14), text_color="#9ca3af", justify="center").pack(expand=True)
-        
-        # ==========================================
-        # RIGHT: SIDE PANEL
-        # ==========================================
-        self.side_panel = ctk.CTkFrame(self, fg_color="#ffffff", corner_radius=0, border_width=1, border_color="#e1e4e8")
-        self.side_panel.grid(row=0, column=1, sticky="nsew")
-        
-        ctk.CTkLabel(self.side_panel, text="LIVE ANALYTICS", font=ctk.CTkFont("Inter", 18, "bold"), text_color="#111827").pack(pady=(30, 20))
-        
-        # Status Card
-        status_card = ctk.CTkFrame(self.side_panel, fg_color="#f3f4f6", corner_radius=10)
-        status_card.pack(fill="x", padx=20, pady=10)
-        ctk.CTkLabel(status_card, text="Drill Sequence:", font=ctk.CTkFont("Inter", 12)).pack(anchor="w", padx=15, pady=(15, 0))
-        if workflow_actions:
-            actions_text = " -> ".join(workflow_actions)
-        else:
-            actions_text = "SAVDHAN"
-        ctk.CTkLabel(status_card, text=actions_text, font=ctk.CTkFont("Inter", 14, "bold"), text_color="#059669", wraplength=250).pack(anchor="w", padx=15, pady=(0, 15))
-        
-        # Metrics
-        # Replace simple text metrics with circular gauges for a premium look
-        gauge_size = 120
-        gauge_thickness = 12
-        # Create a container for gauges
-        self.gauge_container = ctk.CTkFrame(self.side_panel, fg_color="transparent")
-        self.gauge_container.pack(fill="x", padx=20, pady=10)
-        # Torso Posture Gauge
-        self.gauge_spine = CircularGauge(self.gauge_container, size=gauge_size, thickness=gauge_thickness, fg_color=ACCENT_GOLD, bg_color=CARD_COLOR)
-        self.gauge_spine.pack(pady=8)
-        # Heel Alignment Gauge
-        self.gauge_heel = CircularGauge(self.gauge_container, size=gauge_size, thickness=gauge_thickness, fg_color=ACCENT_GOLD, bg_color=CARD_COLOR)
-        self.gauge_heel.pack(pady=8)
-        # Foot Angle Gauge
-        self.gauge_feet = CircularGauge(self.gauge_container, size=gauge_size, thickness=gauge_thickness, fg_color=ACCENT_GOLD, bg_color=CARD_COLOR)
-        self.gauge_feet.pack(pady=8)
-        # Arm Alignment Gauge
-        self.gauge_hand = CircularGauge(self.gauge_container, size=gauge_size, thickness=gauge_thickness, fg_color=ACCENT_GOLD, bg_color=CARD_COLOR)
-        self.gauge_hand.pack(pady=8)
-        
-        # Divider
-        ctk.CTkFrame(self.side_panel, fg_color="#e5e7eb", height=2).pack(fill="x", padx=20, pady=20)
-        
-        # Action Buttons
-        self.record_btn = ctk.CTkButton(self.side_panel, text="START RECORDING", font=ctk.CTkFont("Inter", 14, "bold"), fg_color="#dc2626", hover_color="#b91c1c", corner_radius=8, height=45)
-        self.record_btn.pack(fill="x", padx=20, pady=10)
+        # Legacy UI components have been migrated to the modular DashboardContent component.
+        # The dashboard now provides video area, side panel, gauges, and action buttons.
+        # References to gauges and record button are accessed via self.dashboard attributes.
+
         
         # ==========================================
         # VIDEO CAPTURE LOGIC & ML BACKEND
@@ -116,10 +84,17 @@ class DashboardWindow(ctk.CTkToplevel):
         # Future-proof pipeline: Initializing only the primary camera (index 0) to avoid 
         # 30-second driver timeouts on Windows for missing devices. 
         self.caps = [None, None, None, None]
-        try:
-            cap0 = cv2.VideoCapture(0)
-            if cap0.isOpened():
-                self.caps[0] = cap0
+        # Try to open up to 4 camera indices until one succeeds
+        for idx in range(4):
+            try:
+                cap = cv2.VideoCapture(idx)
+                if cap.isOpened():
+                    self.caps[idx] = cap
+                    print(f"Camera {idx} opened successfully.")
+                else:
+                    cap.release()
+            except Exception as e:
+                print(f"Failed to open camera {idx}: {e}")
         except Exception as e:
             print("Camera 0 failed:", e)
 
