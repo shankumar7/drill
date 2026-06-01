@@ -45,6 +45,10 @@ class DashboardWindow(ctk.CTkToplevel):
         self.cam2_label = self.dashboard.cam2_label
         self.cam3_label = self.dashboard.cam3_label
         self.cam4_label = self.dashboard.cam4_label
+        self.gauge_spine = self.dashboard.gauge_spine
+        self.gauge_heel = self.dashboard.gauge_heel
+        self.gauge_feet = self.dashboard.gauge_feet
+        self.gauge_hand = self.dashboard.gauge_hand
 
         # Configure grid for video_frame columns/rows
         self.video_frame.grid_columnconfigure((0, 1, 2), weight=1, uniform="col")
@@ -95,8 +99,7 @@ class DashboardWindow(ctk.CTkToplevel):
                     cap.release()
             except Exception as e:
                 print(f"Failed to open camera {idx}: {e}")
-        except Exception as e:
-            print("Camera 0 failed:", e)
+        
 
         # ML Backend Setup
         self.pose_estimator = None
