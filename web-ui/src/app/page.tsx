@@ -273,47 +273,60 @@ function OnboardingScreen({ onNext }: { onNext: () => void }) {
 }
 
 // ==========================================
-// 3. CONFIGURATION SCREEN
+// 3. CONFIGURATION SCREEN (Redesigned)
 // ==========================================
 function ConfigScreen({ onStart }: { onStart: (workflow: string[]) => void }) {
   const [workflow, setWorkflow] = useState<string[]>([]);
 
-  const actions = [
-    // Static Postures
-    { name: "Savdhan", desc: "Attention posture" },
-    { name: "Vishram", desc: "Stand at ease" },
-    { name: "Aaram Se", desc: "Relax" },
-
-    // Turns at the Halt
-    { name: "Dahine Murh", desc: "90-degree right turn" },
-    { name: "Bayen Murh", desc: "90-degree left turn" },
-    { name: "Pichhe Murh", desc: "180-degree about turn" },
-
-    // Marching & Halting
-    { name: "Tej Chal", desc: "Quick march" },
-    { name: "Dhire Chal", desc: "Slow march" },
-    { name: "Tham", desc: "Halt" },
-
-    // Formations & Spacing
-    { name: "Khuli Line Chal", desc: "Open order march" },
-    { name: "Nikat Line Chal", desc: "Close order march" },
-    { name: "Saj", desc: "Dressing the squad" },
-    { name: "Kadwar Banana", desc: "Sizing the squad" },
-
-    // Saluting
-    { name: "Samne Salute", desc: "Salute to the front" },
-    { name: "Dahine Salute", desc: "Salute to the right" },
-    { name: "Bayen Salute", desc: "Salute to the left" },
-
-    // Rifle Drill (Shastra Qawaid)
-    { name: "Salami Shastra", desc: "Present arms" },
-    { name: "Baju Shastra", desc: "Shoulder arms" },
-    { name: "Bhumi Shastra", desc: "Ground arms" },
-    { name: "Uthao Shastra", desc: "Take up arms" },
-
-    // End of Drill
-    { name: "Line Tod", desc: "Fall out" },
-    { name: "Visharjan", desc: "Dismiss" }
+  const categorizedActions = [
+    {
+      category: "STATIC POSTURES",
+      actions: [
+        { name: "Savdhan", desc: "Attention posture" },
+        { name: "Vishram", desc: "Stand at ease" },
+        { name: "Aaram Se", desc: "Relax" },
+      ]
+    },
+    {
+      category: "TURNS AT HALT",
+      actions: [
+        { name: "Dahine Murh", desc: "90° right turn" },
+        { name: "Bayen Murh", desc: "90° left turn" },
+        { name: "Pichhe Murh", desc: "180° about turn" },
+      ]
+    },
+    {
+      category: "MARCHING",
+      actions: [
+        { name: "Tej Chal", desc: "Quick march" },
+        { name: "Dhire Chal", desc: "Slow march" },
+        { name: "Tham", desc: "Halt" },
+      ]
+    },
+    {
+      category: "FORMATIONS",
+      actions: [
+        { name: "Khuli Line Chal", desc: "Open order" },
+        { name: "Nikat Line Chal", desc: "Close order" },
+        { name: "Saj", desc: "Dressing" },
+        { name: "Kadwar Banana", desc: "Sizing squad" },
+      ]
+    },
+    {
+      category: "SALUTING",
+      actions: [
+        { name: "Samne Salute", desc: "Front salute" },
+        { name: "Dahine Salute", desc: "Right salute" },
+        { name: "Bayen Salute", desc: "Left salute" },
+      ]
+    },
+    {
+      category: "DISPERSAL",
+      actions: [
+        { name: "Line Tod", desc: "Fall out" },
+        { name: "Visharjan", desc: "Dismiss" }
+      ]
+    }
   ];
 
   const handleAdd = (action: string) => {
@@ -326,112 +339,127 @@ function ConfigScreen({ onStart }: { onStart: (workflow: string[]) => void }) {
 
   return (
     <motion.div 
-      className="fixed inset-0 z-30 flex items-center justify-center bg-[#010101] overflow-hidden"
+      className="fixed inset-0 z-30 flex items-center justify-center bg-[#010101] overflow-hidden font-sans"
       initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.05, filter: "blur(10px)" }}
       transition={{ duration: 0.6, ease: "easeOut" }}
     >
-      {/* Dynamic Background */}
+      {/* Background */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-blue-600/10 rounded-full blur-[120px] transform translate-x-1/3 -translate-y-1/3"></div>
-        <div 
-          className="absolute inset-0 opacity-[0.03]" 
-          style={{ backgroundImage: `linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)`, backgroundSize: '40px 40px' }}
-        ></div>
+        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-emerald-600/10 rounded-full blur-[120px] transform -translate-x-1/3 translate-y-1/3"></div>
+        <div className="absolute inset-0 opacity-[0.02]" style={{ backgroundImage: `linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)`, backgroundSize: '40px 40px' }}></div>
       </div>
 
-      <div className="relative z-10 max-w-5xl w-full mx-6 flex flex-col h-[85vh]">
+      <div className="relative z-10 w-full h-full max-w-[1400px] mx-auto flex flex-col p-6 lg:p-10">
         
         {/* Header */}
-        <div className="mb-10 text-center">
-          <h2 className="text-4xl lg:text-5xl font-black text-white mb-3 tracking-tight uppercase drop-shadow-md">
-            Configure Drill Sequence
-          </h2>
-          <p className="text-slate-400 text-lg">Build the evaluation workflow by selecting actions below.</p>
+        <div className="mb-6 flex justify-between items-end">
+          <div>
+            <h2 className="text-4xl font-black text-white tracking-tight uppercase drop-shadow-md">
+              Configure Sequence
+            </h2>
+            <p className="text-slate-400 text-sm mt-1">Select drill actions from the database to build the evaluation timeline.</p>
+          </div>
+          <div className="text-right hidden sm:block">
+            <div className="text-xs font-mono text-emerald-400 uppercase tracking-widest flex items-center justify-end space-x-2">
+              <span className="w-1.5 h-1.5 bg-emerald-500 animate-pulse rounded-full"></span>
+              <span>System Online</span>
+            </div>
+            <div className="text-slate-500 text-xs font-mono mt-1">TOTAL ACTIONS: {workflow.length}</div>
+          </div>
         </div>
 
-        {/* Action Selection Grid */}
-        <div className="flex-1 overflow-y-auto pr-4 mb-6 custom-scrollbar min-h-[30vh]">
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {actions.map((action, idx) => (
-              <motion.div 
-                key={action.name}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => handleAdd(action.name)}
-                className="glass-panel p-4 rounded-xl cursor-pointer border border-white/5 hover:border-blue-500/50 hover:bg-blue-900/10 transition-all shadow-md group relative overflow-hidden flex flex-col justify-center min-h-[90px]"
-              >
-                <div className="absolute -right-10 -top-10 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl group-hover:bg-blue-500/20 transition-colors"></div>
-                <div className="flex justify-between items-center mb-1">
-                  <h3 className="text-sm font-bold text-white group-hover:text-blue-400 transition-colors leading-tight">{action.name}</h3>
-                  <div className="w-6 h-6 shrink-0 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-blue-500/20 text-slate-400 group-hover:text-blue-400 transition-colors">
-                    <Plus className="w-3 h-3" />
-                  </div>
+        {/* Two-pane layout: Selection (Left/Top) and Timeline (Right/Bottom) */}
+        <div className="flex-1 flex flex-col lg:flex-row gap-6 min-h-0">
+          
+          {/* Action Categories (Scrollable) */}
+          <div className="flex-1 overflow-y-auto custom-scrollbar pr-4 space-y-8 pb-10">
+            {categorizedActions.map((cat, i) => (
+              <div key={i} className="space-y-4">
+                <div className="flex items-center space-x-3">
+                  <div className="h-[1px] flex-1 bg-white/5"></div>
+                  <h3 className="text-xs font-bold tracking-[0.3em] text-slate-500 uppercase">{cat.category}</h3>
+                  <div className="h-[1px] flex-1 bg-white/5"></div>
                 </div>
-                <p className="text-[10px] text-slate-500 leading-tight">{action.desc}</p>
-              </motion.div>
+                
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {cat.actions.map((action) => (
+                    <motion.div 
+                      key={action.name}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => handleAdd(action.name)}
+                      className="glass-panel p-4 rounded-xl cursor-pointer border border-white/5 hover:border-blue-500/50 hover:bg-blue-900/10 transition-all shadow-md group relative overflow-hidden flex flex-col justify-center min-h-[80px]"
+                    >
+                      <div className="absolute -right-10 -top-10 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl group-hover:bg-blue-500/20 transition-colors"></div>
+                      <div className="flex justify-between items-start mb-1">
+                        <h4 className="text-sm font-bold text-white group-hover:text-blue-400 transition-colors leading-tight">{action.name}</h4>
+                        <div className="w-5 h-5 shrink-0 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-blue-500/20 text-slate-400 group-hover:text-blue-400 transition-colors">
+                          <Plus className="w-3 h-3" />
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-slate-500 leading-tight uppercase font-mono">{action.desc}</p>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
-        </div>
 
-        {/* Workflow Timeline */}
-        <div className="glass-panel rounded-3xl p-6 border border-white/10 flex flex-col relative overflow-hidden shadow-2xl shrink-0 h-[220px]">
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 to-emerald-400"></div>
-          
-          <h3 className="text-sm font-bold tracking-[0.2em] text-slate-400 uppercase mb-6 flex items-center">
-            <Activity className="w-4 h-4 mr-2 text-blue-400" />
-            Active Sequence
-          </h3>
-          
-          <div className="flex-1 bg-black/40 rounded-2xl border border-white/5 p-6 overflow-x-auto flex items-center hide-scrollbar">
-            {workflow.length === 0 ? (
-              <div className="w-full text-center text-slate-500 font-mono tracking-widest text-sm flex flex-col items-center">
-                <span className="w-2 h-2 rounded-full bg-slate-600 animate-pulse mb-3"></span>
-                AWAITING INPUT...
-              </div>
-            ) : (
-              <div className="flex items-center space-x-4 min-w-max">
-                <AnimatePresence>
-                  {workflow.map((action, idx) => (
-                    <React.Fragment key={`${action}-${idx}`}>
-                      <motion.div 
-                        initial={{ opacity: 0, scale: 0.8, x: -20 }} 
-                        animate={{ opacity: 1, scale: 1, x: 0 }}
-                        exit={{ opacity: 0, scale: 0.5, y: 20 }}
-                        onClick={() => handleRemove(idx)}
-                        className="relative group cursor-pointer bg-gradient-to-br from-blue-900/40 to-blue-900/10 border border-blue-500/30 px-6 py-4 rounded-xl flex items-center space-x-3 shadow-[0_0_20px_rgba(59,130,246,0.15)] hover:border-red-500/50 hover:from-red-900/40 hover:to-red-900/10 transition-colors"
-                      >
-                        <span className="text-blue-400 font-mono font-bold text-xs">{(idx + 1).toString().padStart(2, '0')}</span>
-                        <span className="text-white font-bold text-lg group-hover:text-red-100">{action}</span>
-                        
-                        {/* Remove hover hint */}
-                        <div className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
-                          <span className="text-white font-bold text-xs">✕</span>
-                        </div>
-                      </motion.div>
-                      
-                      {idx < workflow.length - 1 && (
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                          <ChevronRight className="w-6 h-6 text-slate-600" />
+          {/* Timeline & Controls */}
+          <div className="lg:w-[400px] xl:w-[450px] shrink-0 flex flex-col gap-4 h-[300px] lg:h-auto">
+            <div className="flex-1 glass-panel rounded-2xl p-6 border border-white/10 flex flex-col relative overflow-hidden shadow-2xl">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 to-emerald-400"></div>
+              
+              <h3 className="text-xs font-bold tracking-[0.2em] text-white uppercase mb-4 flex items-center">
+                <Activity className="w-4 h-4 mr-2 text-blue-400" />
+                Active Sequence
+              </h3>
+              
+              <div className="flex-1 bg-[#050508]/80 rounded-xl border border-white/5 p-4 overflow-y-auto custom-scrollbar relative">
+                {workflow.length === 0 ? (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-600 font-mono tracking-widest text-xs">
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-700 animate-pulse mb-3"></span>
+                    AWAITING INPUT
+                  </div>
+                ) : (
+                  <div className="flex flex-col space-y-2">
+                    <AnimatePresence>
+                      {workflow.map((action, idx) => (
+                        <motion.div 
+                          key={`${action}-${idx}`}
+                          initial={{ opacity: 0, x: 20 }} 
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, scale: 0.9, x: -20 }}
+                          onClick={() => handleRemove(idx)}
+                          className="group cursor-pointer bg-gradient-to-r from-blue-900/20 to-transparent border-l-2 border-blue-500 px-4 py-3 rounded flex items-center justify-between hover:bg-red-900/20 hover:border-red-500 transition-colors"
+                        >
+                          <div className="flex items-center space-x-3">
+                            <span className="text-blue-500 font-mono font-bold text-xs opacity-70">{(idx + 1).toString().padStart(2, '0')}</span>
+                            <span className="text-white font-semibold text-sm group-hover:text-red-200">{action}</span>
+                          </div>
+                          <div className="w-5 h-5 bg-red-500/20 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <span className="text-red-400 font-bold text-[10px]">✕</span>
+                          </div>
                         </motion.div>
-                      )}
-                    </React.Fragment>
-                  ))}
-                </AnimatePresence>
+                      ))}
+                    </AnimatePresence>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            </div>
 
-          <div className="mt-8 flex justify-end">
+            {/* Start Button */}
             <button 
               onClick={() => onStart(workflow)}
               disabled={workflow.length === 0}
-              className={`px-12 py-5 rounded-full font-bold text-lg tracking-wider transition-all flex items-center space-x-3
+              className={`w-full py-5 rounded-2xl font-bold text-sm tracking-widest uppercase transition-all flex items-center justify-center space-x-3 shadow-lg
                 ${workflow.length > 0 
-                  ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_30px_rgba(16,185,129,0.3)] hover:shadow-[0_0_40px_rgba(16,185,129,0.5)] hover:scale-105 active:scale-95' 
+                  ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_30px_rgba(16,185,129,0.3)] hover:scale-[1.02] active:scale-95' 
                   : 'bg-slate-800/50 text-slate-500 cursor-not-allowed border border-white/5'}`}
             >
               <span>Initialize Evaluation</span>
-              <ChevronRightCircle className={`w-6 h-6 ${workflow.length > 0 ? 'text-white' : 'text-slate-600'}`} />
+              <ChevronRightCircle className={`w-5 h-5 ${workflow.length > 0 ? 'text-white' : 'text-slate-600'}`} />
             </button>
           </div>
         </div>
