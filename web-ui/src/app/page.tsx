@@ -279,12 +279,41 @@ function ConfigScreen({ onStart }: { onStart: (workflow: string[]) => void }) {
   const [workflow, setWorkflow] = useState<string[]>([]);
 
   const actions = [
-    { name: "Savadhan", desc: "Attention posture" },
+    // Static Postures
+    { name: "Savdhan", desc: "Attention posture" },
     { name: "Vishram", desc: "Stand at ease" },
-    { name: "Salute", desc: "Standard salute" },
-    { name: "Turn Right", desc: "90-degree right pivot" },
-    { name: "Turn Left", desc: "90-degree left pivot" },
-    { name: "About Turn", desc: "180-degree pivot" }
+    { name: "Aaram Se", desc: "Relax" },
+
+    // Turns at the Halt
+    { name: "Dahine Murh", desc: "90-degree right turn" },
+    { name: "Bayen Murh", desc: "90-degree left turn" },
+    { name: "Pichhe Murh", desc: "180-degree about turn" },
+
+    // Marching & Halting
+    { name: "Tej Chal", desc: "Quick march" },
+    { name: "Dhire Chal", desc: "Slow march" },
+    { name: "Tham", desc: "Halt" },
+
+    // Formations & Spacing
+    { name: "Khuli Line Chal", desc: "Open order march" },
+    { name: "Nikat Line Chal", desc: "Close order march" },
+    { name: "Saj", desc: "Dressing the squad" },
+    { name: "Kadwar Banana", desc: "Sizing the squad" },
+
+    // Saluting
+    { name: "Samne Salute", desc: "Salute to the front" },
+    { name: "Dahine Salute", desc: "Salute to the right" },
+    { name: "Bayen Salute", desc: "Salute to the left" },
+
+    // Rifle Drill (Shastra Qawaid)
+    { name: "Salami Shastra", desc: "Present arms" },
+    { name: "Baju Shastra", desc: "Shoulder arms" },
+    { name: "Bhumi Shastra", desc: "Ground arms" },
+    { name: "Uthao Shastra", desc: "Take up arms" },
+
+    // End of Drill
+    { name: "Line Tod", desc: "Fall out" },
+    { name: "Visharjan", desc: "Dismiss" }
   ];
 
   const handleAdd = (action: string) => {
@@ -321,29 +350,31 @@ function ConfigScreen({ onStart }: { onStart: (workflow: string[]) => void }) {
         </div>
 
         {/* Action Selection Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
-          {actions.map((action, idx) => (
-            <motion.div 
-              key={action.name}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => handleAdd(action.name)}
-              className="glass-panel p-6 rounded-2xl cursor-pointer border border-white/5 hover:border-blue-500/50 hover:bg-blue-900/10 transition-all shadow-lg group relative overflow-hidden"
-            >
-              <div className="absolute -right-10 -top-10 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl group-hover:bg-blue-500/20 transition-colors"></div>
-              <div className="flex justify-between items-start mb-2">
-                <h3 className="text-xl font-bold text-white group-hover:text-blue-400 transition-colors">{action.name}</h3>
-                <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-blue-500/20 text-slate-400 group-hover:text-blue-400 transition-colors">
-                  <Plus className="w-4 h-4" />
+        <div className="flex-1 overflow-y-auto pr-4 mb-6 custom-scrollbar min-h-[30vh]">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {actions.map((action, idx) => (
+              <motion.div 
+                key={action.name}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => handleAdd(action.name)}
+                className="glass-panel p-4 rounded-xl cursor-pointer border border-white/5 hover:border-blue-500/50 hover:bg-blue-900/10 transition-all shadow-md group relative overflow-hidden flex flex-col justify-center min-h-[90px]"
+              >
+                <div className="absolute -right-10 -top-10 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl group-hover:bg-blue-500/20 transition-colors"></div>
+                <div className="flex justify-between items-center mb-1">
+                  <h3 className="text-sm font-bold text-white group-hover:text-blue-400 transition-colors leading-tight">{action.name}</h3>
+                  <div className="w-6 h-6 shrink-0 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-blue-500/20 text-slate-400 group-hover:text-blue-400 transition-colors">
+                    <Plus className="w-3 h-3" />
+                  </div>
                 </div>
-              </div>
-              <p className="text-sm text-slate-500">{action.desc}</p>
-            </motion.div>
-          ))}
+                <p className="text-[10px] text-slate-500 leading-tight">{action.desc}</p>
+              </motion.div>
+            ))}
+          </div>
         </div>
 
         {/* Workflow Timeline */}
-        <div className="flex-1 glass-panel rounded-3xl p-8 border border-white/10 flex flex-col relative overflow-hidden shadow-2xl">
+        <div className="glass-panel rounded-3xl p-6 border border-white/10 flex flex-col relative overflow-hidden shadow-2xl shrink-0 h-[220px]">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 to-emerald-400"></div>
           
           <h3 className="text-sm font-bold tracking-[0.2em] text-slate-400 uppercase mb-6 flex items-center">
