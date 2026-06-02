@@ -18,7 +18,7 @@ function LaunchScreen({ onComplete }: { onComplete: () => void }) {
       setProgress((prev) => {
         if (prev >= 100) {
           clearInterval(timer);
-          setTimeout(onComplete, 600);
+          setTimeout(onComplete, 800);
           return 100;
         }
         if (prev === 25) setStatusText("INITIALIZING NEURAL ENGINE...");
@@ -33,33 +33,82 @@ function LaunchScreen({ onComplete }: { onComplete: () => void }) {
 
   return (
     <motion.div 
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#030305]"
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#020203] overflow-hidden"
       initial={{ opacity: 1 }}
-      exit={{ opacity: 0, scale: 1.05, filter: "blur(10px)" }}
-      transition={{ duration: 1, ease: "easeInOut" }}
+      exit={{ opacity: 0, scale: 1.1, filter: "blur(12px)" }}
+      transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
     >
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <div className="w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[120px]"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-600/10 rounded-full blur-[150px]"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-emerald-500/10 rounded-full blur-[100px]"></div>
       </div>
-      <div className="relative flex flex-col items-center z-10 w-full max-w-md px-8">
-        <div className="relative w-32 h-32 mb-12 flex items-center justify-center">
-          <motion.div className="absolute inset-0 border border-blue-500/30 rounded-full" animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }} transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }} />
-          <motion.div className="absolute inset-0 border border-blue-400/50 rounded-full" animate={{ scale: [1, 1.2, 1], opacity: [0.8, 0, 0.8] }} transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", delay: 0.5 }} />
-          <div className="w-24 h-24 bg-black rounded-full overflow-hidden border-2 border-white/10 shadow-[0_0_30px_rgba(59,130,246,0.3)] relative z-10 flex items-center justify-center">
-            <Image src="/logo.jpeg" alt="Logo" width={96} height={96} className="object-cover" />
-          </div>
+      
+      <div className="relative flex flex-col items-center z-10 w-full max-w-2xl px-8 mt-[-8vh]">
+        {/* Cinematic Logo Container */}
+        <div className="relative w-64 h-64 mb-16 flex items-center justify-center">
+          {/* Outer Pulsing Rings */}
+          <motion.div 
+            className="absolute inset-0 border border-blue-500/20 rounded-full" 
+            animate={{ scale: [1, 1.8, 1], opacity: [0.3, 0, 0.3] }} 
+            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }} 
+          />
+          <motion.div 
+            className="absolute inset-0 border border-emerald-400/30 rounded-full" 
+            animate={{ scale: [1, 1.4, 1], opacity: [0.6, 0, 0.6] }} 
+            transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }} 
+          />
+          
+          {/* Main Logo Circle */}
+          <motion.div 
+            className="w-48 h-48 bg-[#050508] rounded-full overflow-hidden border-[3px] border-white/10 shadow-[0_0_50px_rgba(59,130,246,0.4)] relative z-10 flex items-center justify-center"
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 1.5, ease: "easeOut" }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/20 to-transparent mix-blend-overlay"></div>
+            <Image src="/logo.jpeg" alt="System Logo" fill className="object-cover hover:scale-105 transition-transform duration-700" />
+          </motion.div>
         </div>
-        <h1 className="text-3xl font-bold tracking-widest text-white mb-2 text-center uppercase">Military Drill</h1>
-        <h2 className="text-sm font-medium tracking-[0.3em] text-blue-400 mb-12 text-center">ANALYSIS SYSTEM</h2>
-        <div className="w-full space-y-4">
-          <div className="flex justify-between items-end px-1">
-            <span className="text-[10px] font-mono text-slate-400 tracking-wider">{statusText}</span>
-            <span className="text-xs font-mono text-blue-400 font-bold">{progress}%</span>
+
+        {/* Typography */}
+        <motion.div 
+          className="flex flex-col items-center mb-16"
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 1, delay: 0.5 }}
+        >
+          <h1 className="text-4xl md:text-5xl font-black tracking-[0.2em] text-white mb-3 text-center uppercase">
+            Military Drill
+          </h1>
+          <h2 className="text-sm md:text-base font-semibold tracking-[0.4em] text-blue-400 text-center">
+            ANALYSIS SYSTEM
+          </h2>
+        </motion.div>
+
+        {/* Progress Bar Container */}
+        <motion.div 
+          className="w-full max-w-md space-y-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 1, delay: 0.8 }}
+        >
+          <div className="flex justify-between items-end px-2">
+            <span className="text-[11px] font-mono text-slate-400 tracking-widest uppercase">
+              {statusText}
+            </span>
+            <span className="text-xs font-mono text-blue-400 font-bold">
+              {progress}%
+            </span>
           </div>
-          <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden relative">
-            <motion.div className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-600 to-cyan-400 rounded-full shadow-[0_0_10px_rgba(56,189,248,0.5)]" initial={{ width: 0 }} animate={{ width: `${progress}%` }} transition={{ ease: "linear", duration: 0.1 }} />
+          <div className="h-1.5 w-full bg-[#111] rounded-full overflow-hidden relative border border-white/5 shadow-inner">
+            <motion.div 
+              className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-600 via-blue-400 to-emerald-400 rounded-full shadow-[0_0_15px_rgba(56,189,248,0.8)]" 
+              initial={{ width: 0 }} 
+              animate={{ width: `${progress}%` }} 
+              transition={{ ease: "linear", duration: 0.1 }} 
+            />
           </div>
-        </div>
+        </motion.div>
       </div>
     </motion.div>
   );
@@ -71,37 +120,93 @@ function LaunchScreen({ onComplete }: { onComplete: () => void }) {
 function OnboardingScreen({ onNext }: { onNext: () => void }) {
   return (
     <motion.div 
-      className="fixed inset-0 z-40 flex items-center justify-center bg-[#050505] overflow-hidden"
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, x: -50 }}
+      className="fixed inset-0 z-40 flex items-center justify-center bg-[#020203] overflow-hidden"
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, x: -50, filter: "blur(10px)" }}
       transition={{ duration: 0.8, ease: "easeOut" }}
     >
-      {/* Dynamic Background */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-         <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-blue-600/10 rounded-full blur-[150px] transform translate-x-1/2 -translate-y-1/2"></div>
-         <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-emerald-600/5 rounded-full blur-[120px] transform -translate-x-1/2 translate-y-1/2"></div>
+      {/* Dynamic Immersive Background */}
+      <div className="absolute inset-0 pointer-events-none">
+        {/* Glows */}
+        <div className="absolute top-0 right-0 w-[1000px] h-[1000px] bg-blue-600/10 rounded-full blur-[150px] transform translate-x-1/3 -translate-y-1/3"></div>
+        <div className="absolute bottom-0 left-0 w-[800px] h-[800px] bg-emerald-600/10 rounded-full blur-[150px] transform -translate-x-1/3 translate-y-1/3"></div>
+        
+        {/* Tech Grid Overlay */}
+        <div 
+          className="absolute inset-0 opacity-[0.03]" 
+          style={{ 
+            backgroundImage: `linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)`, 
+            backgroundSize: '40px 40px' 
+          }}
+        ></div>
+
+        {/* Animated Particles / Stars */}
+        {Array.from({ length: 20 }).map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute bg-white rounded-full opacity-20"
+            style={{
+              width: Math.random() * 3 + 1 + 'px',
+              height: Math.random() * 3 + 1 + 'px',
+              left: Math.random() * 100 + '%',
+              top: Math.random() * 100 + '%',
+            }}
+            animate={{
+              y: [0, Math.random() * -100 - 50],
+              opacity: [0, 0.5, 0],
+            }}
+            transition={{
+              duration: Math.random() * 5 + 5,
+              repeat: Infinity,
+              ease: "linear",
+              delay: Math.random() * 5,
+            }}
+          />
+        ))}
       </div>
       
-      <div className="glass-panel p-12 rounded-3xl max-w-4xl w-full mx-6 relative z-10 border border-white/10 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.8)]">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.8 }}>
-          <h3 className="text-sm font-bold text-slate-500 tracking-[0.2em] uppercase mb-4">
-            Simulation Development Division (SDD), MCEME
-          </h3>
-          <h1 className="text-5xl lg:text-7xl font-black text-white tracking-tight mb-8 leading-tight">
+      {/* Decorative Corner Accents */}
+      <div className="absolute top-8 left-8 w-16 h-16 border-t-2 border-l-2 border-blue-500/50 opacity-50"></div>
+      <div className="absolute bottom-8 right-8 w-16 h-16 border-b-2 border-r-2 border-emerald-500/50 opacity-50"></div>
+
+      <div className="glass-panel p-12 lg:p-16 rounded-3xl max-w-5xl w-full mx-6 relative z-10 border border-white/10 shadow-[0_30px_100px_-15px_rgba(0,0,0,0.9)] bg-gradient-to-br from-[#0c0c10]/80 to-[#050508]/95">
+        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 1, ease: "easeOut" }}>
+          
+          <div className="flex items-center space-x-4 mb-6">
+            <Shield className="w-8 h-8 text-blue-500 opacity-80" />
+            <h3 className="text-sm font-bold text-slate-400 tracking-[0.3em] uppercase">
+              Simulation Development Division (SDD), MCEME
+            </h3>
+          </div>
+
+          <h1 className="text-5xl lg:text-[5rem] font-black text-white tracking-tight mb-8 leading-[1.1]">
             Military Drill <br/>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">Analysis System.</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-cyan-400 to-emerald-400 drop-shadow-[0_0_15px_rgba(56,189,248,0.3)]">
+              Analysis System.
+            </span>
           </h1>
-          <div className="w-24 h-1 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-full mb-8"></div>
-          <p className="text-lg text-slate-400 max-w-2xl leading-relaxed mb-12">
+          
+          <div className="flex items-center space-x-4 mb-10">
+            <div className="w-32 h-1 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-full"></div>
+            <div className="w-4 h-1 bg-emerald-500 rounded-full"></div>
+            <div className="w-2 h-1 bg-emerald-500 rounded-full opacity-50"></div>
+          </div>
+
+          <p className="text-lg lg:text-xl text-slate-400 max-w-3xl leading-relaxed mb-14 font-light">
             A professional evaluation suite designed for rigorous posture and alignment tracking. 
             Initialize the workspace to begin real-time, multi-camera drill compliance assessment powered by state-of-the-art neural engines.
           </p>
-          <button 
-            onClick={onNext}
-            className="group flex items-center justify-center space-x-3 bg-white text-black px-8 py-4 rounded-full font-bold text-lg hover:bg-slate-200 transition-all hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(255,255,255,0.2)]"
-          >
-            <span>Initialize Workspace</span>
-            <ChevronRightCircle className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
-          </button>
+
+          <div className="flex items-center space-x-8">
+            <button 
+              onClick={onNext}
+              className="group relative overflow-hidden flex items-center justify-center space-x-4 bg-white text-black px-10 py-5 rounded-full font-bold text-lg hover:scale-[1.02] active:scale-95 transition-all shadow-[0_0_30px_rgba(255,255,255,0.15)] hover:shadow-[0_0_40px_rgba(255,255,255,0.3)]"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-white via-slate-100 to-white opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              <span className="relative z-10 tracking-wide uppercase">Initialize Workspace</span>
+              <ChevronRightCircle className="relative z-10 w-6 h-6 group-hover:translate-x-1 transition-transform" />
+            </button>
+          </div>
+
         </motion.div>
       </div>
     </motion.div>
