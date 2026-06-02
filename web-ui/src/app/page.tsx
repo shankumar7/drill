@@ -68,87 +68,83 @@ function LaunchScreen({ onComplete }: { onComplete: () => void }) {
         <div className="w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[120px]"></div>
       </div>
       
-      <div className="relative z-10 w-full max-w-4xl px-8 flex flex-col md:flex-row items-center gap-16 mt-[-5vh]">
+      <div className="relative z-10 w-full max-w-4xl px-4 flex flex-col items-center gap-8 mt-[-2vh]">
         
-        {/* Left Side: Cinematic Logo */}
-        <div className="relative flex flex-col items-center">
-          <div className="relative w-72 h-72 flex items-center justify-center">
-            {/* Radar / Scanning Effect */}
+        {/* Cinematic Logo Container - MASSIVELY SCALED UP */}
+        <div className="relative w-[500px] h-[500px] flex items-center justify-center mb-4">
+          {/* Outer Pulsing Rings */}
+          <motion.div 
+            className="absolute inset-[-40px] border-2 border-blue-500/20 rounded-full" 
+            animate={{ scale: [1, 1.3, 1], opacity: [0.1, 0, 0.1] }} 
+            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }} 
+          />
+          <motion.div 
+            className="absolute inset-[-20px] border-2 border-emerald-400/20 rounded-full" 
+            animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0, 0.3] }} 
+            transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }} 
+          />
+          
+          {/* Logo Container */}
+          <motion.div 
+            className="w-[400px] h-[400px] bg-[#030305] rounded-full overflow-hidden border-[6px] border-white/5 shadow-[0_0_100px_rgba(59,130,246,0.5)] relative z-10"
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 1.5, ease: "easeOut" }}
+          >
+            <div className="absolute inset-0 bg-blue-500/10 mix-blend-overlay z-20 pointer-events-none"></div>
+            {/* Laser Scan Line */}
             <motion.div 
-              className="absolute inset-0 border border-blue-500/20 rounded-full" 
-              animate={{ scale: [1, 1.5, 1], opacity: [0.2, 0, 0.2] }} 
-              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }} 
+              className="absolute left-0 right-0 h-[3px] bg-blue-400 shadow-[0_0_15px_rgba(96,165,250,1)] z-30"
+              animate={{ top: ['0%', '100%', '0%'] }}
+              transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
             />
-            <motion.div 
-              className="absolute inset-0 border border-emerald-400/20 rounded-full" 
-              animate={{ scale: [1, 1.3, 1], opacity: [0.4, 0, 0.4] }} 
-              transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }} 
-            />
-            
-            {/* Logo Container */}
-            <motion.div 
-              className="w-56 h-56 bg-[#030305] rounded-full overflow-hidden border-[4px] border-white/5 shadow-[0_0_60px_rgba(59,130,246,0.3)] relative z-10"
-              initial={{ scale: 0.8, opacity: 0, rotate: -10 }}
-              animate={{ scale: 1, opacity: 1, rotate: 0 }}
-              transition={{ duration: 1.5, ease: "easeOut" }}
-            >
-              <div className="absolute inset-0 bg-blue-500/10 mix-blend-overlay z-20"></div>
-              {/* Laser Scan Line */}
-              <motion.div 
-                className="absolute left-0 right-0 h-[2px] bg-blue-400 shadow-[0_0_10px_rgba(96,165,250,1)] z-30"
-                animate={{ top: ['0%', '100%', '0%'] }}
-                transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-              />
-              <Image src="/logo.jpeg" alt="System Logo" fill className="object-cover opacity-90 saturate-0" />
-            </motion.div>
-          </div>
+            <Image src="/logo.jpeg" alt="System Logo" fill className="object-cover opacity-100" />
+          </motion.div>
         </div>
 
-        {/* Right Side: Typography & Boot Sequence */}
-        <div className="flex-1 w-full flex flex-col justify-center">
+        {/* Typography & Boot Sequence */}
+        <div className="w-full max-w-2xl flex flex-col items-center text-center">
           <motion.div 
-            initial={{ x: 30, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
+            initial={{ y: 30, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 1, delay: 0.4 }}
           >
-            <h2 className="text-xs font-bold tracking-[0.4em] text-blue-500 mb-2 uppercase flex items-center space-x-2">
-              <span className="w-1.5 h-1.5 bg-blue-500 animate-pulse rounded-full"></span>
-              <span>Boot Sequence Initiated</span>
-            </h2>
-            <h1 className="text-5xl font-black tracking-tight text-white mb-2 leading-none uppercase">
+            <h1 className="text-5xl md:text-6xl font-black tracking-tight text-white mb-2 leading-none uppercase drop-shadow-lg">
               Military Drill
             </h1>
-            <h1 className="text-5xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 mb-10 leading-none">
+            <h1 className="text-4xl md:text-5xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 mb-8 leading-none drop-shadow-md">
               Analysis System
             </h1>
           </motion.div>
 
           {/* Progress Bar Container */}
           <motion.div 
-            className="w-full space-y-3 mb-8"
+            className="w-full space-y-3 mb-6"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1, delay: 0.7 }}
           >
-            <div className="flex justify-between items-end">
-              <span className="text-xs font-mono text-slate-400 tracking-widest uppercase">System Loading</span>
+            <div className="flex justify-between items-end px-1">
+              <span className="text-xs font-mono text-blue-400 tracking-widest uppercase flex items-center space-x-2">
+                <span className="w-1.5 h-1.5 bg-blue-500 animate-pulse rounded-full"></span>
+                <span>Booting Neural Engine</span>
+              </span>
               <span className="text-sm font-mono text-white font-bold">{Math.floor(progress)}%</span>
             </div>
             <div className="h-2 w-full bg-[#111] rounded overflow-hidden relative border border-white/10">
               <motion.div 
-                className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-600 to-emerald-400" 
+                className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-600 to-emerald-400 shadow-[0_0_15px_rgba(56,189,248,0.8)]" 
                 initial={{ width: 0 }} animate={{ width: `${progress}%` }} 
                 transition={{ ease: "linear", duration: 0.1 }} 
               />
-              {/* Shine effect on progress bar */}
               <motion.div 
-                 className="absolute top-0 bottom-0 w-20 bg-white/20 skew-x-[-20deg]"
+                 className="absolute top-0 bottom-0 w-32 bg-white/30 skew-x-[-20deg]"
                  animate={{ left: ['-100%', '200%'] }}
-                 transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                 transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
               />
             </div>
           </motion.div>
 
           {/* Terminal Logs */}
-          <div className="h-32 bg-[#050508] border border-white/5 rounded-lg p-4 overflow-hidden shadow-inner relative">
+          <div className="w-full h-24 bg-[#050508]/80 backdrop-blur-md border border-white/10 rounded-lg p-4 overflow-hidden shadow-inner relative text-left">
              <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0)_50%,rgba(0,0,0,0.25)_50%)] bg-[length:100%_4px] pointer-events-none z-10"></div>
              <div className="flex flex-col space-y-1 relative z-0">
                {logs.map((log, index) => (
@@ -156,7 +152,7 @@ function LaunchScreen({ onComplete }: { onComplete: () => void }) {
                    key={index} 
                    initial={{ opacity: 0, x: -10 }} 
                    animate={{ opacity: 1, x: 0 }}
-                   className={`text-[10px] font-mono tracking-wider ${index === logs.length - 1 ? 'text-emerald-400' : 'text-slate-500'}`}
+                   className={`text-[11px] font-mono tracking-wider ${index === logs.length - 1 ? 'text-emerald-400' : 'text-slate-400'}`}
                  >
                    {`> ${log}`}
                  </motion.div>
@@ -164,7 +160,7 @@ function LaunchScreen({ onComplete }: { onComplete: () => void }) {
                {progress < 100 && (
                  <motion.div 
                    animate={{ opacity: [1, 0] }} transition={{ repeat: Infinity, duration: 0.5 }}
-                   className="text-[10px] font-mono text-slate-500 mt-1"
+                   className="text-[11px] font-mono text-emerald-400 mt-1"
                  >
                    _
                  </motion.div>
@@ -280,69 +276,135 @@ function OnboardingScreen({ onNext }: { onNext: () => void }) {
 // 3. CONFIGURATION SCREEN
 // ==========================================
 function ConfigScreen({ onStart }: { onStart: (workflow: string[]) => void }) {
-  const [selectedAction, setSelectedAction] = useState("Savadhan");
   const [workflow, setWorkflow] = useState<string[]>([]);
 
-  const actions = ["Savadhan", "Vishram", "Salute", "Turn Right", "Turn Left", "About Turn"];
+  const actions = [
+    { name: "Savadhan", desc: "Attention posture" },
+    { name: "Vishram", desc: "Stand at ease" },
+    { name: "Salute", desc: "Standard salute" },
+    { name: "Turn Right", desc: "90-degree right pivot" },
+    { name: "Turn Left", desc: "90-degree left pivot" },
+    { name: "About Turn", desc: "180-degree pivot" }
+  ];
 
-  const handleAdd = () => {
-    setWorkflow([...workflow, selectedAction]);
+  const handleAdd = (action: string) => {
+    setWorkflow([...workflow, action]);
+  };
+
+  const handleRemove = (index: number) => {
+    setWorkflow(workflow.filter((_, i) => i !== index));
   };
 
   return (
     <motion.div 
-      className="fixed inset-0 z-30 flex items-center justify-center bg-[#050505]"
-      initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, scale: 0.95 }}
+      className="fixed inset-0 z-30 flex items-center justify-center bg-[#010101] overflow-hidden"
+      initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.05, filter: "blur(10px)" }}
       transition={{ duration: 0.6, ease: "easeOut" }}
     >
-      <div className="glass-panel p-10 rounded-3xl max-w-2xl w-full mx-6 border border-white/10 shadow-2xl">
-        <h2 className="text-3xl font-bold text-white mb-2 tracking-tight">Configure Drill Workflow</h2>
-        <p className="text-slate-400 mb-8">Select the actions to include in this multi-camera evaluation session.</p>
+      {/* Dynamic Background */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-blue-600/10 rounded-full blur-[120px] transform translate-x-1/3 -translate-y-1/3"></div>
+        <div 
+          className="absolute inset-0 opacity-[0.03]" 
+          style={{ backgroundImage: `linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)`, backgroundSize: '40px 40px' }}
+        ></div>
+      </div>
 
-        <div className="flex space-x-4 mb-8">
-          <select 
-            className="flex-1 bg-black/50 border border-white/20 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500 transition-colors text-lg"
-            value={selectedAction}
-            onChange={(e) => setSelectedAction(e.target.value)}
-          >
-            {actions.map(action => <option key={action} value={action}>{action}</option>)}
-          </select>
-          <button 
-            onClick={handleAdd}
-            className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl font-medium flex items-center justify-center space-x-2 transition-all shadow-[0_0_15px_rgba(37,99,235,0.4)]"
-          >
-            <Plus className="w-5 h-5" />
-            <span>Add Action</span>
-          </button>
+      <div className="relative z-10 max-w-5xl w-full mx-6 flex flex-col h-[85vh]">
+        
+        {/* Header */}
+        <div className="mb-10 text-center">
+          <h2 className="text-4xl lg:text-5xl font-black text-white mb-3 tracking-tight uppercase drop-shadow-md">
+            Configure Drill Sequence
+          </h2>
+          <p className="text-slate-400 text-lg">Build the evaluation workflow by selecting actions below.</p>
         </div>
 
-        <div className="mb-8">
-          <h3 className="text-sm font-semibold tracking-wider text-slate-500 uppercase mb-3">Current Workflow Queue</h3>
-          <div className="min-h-[120px] bg-black/40 border border-white/5 rounded-xl p-4 flex flex-wrap gap-2 items-start content-start">
+        {/* Action Selection Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+          {actions.map((action, idx) => (
+            <motion.div 
+              key={action.name}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => handleAdd(action.name)}
+              className="glass-panel p-6 rounded-2xl cursor-pointer border border-white/5 hover:border-blue-500/50 hover:bg-blue-900/10 transition-all shadow-lg group relative overflow-hidden"
+            >
+              <div className="absolute -right-10 -top-10 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl group-hover:bg-blue-500/20 transition-colors"></div>
+              <div className="flex justify-between items-start mb-2">
+                <h3 className="text-xl font-bold text-white group-hover:text-blue-400 transition-colors">{action.name}</h3>
+                <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-blue-500/20 text-slate-400 group-hover:text-blue-400 transition-colors">
+                  <Plus className="w-4 h-4" />
+                </div>
+              </div>
+              <p className="text-sm text-slate-500">{action.desc}</p>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Workflow Timeline */}
+        <div className="flex-1 glass-panel rounded-3xl p-8 border border-white/10 flex flex-col relative overflow-hidden shadow-2xl">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 to-emerald-400"></div>
+          
+          <h3 className="text-sm font-bold tracking-[0.2em] text-slate-400 uppercase mb-6 flex items-center">
+            <Activity className="w-4 h-4 mr-2 text-blue-400" />
+            Active Sequence
+          </h3>
+          
+          <div className="flex-1 bg-black/40 rounded-2xl border border-white/5 p-6 overflow-x-auto flex items-center hide-scrollbar">
             {workflow.length === 0 ? (
-              <span className="text-slate-600 text-sm m-auto">No actions queued. Add an action above.</span>
+              <div className="w-full text-center text-slate-500 font-mono tracking-widest text-sm flex flex-col items-center">
+                <span className="w-2 h-2 rounded-full bg-slate-600 animate-pulse mb-3"></span>
+                AWAITING INPUT...
+              </div>
             ) : (
-              workflow.map((action, idx) => (
-                <motion.div 
-                  initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
-                  key={idx} 
-                  className="bg-white/10 border border-white/20 px-3 py-1.5 rounded-lg text-sm font-medium text-blue-100 flex items-center space-x-2"
-                >
-                  <span>{action}</span>
-                  {idx < workflow.length - 1 && <ChevronRight className="w-3 h-3 text-slate-500 ml-1" />}
-                </motion.div>
-              ))
+              <div className="flex items-center space-x-4 min-w-max">
+                <AnimatePresence>
+                  {workflow.map((action, idx) => (
+                    <React.Fragment key={`${action}-${idx}`}>
+                      <motion.div 
+                        initial={{ opacity: 0, scale: 0.8, x: -20 }} 
+                        animate={{ opacity: 1, scale: 1, x: 0 }}
+                        exit={{ opacity: 0, scale: 0.5, y: 20 }}
+                        onClick={() => handleRemove(idx)}
+                        className="relative group cursor-pointer bg-gradient-to-br from-blue-900/40 to-blue-900/10 border border-blue-500/30 px-6 py-4 rounded-xl flex items-center space-x-3 shadow-[0_0_20px_rgba(59,130,246,0.15)] hover:border-red-500/50 hover:from-red-900/40 hover:to-red-900/10 transition-colors"
+                      >
+                        <span className="text-blue-400 font-mono font-bold text-xs">{(idx + 1).toString().padStart(2, '0')}</span>
+                        <span className="text-white font-bold text-lg group-hover:text-red-100">{action}</span>
+                        
+                        {/* Remove hover hint */}
+                        <div className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
+                          <span className="text-white font-bold text-xs">✕</span>
+                        </div>
+                      </motion.div>
+                      
+                      {idx < workflow.length - 1 && (
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                          <ChevronRight className="w-6 h-6 text-slate-600" />
+                        </motion.div>
+                      )}
+                    </React.Fragment>
+                  ))}
+                </AnimatePresence>
+              </div>
             )}
+          </div>
+
+          <div className="mt-8 flex justify-end">
+            <button 
+              onClick={() => onStart(workflow)}
+              disabled={workflow.length === 0}
+              className={`px-12 py-5 rounded-full font-bold text-lg tracking-wider transition-all flex items-center space-x-3
+                ${workflow.length > 0 
+                  ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_30px_rgba(16,185,129,0.3)] hover:shadow-[0_0_40px_rgba(16,185,129,0.5)] hover:scale-105 active:scale-95' 
+                  : 'bg-slate-800/50 text-slate-500 cursor-not-allowed border border-white/5'}`}
+            >
+              <span>Initialize Evaluation</span>
+              <ChevronRightCircle className={`w-6 h-6 ${workflow.length > 0 ? 'text-white' : 'text-slate-600'}`} />
+            </button>
           </div>
         </div>
 
-        <button 
-          onClick={() => onStart(workflow)}
-          disabled={workflow.length === 0}
-          className={`w-full py-4 rounded-xl font-bold text-lg transition-all ${workflow.length > 0 ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.4)]' : 'bg-slate-800 text-slate-500 cursor-not-allowed'}`}
-        >
-          START SQUAD EVALUATION
-        </button>
       </div>
     </motion.div>
   );
