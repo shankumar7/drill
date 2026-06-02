@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: #050505;
+  --color-foreground: #FAFAFA;
+  
+  --color-card: rgba(20, 20, 20, 0.4);
+  --color-card-border: rgba(255, 255, 255, 0.08);
+  
+  --color-primary: #3B82F6;
+  --color-primary-glow: rgba(59, 130, 246, 0.5);
+  
+  --color-success: #10B981;
+  --color-success-glow: rgba(16, 185, 129, 0.5);
+  
+  --color-warning: #F59E0B;
+  --color-danger: #EF4444;
+}
+
+@layer base {
+  :root {
+    --background: #050505;
+    --foreground: #FAFAFA;
+  }
+  
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    background-image: 
+      radial-gradient(ellipse at top left, rgba(59, 130, 246, 0.15), transparent 40%),
+      radial-gradient(ellipse at bottom right, rgba(16, 185, 129, 0.08), transparent 40%);
+    background-attachment: fixed;
+    min-height: 100vh;
+  }
+}
+
+@layer utilities {
+  .glass-panel {
+    background: rgba(15, 15, 17, 0.6);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+  }
+  
+  .glass-header {
+    background: rgba(10, 10, 12, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .text-glow-primary {
+    text-shadow: 0 0 20px var(--color-primary-glow);
+  }
+  
+  .text-glow-success {
+    text-shadow: 0 0 20px var(--color-success-glow);
+  }
+}
