@@ -7,108 +7,171 @@ import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 
 // ==========================================
-// 1. LAUNCH SCREEN
+// 1. LAUNCH SCREEN (System Boot Sequence)
 // ==========================================
 function LaunchScreen({ onComplete }: { onComplete: () => void }) {
   const [progress, setProgress] = useState(0);
-  const [statusText, setStatusText] = useState("ESTABLISHING SECURE CONNECTION...");
+  const [logs, setLogs] = useState<string[]>([]);
+  
+  const bootSequence = [
+    "INIT KERNEL MODULES... OK",
+    "ALLOCATING NEURAL MEMORY (4096 MB)... OK",
+    "LOADING YOLO INFERENCE ENGINE... V8.1 ACTIVE",
+    "ESTABLISHING CAMERA HOOKS... /dev/video0 DETECTED",
+    "CALIBRATING POSE ESTIMATION HEURISTICS...",
+    "SYNCING BIOMECHANICAL MODELS... OK",
+    "SYSTEM SECURE. READY FOR DEPLOYMENT."
+  ];
 
   useEffect(() => {
+    let currentLog = 0;
+    const logInterval = setInterval(() => {
+      if (currentLog < bootSequence.length) {
+        setLogs(prev => [...prev, bootSequence[currentLog]]);
+        currentLog++;
+      }
+    }, 450);
+
     const timer = setInterval(() => {
       setProgress((prev) => {
         if (prev >= 100) {
           clearInterval(timer);
+          clearInterval(logInterval);
           setTimeout(onComplete, 800);
           return 100;
         }
-        if (prev === 25) setStatusText("INITIALIZING NEURAL ENGINE...");
-        if (prev === 50) setStatusText("CALIBRATING CAMERA FEEDS...");
-        if (prev === 75) setStatusText("SYSTEM READY. STAND BY...");
-        const increment = prev > 80 ? 2 : prev > 40 ? 5 : 8;
+        const increment = prev > 80 ? 1.5 : prev > 40 ? 3 : 5;
         return Math.min(100, prev + increment);
       });
-    }, 120);
-    return () => clearInterval(timer);
+    }, 100);
+
+    return () => { clearInterval(timer); clearInterval(logInterval); };
   }, [onComplete]);
 
   return (
     <motion.div 
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#020203] overflow-hidden"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[#010101] overflow-hidden font-sans selection:bg-blue-500/30"
       initial={{ opacity: 1 }}
-      exit={{ opacity: 0, scale: 1.1, filter: "blur(12px)" }}
+      exit={{ opacity: 0, scale: 1.05, filter: "blur(20px)" }}
       transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
     >
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-600/10 rounded-full blur-[150px]"></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-emerald-500/10 rounded-full blur-[100px]"></div>
+      {/* Background Layer: Tech Grid & Vignette */}
+      <div className="absolute inset-0 pointer-events-none z-0 flex items-center justify-center">
+        <div 
+          className="absolute inset-0 opacity-[0.04]" 
+          style={{ 
+            backgroundImage: `linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)`, 
+            backgroundSize: '30px 30px' 
+          }}
+        ></div>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#010101_80%)]"></div>
+        <div className="w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[120px]"></div>
       </div>
       
-      <div className="relative flex flex-col items-center z-10 w-full max-w-2xl px-8 mt-[-8vh]">
-        {/* Cinematic Logo Container */}
-        <div className="relative w-64 h-64 mb-16 flex items-center justify-center">
-          {/* Outer Pulsing Rings */}
-          <motion.div 
-            className="absolute inset-0 border border-blue-500/20 rounded-full" 
-            animate={{ scale: [1, 1.8, 1], opacity: [0.3, 0, 0.3] }} 
-            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }} 
-          />
-          <motion.div 
-            className="absolute inset-0 border border-emerald-400/30 rounded-full" 
-            animate={{ scale: [1, 1.4, 1], opacity: [0.6, 0, 0.6] }} 
-            transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }} 
-          />
-          
-          {/* Main Logo Circle */}
-          <motion.div 
-            className="w-48 h-48 bg-[#050508] rounded-full overflow-hidden border-[3px] border-white/10 shadow-[0_0_50px_rgba(59,130,246,0.4)] relative z-10 flex items-center justify-center"
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 1.5, ease: "easeOut" }}
-          >
-            <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/20 to-transparent mix-blend-overlay"></div>
-            <Image src="/logo.jpeg" alt="System Logo" fill className="object-cover hover:scale-105 transition-transform duration-700" />
-          </motion.div>
+      <div className="relative z-10 w-full max-w-4xl px-8 flex flex-col md:flex-row items-center gap-16 mt-[-5vh]">
+        
+        {/* Left Side: Cinematic Logo */}
+        <div className="relative flex flex-col items-center">
+          <div className="relative w-72 h-72 flex items-center justify-center">
+            {/* Radar / Scanning Effect */}
+            <motion.div 
+              className="absolute inset-0 border border-blue-500/20 rounded-full" 
+              animate={{ scale: [1, 1.5, 1], opacity: [0.2, 0, 0.2] }} 
+              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }} 
+            />
+            <motion.div 
+              className="absolute inset-0 border border-emerald-400/20 rounded-full" 
+              animate={{ scale: [1, 1.3, 1], opacity: [0.4, 0, 0.4] }} 
+              transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }} 
+            />
+            
+            {/* Logo Container */}
+            <motion.div 
+              className="w-56 h-56 bg-[#030305] rounded-full overflow-hidden border-[4px] border-white/5 shadow-[0_0_60px_rgba(59,130,246,0.3)] relative z-10"
+              initial={{ scale: 0.8, opacity: 0, rotate: -10 }}
+              animate={{ scale: 1, opacity: 1, rotate: 0 }}
+              transition={{ duration: 1.5, ease: "easeOut" }}
+            >
+              <div className="absolute inset-0 bg-blue-500/10 mix-blend-overlay z-20"></div>
+              {/* Laser Scan Line */}
+              <motion.div 
+                className="absolute left-0 right-0 h-[2px] bg-blue-400 shadow-[0_0_10px_rgba(96,165,250,1)] z-30"
+                animate={{ top: ['0%', '100%', '0%'] }}
+                transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+              />
+              <Image src="/logo.jpeg" alt="System Logo" fill className="object-cover opacity-90 saturate-0" />
+            </motion.div>
+          </div>
         </div>
 
-        {/* Typography */}
-        <motion.div 
-          className="flex flex-col items-center mb-16"
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 1, delay: 0.5 }}
-        >
-          <h1 className="text-4xl md:text-5xl font-black tracking-[0.2em] text-white mb-3 text-center uppercase">
-            Military Drill
-          </h1>
-          <h2 className="text-sm md:text-base font-semibold tracking-[0.4em] text-blue-400 text-center">
-            ANALYSIS SYSTEM
-          </h2>
-        </motion.div>
+        {/* Right Side: Typography & Boot Sequence */}
+        <div className="flex-1 w-full flex flex-col justify-center">
+          <motion.div 
+            initial={{ x: 30, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ duration: 1, delay: 0.4 }}
+          >
+            <h2 className="text-xs font-bold tracking-[0.4em] text-blue-500 mb-2 uppercase flex items-center space-x-2">
+              <span className="w-1.5 h-1.5 bg-blue-500 animate-pulse rounded-full"></span>
+              <span>Boot Sequence Initiated</span>
+            </h2>
+            <h1 className="text-5xl font-black tracking-tight text-white mb-2 leading-none uppercase">
+              Military Drill
+            </h1>
+            <h1 className="text-5xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 mb-10 leading-none">
+              Analysis System
+            </h1>
+          </motion.div>
 
-        {/* Progress Bar Container */}
-        <motion.div 
-          className="w-full max-w-md space-y-4"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 1, delay: 0.8 }}
-        >
-          <div className="flex justify-between items-end px-2">
-            <span className="text-[11px] font-mono text-slate-400 tracking-widest uppercase">
-              {statusText}
-            </span>
-            <span className="text-xs font-mono text-blue-400 font-bold">
-              {progress}%
-            </span>
+          {/* Progress Bar Container */}
+          <motion.div 
+            className="w-full space-y-3 mb-8"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1, delay: 0.7 }}
+          >
+            <div className="flex justify-between items-end">
+              <span className="text-xs font-mono text-slate-400 tracking-widest uppercase">System Loading</span>
+              <span className="text-sm font-mono text-white font-bold">{Math.floor(progress)}%</span>
+            </div>
+            <div className="h-2 w-full bg-[#111] rounded overflow-hidden relative border border-white/10">
+              <motion.div 
+                className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-600 to-emerald-400" 
+                initial={{ width: 0 }} animate={{ width: `${progress}%` }} 
+                transition={{ ease: "linear", duration: 0.1 }} 
+              />
+              {/* Shine effect on progress bar */}
+              <motion.div 
+                 className="absolute top-0 bottom-0 w-20 bg-white/20 skew-x-[-20deg]"
+                 animate={{ left: ['-100%', '200%'] }}
+                 transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+              />
+            </div>
+          </motion.div>
+
+          {/* Terminal Logs */}
+          <div className="h-32 bg-[#050508] border border-white/5 rounded-lg p-4 overflow-hidden shadow-inner relative">
+             <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0)_50%,rgba(0,0,0,0.25)_50%)] bg-[length:100%_4px] pointer-events-none z-10"></div>
+             <div className="flex flex-col space-y-1 relative z-0">
+               {logs.map((log, index) => (
+                 <motion.div 
+                   key={index} 
+                   initial={{ opacity: 0, x: -10 }} 
+                   animate={{ opacity: 1, x: 0 }}
+                   className={`text-[10px] font-mono tracking-wider ${index === logs.length - 1 ? 'text-emerald-400' : 'text-slate-500'}`}
+                 >
+                   {`> ${log}`}
+                 </motion.div>
+               ))}
+               {progress < 100 && (
+                 <motion.div 
+                   animate={{ opacity: [1, 0] }} transition={{ repeat: Infinity, duration: 0.5 }}
+                   className="text-[10px] font-mono text-slate-500 mt-1"
+                 >
+                   _
+                 </motion.div>
+               )}
+             </div>
           </div>
-          <div className="h-1.5 w-full bg-[#111] rounded-full overflow-hidden relative border border-white/5 shadow-inner">
-            <motion.div 
-              className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-600 via-blue-400 to-emerald-400 rounded-full shadow-[0_0_15px_rgba(56,189,248,0.8)]" 
-              initial={{ width: 0 }} 
-              animate={{ width: `${progress}%` }} 
-              transition={{ ease: "linear", duration: 0.1 }} 
-            />
-          </div>
-        </motion.div>
+        </div>
       </div>
     </motion.div>
   );
