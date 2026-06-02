@@ -567,50 +567,65 @@ function Dashboard({ activeWorkflow }: { activeWorkflow: string[] }) {
               {/* Multi-Camera Matrix (Spans 3 cols) */}
               <div className="xl:col-span-3">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  {/* CAM 1: FRONT */}
-                  <div className="glass-panel rounded-xl overflow-hidden p-1 relative">
-                    <div className="absolute top-4 left-4 bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-lg text-[10px] font-bold text-white z-10 flex items-center space-x-2 border border-white/10">
-                      <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-                      <span className="tracking-widest">CAM 1 - FRONT ANGLE</span>
-                    </div>
-                    <div className="aspect-video bg-[#0a0a0c] rounded-lg overflow-hidden border border-white/5 relative">
-                      <img src="http://localhost:8000/api/video_feed/0" alt="Feed 1" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                      <div className="absolute inset-0 flex items-center justify-center -z-10 text-slate-800 font-mono text-sm">NO SIGNAL</div>
-                    </div>
-                  </div>
+                  {[
+                    { id: 0, label: "MAIN CAMERA (FRONT)" },
+                    { id: 1, label: "EXTERNAL CAMERA (SIDE)" },
+                    { id: 2, label: "AUX FEED 1 (TOP)" },
+                    { id: 3, label: "AUX FEED 2 (FEET)" }
+                  ].map((cam) => (
+                    <div key={cam.id} className="glass-panel rounded-2xl overflow-hidden p-1 relative group bg-[#020203]">
+                      
+                      {/* Premium HUD Overlay */}
+                      <div className="absolute inset-1 pointer-events-none z-20 border border-white/5 rounded-xl">
+                        {/* Corner brackets */}
+                        <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-blue-500/50 rounded-tl-xl"></div>
+                        <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-blue-500/50 rounded-tr-xl"></div>
+                        <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-blue-500/50 rounded-bl-xl"></div>
+                        <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-blue-500/50 rounded-br-xl"></div>
+                        
+                        {/* Crosshairs */}
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 border border-white/20 rounded-full opacity-50 flex items-center justify-center">
+                          <div className="w-1 h-1 bg-blue-500 rounded-full"></div>
+                        </div>
 
-                  {/* CAM 2: SIDE */}
-                  <div className="glass-panel rounded-xl overflow-hidden p-1 relative">
-                    <div className="absolute top-4 left-4 bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-lg text-[10px] font-bold text-white z-10 tracking-widest border border-white/10">
-                      CAM 2 - SIDE ANGLE
-                    </div>
-                    <div className="aspect-video bg-[#0a0a0c] rounded-lg overflow-hidden border border-white/5 relative">
-                      <img src="http://localhost:8000/api/video_feed/1" alt="Feed 2" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                      <div className="absolute inset-0 flex items-center justify-center -z-10 text-slate-800 font-mono text-sm">NO SIGNAL</div>
-                    </div>
-                  </div>
+                        {/* Top Left Label */}
+                        <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-lg text-[10px] font-bold text-white flex items-center space-x-2 border border-white/10 shadow-lg">
+                          <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,1)]"></span>
+                          <span className="tracking-widest uppercase">{cam.label}</span>
+                        </div>
 
-                  {/* CAM 3: TOP */}
-                  <div className="glass-panel rounded-xl overflow-hidden p-1 relative">
-                    <div className="absolute top-4 left-4 bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-lg text-[10px] font-bold text-white z-10 tracking-widest border border-white/10">
-                      CAM 3 - TOP ANGLE
-                    </div>
-                    <div className="aspect-video bg-[#0a0a0c] rounded-lg overflow-hidden border border-white/5 relative">
-                      <img src="http://localhost:8000/api/video_feed/2" alt="Feed 3" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                      <div className="absolute inset-0 flex items-center justify-center -z-10 text-slate-800 font-mono text-sm">NO SIGNAL</div>
-                    </div>
-                  </div>
+                        {/* Scanning Line Effect */}
+                        <motion.div 
+                          className="absolute left-0 right-0 h-[1px] bg-blue-500/30 shadow-[0_0_10px_rgba(59,130,246,0.5)]"
+                          animate={{ top: ['0%', '100%', '0%'] }}
+                          transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
+                        />
+                      </div>
 
-                  {/* CAM 4: FEET */}
-                  <div className="glass-panel rounded-xl overflow-hidden p-1 relative">
-                    <div className="absolute top-4 left-4 bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-lg text-[10px] font-bold text-white z-10 tracking-widest border border-white/10">
-                      CAM 4 - FEET ANGLE
+                      {/* Video Stream Container */}
+                      <div className="aspect-video bg-[#050508] rounded-xl overflow-hidden relative z-10 flex items-center justify-center">
+                        <img 
+                          src={`http://localhost:8000/api/video_feed/${cam.id}`} 
+                          alt={`Feed ${cam.id}`} 
+                          className="w-full h-full object-cover transition-opacity duration-300" 
+                          onError={(e) => { 
+                            const target = e.target as HTMLImageElement;
+                            target.style.opacity = '0'; 
+                            // Auto-retry mechanism to ensure stream loads when backend is ready
+                            setTimeout(() => { 
+                              target.src = `http://localhost:8000/api/video_feed/${cam.id}?t=${Date.now()}`; 
+                              target.style.opacity = '1'; 
+                            }, 2500); 
+                          }} 
+                        />
+                        {/* Fallback NO SIGNAL text behind the image */}
+                        <div className="absolute inset-0 flex flex-col items-center justify-center -z-10 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-900 to-[#050508]">
+                          <Activity className="w-8 h-8 text-slate-700 mb-2 opacity-50" />
+                          <div className="text-slate-600 font-mono text-xs tracking-widest">AWAITING SIGNAL...</div>
+                        </div>
+                      </div>
                     </div>
-                    <div className="aspect-video bg-[#0a0a0c] rounded-lg overflow-hidden border border-white/5 relative">
-                      <img src="http://localhost:8000/api/video_feed/3" alt="Feed 4" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                      <div className="absolute inset-0 flex items-center justify-center -z-10 text-slate-800 font-mono text-sm">NO SIGNAL</div>
-                    </div>
-                  </div>
+                  ))}
                 </div>
               </div>
 
