@@ -74,6 +74,15 @@ def estimate_foot_geometry(keypoints):
 
 async def generate_frames(camera_id: int):
     global LATEST_TELEMETRY, ACTIVE_MODE
+    if camera_id not in [0, 1]:
+        while True:
+            frame = np.ones((480, 640, 3), dtype=np.uint8) * 50
+            cv2.putText(frame, "INVALID CAMERA ID", (150, 240), 
+                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+            ret, buffer = cv2.imencode('.jpg', frame)
+            yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
+            await asyncio.sleep(1)
+
     cap = cv2.VideoCapture(camera_id)
     if not cap.isOpened():
         while True:
