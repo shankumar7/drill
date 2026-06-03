@@ -473,6 +473,10 @@ function Dashboard({ activeWorkflow }: { activeWorkflow: string[] }) {
     heel_alignment: 0,
     foot_angle: 0,
     arm_alignment: 0,
+    heel_distance: 0,
+    toe_distance: 0,
+    knee_tightness: 0,
+    hands_behind_back: 0,
     overall_score: 0,
     status: "Initializing...",
   });
@@ -481,11 +485,16 @@ function Dashboard({ activeWorkflow }: { activeWorkflow: string[] }) {
 
   useEffect(() => {
     const ws = new WebSocket("ws://localhost:8000/ws/telemetry");
+    
+    ws.onopen = () => {
+      ws.send(JSON.stringify({ mode: currentMode }));
+    };
+
     ws.onmessage = (event) => {
       try { setTelemetry(JSON.parse(event.data)); } catch (e) { }
     };
     return () => ws.close();
-  }, []);
+  }, [currentMode]);
 
   return (
     <motion.div 
@@ -532,9 +541,11 @@ function Dashboard({ activeWorkflow }: { activeWorkflow: string[] }) {
               <div>
                 <h2 className="text-3xl font-bold tracking-tight text-white">Active Drill Session</h2>
                 <p className="text-slate-400 mt-1 flex items-center space-x-2">
-                  <span>Multi-Camera Tracking</span>
+                  <span>Sequence:</span>
                   <ChevronRight className="w-4 h-4 text-slate-600" />
-                  <span className="text-blue-400 font-bold uppercase tracking-wider">Mode: {currentMode}</span>
+                  <span className="text-blue-400 font-bold uppercase tracking-wider">
+                    {activeWorkflow.join(" → ") || "SAVDHAN"}
+                  </span>
                 </p>
               </div>
               <button className="px-6 py-2.5 rounded-lg bg-red-600/20 hover:bg-red-600/40 text-red-400 border border-red-500/30 font-medium text-sm transition-all">
@@ -560,40 +571,60 @@ function Dashboard({ activeWorkflow }: { activeWorkflow: string[] }) {
             <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
               
               {/* Multi-Camera Matrix (Spans 3 cols) */}
-              <div className="xl:col-span-3">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="xl:col-span-3 flex flex-col gap-6">
+                
+                {/* Main Camera (Front) - Huge */}
+                <div className="glass-panel rounded-2xl overflow-hidden p-1 relative group bg-[#020203] shadow-2xl h-[500px] border border-blue-500/20">
+                  {/* Premium HUD Overlay */}
+                  <div className="absolute inset-1 pointer-events-none z-20 border border-white/5 rounded-xl">
+                    <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-blue-500/50 rounded-tl-xl"></div>
+                    <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-blue-500/50 rounded-tr-xl"></div>
+                    <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-blue-500/50 rounded-bl-xl"></div>
+                    <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-blue-500/50 rounded-br-xl"></div>
+                    
+                    <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md px-4 py-2 rounded-lg text-xs font-bold text-white flex items-center space-x-2 border border-white/10 shadow-lg">
+                      <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,1)]"></span>
+                      <span className="tracking-widest uppercase">MAIN CAMERA (FRONT)</span>
+                    </div>
+                  </div>
+
+                  <div className="w-full h-full bg-[#050508] rounded-xl overflow-hidden relative z-10 flex items-center justify-center">
+                    <img 
+                      src={`http://localhost:8000/api/video_feed/1`} 
+                      alt="Main Feed" 
+                      className="w-full h-full object-contain transition-opacity duration-300" 
+                      onError={(e) => { 
+                        const target = e.target as HTMLImageElement;
+                        target.style.opacity = '0'; 
+                        setTimeout(() => { 
+                          target.src = `http://localhost:8000/api/video_feed/1?t=${Date.now()}`; 
+                          target.style.opacity = '1'; 
+                        }, 2500); 
+                      }} 
+                    />
+                    <div className="absolute inset-0 flex flex-col items-center justify-center -z-10 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-900 to-[#050508]">
+                      <Activity className="w-12 h-12 text-slate-700 mb-3 opacity-50" />
+                      <div className="text-slate-600 font-mono text-sm tracking-widest">AWAITING SIGNAL...</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Secondary Cameras Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {[
-                    { id: 0, label: "MAIN CAMERA (FRONT)" },
-                    { id: 1, label: "EXTERNAL CAMERA (SIDE)" },
+                    { id: 0, label: "EXTERNAL CAMERA (SIDE)" },
                     { id: 2, label: "AUX FEED 1 (TOP)" },
                     { id: 3, label: "AUX FEED 2 (FEET)" }
                   ].map((cam) => (
-                    <div key={cam.id} className="glass-panel rounded-2xl overflow-hidden p-1 relative group bg-[#020203]">
-                      
-                      {/* Premium HUD Overlay */}
+                    <div key={cam.id} className="glass-panel rounded-2xl overflow-hidden p-1 relative group bg-[#020203] aspect-video">
                       <div className="absolute inset-1 pointer-events-none z-20 border border-white/5 rounded-xl">
-                        {/* Corner brackets */}
-                        <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-blue-500/50 rounded-tl-xl"></div>
-                        <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-blue-500/50 rounded-tr-xl"></div>
-                        <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-blue-500/50 rounded-bl-xl"></div>
-                        <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-blue-500/50 rounded-br-xl"></div>
-                        
-                        {/* Crosshairs */}
-                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 border border-white/20 rounded-full opacity-50 flex items-center justify-center">
-                          <div className="w-1 h-1 bg-blue-500 rounded-full"></div>
-                        </div>
-
-                        {/* Top Left Label */}
-                        <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-lg text-[10px] font-bold text-white flex items-center space-x-2 border border-white/10 shadow-lg">
-                          <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,1)]"></span>
+                        <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md px-2 py-1 rounded text-[9px] font-bold text-slate-300 flex items-center space-x-1 border border-white/10">
+                          <span className="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
                           <span className="tracking-widest uppercase">{cam.label}</span>
                         </div>
-
-
                       </div>
 
-                      {/* Video Stream Container */}
-                      <div className="aspect-video bg-[#050508] rounded-xl overflow-hidden relative z-10 flex items-center justify-center">
+                      <div className="w-full h-full bg-[#050508] rounded-xl overflow-hidden relative z-10 flex items-center justify-center">
                         <img 
                           src={`http://localhost:8000/api/video_feed/${cam.id}`} 
                           alt={`Feed ${cam.id}`} 
@@ -601,17 +632,14 @@ function Dashboard({ activeWorkflow }: { activeWorkflow: string[] }) {
                           onError={(e) => { 
                             const target = e.target as HTMLImageElement;
                             target.style.opacity = '0'; 
-                            // Auto-retry mechanism to ensure stream loads when backend is ready
                             setTimeout(() => { 
                               target.src = `http://localhost:8000/api/video_feed/${cam.id}?t=${Date.now()}`; 
                               target.style.opacity = '1'; 
                             }, 2500); 
                           }} 
                         />
-                        {/* Fallback NO SIGNAL text behind the image */}
                         <div className="absolute inset-0 flex flex-col items-center justify-center -z-10 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-900 to-[#050508]">
-                          <Activity className="w-8 h-8 text-slate-700 mb-2 opacity-50" />
-                          <div className="text-slate-600 font-mono text-xs tracking-widest">AWAITING SIGNAL...</div>
+                          <Activity className="w-6 h-6 text-slate-700 mb-1 opacity-50" />
                         </div>
                       </div>
                     </div>
@@ -627,10 +655,21 @@ function Dashboard({ activeWorkflow }: { activeWorkflow: string[] }) {
                     <h2 className="text-lg font-semibold tracking-wide text-white">Live Telemetry</h2>
                   </div>
                   <div className="flex-1 flex flex-col space-y-5">
-                    <TelemetryGaugeCard label="Torso Posture" value={telemetry.torso_posture} />
-                    <TelemetryGaugeCard label="Heel Alignment" value={telemetry.heel_alignment} />
-                    <TelemetryGaugeCard label="Foot Angle" value={telemetry.foot_angle} />
-                    <TelemetryGaugeCard label="Arm Alignment" value={telemetry.arm_alignment} />
+                    {currentMode === "VISHRAM" ? (
+                      <>
+                        <TelemetryGaugeCard label='Heel Spacing (12")' value={telemetry.heel_distance} />
+                        <TelemetryGaugeCard label='Toe Spacing (18")' value={telemetry.toe_distance} />
+                        <TelemetryGaugeCard label="Knee Tightness" value={telemetry.knee_tightness} />
+                        <TelemetryGaugeCard label="Hands Behind Back" value={telemetry.hands_behind_back} />
+                      </>
+                    ) : (
+                      <>
+                        <TelemetryGaugeCard label="Torso Posture" value={telemetry.torso_posture} />
+                        <TelemetryGaugeCard label="Heel Alignment" value={telemetry.heel_alignment} />
+                        <TelemetryGaugeCard label="Foot Angle" value={telemetry.foot_angle} />
+                        <TelemetryGaugeCard label="Arm Alignment" value={telemetry.arm_alignment} />
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
