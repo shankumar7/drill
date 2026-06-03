@@ -92,12 +92,7 @@ function LaunchScreen({ onComplete }: { onComplete: () => void }) {
             transition={{ duration: 1.5, ease: "easeOut" }}
           >
             <div className="absolute inset-0 bg-blue-500/10 mix-blend-overlay z-20 pointer-events-none"></div>
-            {/* Laser Scan Line */}
-            <motion.div 
-              className="absolute left-0 right-0 h-[3px] bg-blue-400 shadow-[0_0_15px_rgba(96,165,250,1)] z-30"
-              animate={{ top: ['0%', '100%', '0%'] }}
-              transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-            />
+
             <Image src="/logo.jpeg" alt="System Logo" fill className="object-cover opacity-100" />
           </motion.div>
         </div>
@@ -594,12 +589,7 @@ function Dashboard({ activeWorkflow }: { activeWorkflow: string[] }) {
                           <span className="tracking-widest uppercase">{cam.label}</span>
                         </div>
 
-                        {/* Scanning Line Effect */}
-                        <motion.div 
-                          className="absolute left-0 right-0 h-[1px] bg-blue-500/30 shadow-[0_0_10px_rgba(59,130,246,0.5)]"
-                          animate={{ top: ['0%', '100%', '0%'] }}
-                          transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
-                        />
+
                       </div>
 
                       {/* Video Stream Container */}
