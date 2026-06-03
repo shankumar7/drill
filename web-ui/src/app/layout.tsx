@@ -1,16 +1,9 @@
 import type { Metadata } from "next";
-import { Outfit } from "next/font/google";
 import "./globals.css";
 
-const outfit = Outfit({
-  variable: "--font-outfit",
-  subsets: ["latin"],
-  display: "swap",
-});
-
 export const metadata: Metadata = {
-  title: "Military Drill Analysis System",
-  description: "Advanced biomechanical tracking and posture evaluation for military drills.",
+  title: "Drill Evaluation Dashboard",
+  description: "Next.js dashboard for drill command evaluation and Python backend telemetry.",
 };
 
 export default function RootLayout({
@@ -20,11 +13,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${outfit.variable} font-sans antialiased`}
-      >
-        {children}
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

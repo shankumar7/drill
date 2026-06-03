@@ -1,36 +1,41 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Drill Web UI
 
-## Getting Started
+Next.js dashboard for drill command selection and evaluation display. This frontend is a control surface for the Python backend; it does not run YOLO, pose detection, or computer vision logic in the browser.
 
-First, run the development server:
+## Run Locally
 
 ```bash
+cd web-ui
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000` after the dev server starts.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Backend URL
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The frontend reads the backend base URL from `NEXT_PUBLIC_BACKEND_URL`.
 
-## Learn More
+```bash
+NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
+```
 
-To learn more about Next.js, take a look at the following resources:
+If this variable is not set, the frontend falls back to `http://localhost:8000`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Mock Data
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+The dashboard can run without the backend. If the backend is unavailable, the UI keeps rendering with deterministic mock evaluation data and clearly marks the connection state as `Using mock data`.
 
-## Deploy on Vercel
+## Commands
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The command selector includes:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `SAVDHAN`
+- `VISHRAM`
+- `LO 1.1.2` through `LO 1.1.11`
+
+`KADWAR` and `CANE_DRILL` are currently shown as warnings only. They are not selectable commands until backend rule metadata and evaluation support are added.
+
+## Legacy Python GUI
+
+The old Python GUI is not part of this Next.js workflow. Use it only as reference while the team transitions the UI to `web-ui`.

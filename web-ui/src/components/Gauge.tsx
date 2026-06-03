@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { motion } from "framer-motion";
 
 interface GaugeProps {
@@ -10,15 +10,9 @@ interface GaugeProps {
 }
 
 export function Gauge({ label, value, color = "#3B82F6" }: GaugeProps) {
-  const [animatedValue, setAnimatedValue] = useState(0);
-
-  useEffect(() => {
-    setAnimatedValue(value);
-  }, [value]);
-
   const radius = 40;
   const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (animatedValue / 100) * circumference;
+  const strokeDashoffset = circumference - (value / 100) * circumference;
 
   let displayColor = color;
   if (value < 50) displayColor = "#EF4444"; // Red
@@ -54,7 +48,7 @@ export function Gauge({ label, value, color = "#3B82F6" }: GaugeProps) {
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <span className="text-3xl font-bold text-white tracking-tighter">
-            {Math.round(animatedValue)}
+            {Math.round(value)}
           </span>
           <span className="text-xs text-slate-400 mt-1">%</span>
         </div>
