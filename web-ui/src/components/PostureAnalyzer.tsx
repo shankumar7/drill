@@ -1,7 +1,7 @@
 "use client";
 
-import * as tf from '@tensorflow/tfjs';
-import * as posedetection from '@tensorflow-models/pose-detection';
+let tf: any;
+let posedetection: any;
 
 export interface AnalysisResult {
   pass: boolean;
@@ -18,6 +18,10 @@ export default class PostureAnalyzer {
 
   // Load the MoveNet model (single pose) lazily
   private async loadModel() {
+    if (!posedetection) {
+      tf = await import('@tensorflow/tfjs');
+      posedetection = await import('@tensorflow-models/pose-detection');
+    }
     if (!this.detector) {
       const model = posedetection.SupportedModels.MoveNet;
       this.detector = await posedetection.createDetector(model, {

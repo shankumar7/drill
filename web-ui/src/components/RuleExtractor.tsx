@@ -1,3 +1,4 @@
+// @ts-ignore
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf';
 
 export interface Rule {
@@ -16,10 +17,8 @@ export default class RuleExtractor {
   constructor(pdfUrl: string) {
     this.url = pdfUrl;
     // Set worker src (pdfjs-dist provides a default worker script)
-    // @ts-ignore
-    pdfjsLib.GlobalWorkerOptions.workerSrc =
-      // CDN worker – works in most browsers
-      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
   }
 
   async extract(): Promise<Rule[]> {

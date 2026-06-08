@@ -66,7 +66,7 @@ export default function EvaluationPage() {
       cadetId,
       drill: selectedDrill,
       timestamp: Date.now(),
-      result: pass ? 'PASS' : 'FAIL',
+      result: (pass ? 'PASS' : 'FAIL') as 'PASS' | 'FAIL',
       details,
     };
     addRecord(record);
