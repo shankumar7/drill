@@ -12,7 +12,7 @@ import Image from "next/image";
 function LaunchScreen({ onComplete }: { onComplete: () => void }) {
   const [progress, setProgress] = useState(0);
   const [logs, setLogs] = useState<string[]>([]);
-  
+
   const bootSequence = [
     "INIT KERNEL MODULES... OK",
     "ALLOCATING NEURAL MEMORY (4096 MB)... OK",
@@ -49,7 +49,7 @@ function LaunchScreen({ onComplete }: { onComplete: () => void }) {
   }, [onComplete]);
 
   return (
-    <motion.div 
+    <motion.div
       className="fixed inset-0 z-50 flex items-center justify-center bg-[#010101] overflow-hidden font-sans selection:bg-blue-500/30"
       initial={{ opacity: 1 }}
       exit={{ opacity: 0, scale: 1.05, filter: "blur(20px)" }}
@@ -57,35 +57,35 @@ function LaunchScreen({ onComplete }: { onComplete: () => void }) {
     >
       {/* Background Layer: Tech Grid & Vignette */}
       <div className="absolute inset-0 pointer-events-none z-0 flex items-center justify-center">
-        <div 
-          className="absolute inset-0 opacity-[0.04]" 
-          style={{ 
-            backgroundImage: `linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)`, 
-            backgroundSize: '30px 30px' 
+        <div
+          className="absolute inset-0 opacity-[0.04]"
+          style={{
+            backgroundImage: `linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)`,
+            backgroundSize: '30px 30px'
           }}
         ></div>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#010101_80%)]"></div>
         <div className="w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[120px]"></div>
       </div>
-      
+
       <div className="relative z-10 w-full max-w-4xl px-4 flex flex-col items-center gap-8 mt-[-2vh]">
-        
+
         {/* Cinematic Logo Container - MASSIVELY SCALED UP */}
         <div className="relative w-[500px] h-[500px] flex items-center justify-center mb-4">
           {/* Outer Pulsing Rings */}
-          <motion.div 
-            className="absolute inset-[-40px] border-2 border-blue-500/20 rounded-full" 
-            animate={{ scale: [1, 1.3, 1], opacity: [0.1, 0, 0.1] }} 
-            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }} 
+          <motion.div
+            className="absolute inset-[-40px] border-2 border-blue-500/20 rounded-full"
+            animate={{ scale: [1, 1.3, 1], opacity: [0.1, 0, 0.1] }}
+            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
           />
-          <motion.div 
-            className="absolute inset-[-20px] border-2 border-emerald-400/20 rounded-full" 
-            animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0, 0.3] }} 
-            transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }} 
+          <motion.div
+            className="absolute inset-[-20px] border-2 border-emerald-400/20 rounded-full"
+            animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0, 0.3] }}
+            transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
           />
-          
+
           {/* Logo Container */}
-          <motion.div 
+          <motion.div
             className="w-[400px] h-[400px] bg-[#030305] rounded-full overflow-hidden border-[6px] border-white/5 shadow-[0_0_100px_rgba(59,130,246,0.5)] relative z-10"
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -99,7 +99,7 @@ function LaunchScreen({ onComplete }: { onComplete: () => void }) {
 
         {/* Typography & Boot Sequence */}
         <div className="w-full max-w-2xl flex flex-col items-center text-center">
-          <motion.div 
+          <motion.div
             initial={{ y: 30, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 1, delay: 0.4 }}
@@ -113,7 +113,7 @@ function LaunchScreen({ onComplete }: { onComplete: () => void }) {
           </motion.div>
 
           {/* Progress Bar Container */}
-          <motion.div 
+          <motion.div
             className="w-full space-y-3 mb-6"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1, delay: 0.7 }}
           >
@@ -125,42 +125,42 @@ function LaunchScreen({ onComplete }: { onComplete: () => void }) {
               <span className="text-sm font-mono text-white font-bold">{Math.floor(progress)}%</span>
             </div>
             <div className="h-2 w-full bg-[#111] rounded overflow-hidden relative border border-white/10">
-              <motion.div 
-                className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-600 to-emerald-400 shadow-[0_0_15px_rgba(56,189,248,0.8)]" 
-                initial={{ width: 0 }} animate={{ width: `${progress}%` }} 
-                transition={{ ease: "linear", duration: 0.1 }} 
+              <motion.div
+                className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-600 to-emerald-400 shadow-[0_0_15px_rgba(56,189,248,0.8)]"
+                initial={{ width: 0 }} animate={{ width: `${progress}%` }}
+                transition={{ ease: "linear", duration: 0.1 }}
               />
-              <motion.div 
-                 className="absolute top-0 bottom-0 w-32 bg-white/30 skew-x-[-20deg]"
-                 animate={{ left: ['-100%', '200%'] }}
-                 transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+              <motion.div
+                className="absolute top-0 bottom-0 w-32 bg-white/30 skew-x-[-20deg]"
+                animate={{ left: ['-100%', '200%'] }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
               />
             </div>
           </motion.div>
 
           {/* Terminal Logs */}
           <div className="w-full h-24 bg-[#050508]/80 backdrop-blur-md border border-white/10 rounded-lg p-4 overflow-hidden shadow-inner relative text-left">
-             <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0)_50%,rgba(0,0,0,0.25)_50%)] bg-[length:100%_4px] pointer-events-none z-10"></div>
-             <div className="flex flex-col space-y-1 relative z-0">
-               {logs.map((log, index) => (
-                 <motion.div 
-                   key={index} 
-                   initial={{ opacity: 0, x: -10 }} 
-                   animate={{ opacity: 1, x: 0 }}
-                   className={`text-[11px] font-mono tracking-wider ${index === logs.length - 1 ? 'text-emerald-400' : 'text-slate-400'}`}
-                 >
-                   {`> ${log}`}
-                 </motion.div>
-               ))}
-               {progress < 100 && (
-                 <motion.div 
-                   animate={{ opacity: [1, 0] }} transition={{ repeat: Infinity, duration: 0.5 }}
-                   className="text-[11px] font-mono text-emerald-400 mt-1"
-                 >
-                   _
-                 </motion.div>
-               )}
-             </div>
+            <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0)_50%,rgba(0,0,0,0.25)_50%)] bg-[length:100%_4px] pointer-events-none z-10"></div>
+            <div className="flex flex-col space-y-1 relative z-0">
+              {logs.map((log, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className={`text-[11px] font-mono tracking-wider ${index === logs.length - 1 ? 'text-emerald-400' : 'text-slate-400'}`}
+                >
+                  {`> ${log}`}
+                </motion.div>
+              ))}
+              {progress < 100 && (
+                <motion.div
+                  animate={{ opacity: [1, 0] }} transition={{ repeat: Infinity, duration: 0.5 }}
+                  className="text-[11px] font-mono text-emerald-400 mt-1"
+                >
+                  _
+                </motion.div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -173,7 +173,7 @@ function LaunchScreen({ onComplete }: { onComplete: () => void }) {
 // ==========================================
 function OnboardingScreen({ onNext }: { onNext: () => void }) {
   return (
-    <motion.div 
+    <motion.div
       className="fixed inset-0 z-40 flex items-center justify-center bg-[#020203] overflow-hidden"
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, x: -50, filter: "blur(10px)" }}
       transition={{ duration: 0.8, ease: "easeOut" }}
@@ -183,13 +183,13 @@ function OnboardingScreen({ onNext }: { onNext: () => void }) {
         {/* Glows */}
         <div className="absolute top-0 right-0 w-[1000px] h-[1000px] bg-blue-600/10 rounded-full blur-[150px] transform translate-x-1/3 -translate-y-1/3"></div>
         <div className="absolute bottom-0 left-0 w-[800px] h-[800px] bg-emerald-600/10 rounded-full blur-[150px] transform -translate-x-1/3 translate-y-1/3"></div>
-        
+
         {/* Tech Grid Overlay */}
-        <div 
-          className="absolute inset-0 opacity-[0.03]" 
-          style={{ 
-            backgroundImage: `linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)`, 
-            backgroundSize: '40px 40px' 
+        <div
+          className="absolute inset-0 opacity-[0.03]"
+          style={{
+            backgroundImage: `linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)`,
+            backgroundSize: '40px 40px'
           }}
         ></div>
 
@@ -217,14 +217,14 @@ function OnboardingScreen({ onNext }: { onNext: () => void }) {
           />
         ))}
       </div>
-      
+
       {/* Decorative Corner Accents */}
       <div className="absolute top-8 left-8 w-16 h-16 border-t-2 border-l-2 border-blue-500/50 opacity-50"></div>
       <div className="absolute bottom-8 right-8 w-16 h-16 border-b-2 border-r-2 border-emerald-500/50 opacity-50"></div>
 
       <div className="glass-panel p-12 lg:p-16 rounded-3xl max-w-5xl w-full mx-6 relative z-10 border border-white/10 shadow-[0_30px_100px_-15px_rgba(0,0,0,0.9)] bg-gradient-to-br from-[#0c0c10]/80 to-[#050508]/95">
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 1, ease: "easeOut" }}>
-          
+
           <div className="flex items-center space-x-4 mb-6">
             <Shield className="w-8 h-8 text-blue-500 opacity-80" />
             <h3 className="text-sm font-bold text-slate-400 tracking-[0.3em] uppercase">
@@ -233,12 +233,12 @@ function OnboardingScreen({ onNext }: { onNext: () => void }) {
           </div>
 
           <h1 className="text-5xl lg:text-[5rem] font-black text-white tracking-tight mb-8 leading-[1.1]">
-            Military Drill <br/>
+            Military Drill <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-cyan-400 to-emerald-400 drop-shadow-[0_0_15px_rgba(56,189,248,0.3)]">
               Analysis System.
             </span>
           </h1>
-          
+
           <div className="flex items-center space-x-4 mb-10">
             <div className="w-32 h-1 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-full"></div>
             <div className="w-4 h-1 bg-emerald-500 rounded-full"></div>
@@ -246,12 +246,12 @@ function OnboardingScreen({ onNext }: { onNext: () => void }) {
           </div>
 
           <p className="text-lg lg:text-xl text-slate-400 max-w-3xl leading-relaxed mb-14 font-light">
-            A professional evaluation suite designed for rigorous posture and alignment tracking. 
+            A professional evaluation suite designed for rigorous posture and alignment tracking.
             Initialize the workspace to begin real-time, multi-camera drill compliance assessment powered by state-of-the-art neural engines.
           </p>
 
           <div className="flex items-center space-x-8">
-            <button 
+            <button
               onClick={onNext}
               className="group relative overflow-hidden flex items-center justify-center space-x-4 bg-white text-black px-10 py-5 rounded-full font-bold text-lg hover:scale-[1.02] active:scale-95 transition-all shadow-[0_0_30px_rgba(255,255,255,0.15)] hover:shadow-[0_0_40px_rgba(255,255,255,0.3)]"
             >
@@ -333,7 +333,7 @@ function ConfigScreen({ onStart }: { onStart: (workflow: string[]) => void }) {
   };
 
   return (
-    <motion.div 
+    <motion.div
       className="fixed inset-0 z-30 flex items-center justify-center bg-[#010101] overflow-hidden font-sans"
       initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.05, filter: "blur(10px)" }}
       transition={{ duration: 0.6, ease: "easeOut" }}
@@ -346,7 +346,7 @@ function ConfigScreen({ onStart }: { onStart: (workflow: string[]) => void }) {
       </div>
 
       <div className="relative z-10 w-full h-full max-w-[1400px] mx-auto flex flex-col p-6 lg:p-10">
-        
+
         {/* Header */}
         <div className="mb-6 flex justify-between items-end">
           <div>
@@ -366,7 +366,7 @@ function ConfigScreen({ onStart }: { onStart: (workflow: string[]) => void }) {
 
         {/* Two-pane layout: Selection (Left/Top) and Timeline (Right/Bottom) */}
         <div className="flex-1 flex flex-col lg:flex-row gap-6 min-h-0">
-          
+
           {/* Action Categories (Scrollable) */}
           <div className="flex-1 overflow-y-auto custom-scrollbar pr-4 space-y-8 pb-10">
             {categorizedActions.map((cat, i) => (
@@ -376,10 +376,10 @@ function ConfigScreen({ onStart }: { onStart: (workflow: string[]) => void }) {
                   <h3 className="text-xs font-bold tracking-[0.3em] text-slate-500 uppercase">{cat.category}</h3>
                   <div className="h-[1px] flex-1 bg-white/5"></div>
                 </div>
-                
+
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {cat.actions.map((action) => (
-                    <motion.div 
+                    <motion.div
                       key={action.name}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
@@ -405,12 +405,12 @@ function ConfigScreen({ onStart }: { onStart: (workflow: string[]) => void }) {
           <div className="lg:w-[400px] xl:w-[450px] shrink-0 flex flex-col gap-4 h-[300px] lg:h-auto">
             <div className="flex-1 glass-panel rounded-2xl p-6 border border-white/10 flex flex-col relative overflow-hidden shadow-2xl">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 to-emerald-400"></div>
-              
+
               <h3 className="text-xs font-bold tracking-[0.2em] text-white uppercase mb-4 flex items-center">
                 <Activity className="w-4 h-4 mr-2 text-blue-400" />
                 Active Sequence
               </h3>
-              
+
               <div className="flex-1 bg-[#050508]/80 rounded-xl border border-white/5 p-4 overflow-y-auto custom-scrollbar relative">
                 {workflow.length === 0 ? (
                   <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-600 font-mono tracking-widest text-xs">
@@ -421,9 +421,9 @@ function ConfigScreen({ onStart }: { onStart: (workflow: string[]) => void }) {
                   <div className="flex flex-col space-y-2">
                     <AnimatePresence>
                       {workflow.map((action, idx) => (
-                        <motion.div 
+                        <motion.div
                           key={`${action}-${idx}`}
-                          initial={{ opacity: 0, x: 20 }} 
+                          initial={{ opacity: 0, x: 20 }}
                           animate={{ opacity: 1, x: 0 }}
                           exit={{ opacity: 0, scale: 0.9, x: -20 }}
                           onClick={() => handleRemove(idx)}
@@ -445,12 +445,12 @@ function ConfigScreen({ onStart }: { onStart: (workflow: string[]) => void }) {
             </div>
 
             {/* Start Button */}
-            <button 
+            <button
               onClick={() => onStart(workflow)}
               disabled={workflow.length === 0}
               className={`w-full py-5 rounded-2xl font-bold text-sm tracking-widest uppercase transition-all flex items-center justify-center space-x-3 shadow-lg
-                ${workflow.length > 0 
-                  ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_30px_rgba(16,185,129,0.3)] hover:scale-[1.02] active:scale-95' 
+                ${workflow.length > 0
+                  ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_30px_rgba(16,185,129,0.3)] hover:scale-[1.02] active:scale-95'
                   : 'bg-slate-800/50 text-slate-500 cursor-not-allowed border border-white/5'}`}
             >
               <span>Initialize Evaluation</span>
@@ -485,7 +485,7 @@ function Dashboard({ activeWorkflow }: { activeWorkflow: string[] }) {
 
   useEffect(() => {
     const ws = new WebSocket("ws://localhost:8000/ws/telemetry");
-    
+
     ws.onopen = () => {
       ws.send(JSON.stringify({ mode: currentMode }));
     };
@@ -497,14 +497,14 @@ function Dashboard({ activeWorkflow }: { activeWorkflow: string[] }) {
   }, [currentMode]);
 
   return (
-    <motion.div 
+    <motion.div
       className="min-h-screen flex flex-col font-sans bg-[#050505]"
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8 }}
     >
       <header className="glass-header h-16 flex items-center justify-between px-6 lg:px-8 sticky top-0 z-40 border-b border-white/5">
         <div className="flex items-center space-x-4">
           <div className="w-8 h-8 rounded-full overflow-hidden border border-white/20">
-             <Image src="/logo.jpeg" alt="Logo" width={32} height={32} className="object-cover" />
+            <Image src="/logo.jpeg" alt="Logo" width={32} height={32} className="object-cover" />
           </div>
           <div className="h-4 w-px bg-white/10 hidden sm:block"></div>
           <h1 className="text-lg font-bold tracking-wide uppercase hidden sm:block text-white">
@@ -536,7 +536,7 @@ function Dashboard({ activeWorkflow }: { activeWorkflow: string[] }) {
         {/* Content */}
         <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
           <div className="max-w-[1800px] mx-auto space-y-6">
-            
+
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
               <div>
                 <h2 className="text-3xl font-bold tracking-tight text-white">Active Drill Session</h2>
@@ -557,22 +557,22 @@ function Dashboard({ activeWorkflow }: { activeWorkflow: string[] }) {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <StatCard title="Overall Alignment Score" value={`${telemetry.overall_score}%`} color="blue" subtitle="Aggregated multi-angle evaluation" />
               <div className="glass-panel rounded-2xl p-5 relative overflow-hidden flex items-center border-l-4 border-l-indigo-500">
-                 <div className="flex-1">
-                   <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-1">Squad Status</h3>
-                   <div className={`text-3xl font-bold ${telemetry.status === 'Excellent' ? 'text-green-400' : telemetry.status === 'Good' ? 'text-yellow-400' : 'text-red-400'}`}>
-                     {telemetry.status}
-                   </div>
-                 </div>
+                <div className="flex-1">
+                  <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-1">Squad Status</h3>
+                  <div className={`text-3xl font-bold ${telemetry.status === 'Excellent' ? 'text-green-400' : telemetry.status === 'Good' ? 'text-yellow-400' : 'text-red-400'}`}>
+                    {telemetry.status}
+                  </div>
+                </div>
               </div>
               <StatCard title="Active Feeds" value="4/4" color="emerald" subtitle="Front, Top, Side, Feet" />
             </div>
 
             {/* Video Matrix & Telemetry */}
             <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-              
+
               {/* Multi-Camera Matrix (Spans 3 cols) */}
               <div className="xl:col-span-3 flex flex-col gap-6">
-                
+
                 {/* Main Camera (Front) - Huge */}
                 <div className="glass-panel rounded-2xl overflow-hidden p-1 relative group bg-[#020203] shadow-2xl h-[500px] border border-blue-500/20">
                   {/* Premium HUD Overlay */}
@@ -581,7 +581,7 @@ function Dashboard({ activeWorkflow }: { activeWorkflow: string[] }) {
                     <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-blue-500/50 rounded-tr-xl"></div>
                     <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-blue-500/50 rounded-bl-xl"></div>
                     <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-blue-500/50 rounded-br-xl"></div>
-                    
+
                     <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md px-4 py-2 rounded-lg text-xs font-bold text-white flex items-center space-x-2 border border-white/10 shadow-lg">
                       <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,1)]"></span>
                       <span className="tracking-widest uppercase">MAIN CAMERA (FRONT)</span>
@@ -589,18 +589,18 @@ function Dashboard({ activeWorkflow }: { activeWorkflow: string[] }) {
                   </div>
 
                   <div className="w-full h-full bg-[#050508] rounded-xl overflow-hidden relative z-10 flex items-center justify-center">
-                    <img 
-                      src={`http://localhost:8000/api/video_feed/1`} 
-                      alt="Main Feed" 
-                      className="w-full h-full object-contain transition-opacity duration-300" 
-                      onError={(e) => { 
+                    <img
+                      src={`http://localhost:8000/api/video_feed/1`}
+                      alt="Main Feed"
+                      className="w-full h-full object-contain transition-opacity duration-300"
+                      onError={(e) => {
                         const target = e.target as HTMLImageElement;
-                        target.style.opacity = '0'; 
-                        setTimeout(() => { 
-                          target.src = `http://localhost:8000/api/video_feed/1?t=${Date.now()}`; 
-                          target.style.opacity = '1'; 
-                        }, 2500); 
-                      }} 
+                        target.style.opacity = '0';
+                        setTimeout(() => {
+                          target.src = `http://localhost:8000/api/video_feed/1?t=${Date.now()}`;
+                          target.style.opacity = '1';
+                        }, 2500);
+                      }}
                     />
                     <div className="absolute inset-0 flex flex-col items-center justify-center -z-10 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-900 to-[#050508]">
                       <Activity className="w-12 h-12 text-slate-700 mb-3 opacity-50" />
@@ -625,23 +625,25 @@ function Dashboard({ activeWorkflow }: { activeWorkflow: string[] }) {
                       </div>
 
                       <div className="w-full h-full bg-[#050508] rounded-xl overflow-hidden relative z-10 flex items-center justify-center">
-                        <img 
-                          src={`http://localhost:8000/api/video_feed/${cam.id}`} 
-                          alt={`Feed ${cam.id}`} 
-                          className="w-full h-full object-cover transition-opacity duration-300" 
-                          onError={(e) => { 
+                        <img
+                          src={`http://localhost:8000/api/video_feed/${cam.id}`}
+                          alt={`Feed ${cam.id}`}
+                          className="w-full h-full object-cover transition-opacity duration-300"
+                          onError={(e) => {
                             const target = e.target as HTMLImageElement;
-                            target.style.opacity = '0'; 
-                            setTimeout(() => { 
-                              target.src = `http://localhost:8000/api/video_feed/${cam.id}?t=${Date.now()}`; 
-                              target.style.opacity = '1'; 
-                            }, 2500); 
-                          }} 
+                            target.style.opacity = '0';
+                            setTimeout(() => {
+                              target.src = `http://localhost:8000/api/video_feed/${cam.id}?t=${Date.now()}`;
+                              target.style.opacity = '1';
+                            }, 2500);
+                          }}
                         />
                         <div className="absolute inset-0 flex flex-col items-center justify-center -z-10 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-900 to-[#050508]">
                           <Activity className="w-6 h-6 text-slate-700 mb-1 opacity-50" />
                         </div>
                       </div>
+
+
                     </div>
                   ))}
                 </div>
@@ -716,7 +718,7 @@ function TelemetryGaugeCard({ label, value }: { label: string, value: number }) 
         <span className="text-xl font-bold text-white font-mono">{value}<span className="text-xs text-slate-500 ml-0.5">%</span></span>
       </div>
       <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
-        <motion.div 
+        <motion.div
           className={`h-full rounded-full ${value >= 80 ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : value >= 50 ? 'bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.6)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]'}`}
           initial={{ width: 0 }} animate={{ width: `${value}%` }} transition={{ duration: 0.5 }}
         />
