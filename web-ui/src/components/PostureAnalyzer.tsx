@@ -1,7 +1,9 @@
 "use client";
 
+import type * as posedetection from '@tensorflow-models/pose-detection';
+
 let tf: any;
-let posedetection: any;
+let poseDetectionModule: typeof posedetection;
 
 export interface AnalysisResult {
   pass: boolean;
@@ -18,13 +20,13 @@ export default class PostureAnalyzer {
 
   // Load the MoveNet model (single pose) lazily
   private async loadModel() {
-    if (!posedetection) {
+    if (!poseDetectionModule) {
       tf = await import('@tensorflow/tfjs');
-      posedetection = await import('@tensorflow-models/pose-detection');
+      poseDetectionModule = await import('@tensorflow-models/pose-detection');
     }
     if (!this.detector) {
-      const model = posedetection.SupportedModels.MoveNet;
-      this.detector = await posedetection.createDetector(model, {
+      const model = poseDetectionModule.SupportedModels.MoveNet;
+      this.detector = await poseDetectionModule.createDetector(model, {
         modelType: 'SinglePose.Lightning',
       });
     }
