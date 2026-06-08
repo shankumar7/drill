@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
 import "./globals.css";
+import { EvaluationProvider } from "../../context/EvaluationContext";
 
 const outfit = Outfit({
   variable: "--font-outfit",
@@ -23,7 +24,9 @@ export default function RootLayout({
       <body
         className={`${outfit.variable} font-sans antialiased`}
       >
-        {children}
+        <EvaluationProvider>
+          {children}
+        </EvaluationProvider>
       </body>
     </html>
   );
