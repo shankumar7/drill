@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useRef, useEffect } from 'react';
 import { useEvaluation } from '@/context/EvaluationContext';
 import CameraFeed, { CameraFeedHandle } from '@/components/CameraFeed';

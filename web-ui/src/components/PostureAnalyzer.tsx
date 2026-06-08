@@ -1,3 +1,5 @@
+"use client";
+
 import * as tf from '@tensorflow/tfjs';
 import * as posedetection from '@tensorflow-models/pose-detection';
 

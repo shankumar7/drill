@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useRef, useEffect, useImperativeHandle, forwardRef } from 'react';
 
 interface CameraFeedProps {

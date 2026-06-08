@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
 import "./globals.css";
-import { EvaluationProvider } from "../../context/EvaluationContext";
+import { EvaluationProvider } from "@/context/EvaluationContext";
 
 const outfit = Outfit({
   variable: "--font-outfit",
