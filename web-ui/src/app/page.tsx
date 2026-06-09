@@ -93,7 +93,7 @@ function LaunchScreen({ onComplete }: { onComplete: () => void }) {
           >
             <div className="absolute inset-0 bg-blue-500/10 mix-blend-overlay z-20 pointer-events-none"></div>
 
-            <Image src="/logo.jpeg" alt="System Logo" fill className="object-cover opacity-100" />
+            <Image src="/logo.jpeg" alt="System Logo" fill sizes="400px" priority className="object-cover opacity-100" />
           </motion.div>
         </div>
 
