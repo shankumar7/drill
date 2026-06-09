@@ -3,9 +3,10 @@
 import React, { useRef, useEffect, useImperativeHandle, forwardRef } from 'react';
 
 interface CameraFeedProps {
-  deviceId: string;
+  deviceId?: string;
   cadetId: string;
   className?: string;
+  onFrame?: (imageData: ImageData) => void | Promise<void>;
 }
 
 export interface CameraFeedHandle {
@@ -13,24 +14,59 @@ export interface CameraFeedHandle {
 }
 
 export const CameraFeed = forwardRef<CameraFeedHandle, CameraFeedProps>(
-  ({ deviceId, cadetId, className }, ref) => {
+  ({ deviceId, cadetId, className, onFrame }, ref) => {
     const videoRef = useRef<HTMLVideoElement>(null);
+    const requestRef = useRef<number>(0);
 
     useEffect(() => {
-      const constraints = { video: { deviceId: { exact: deviceId } } };
+      const constraints = deviceId ? { video: { deviceId: { exact: deviceId } } } : { video: true };
       navigator.mediaDevices
         .getUserMedia(constraints)
         .then((stream) => {
           if (videoRef.current) videoRef.current.srcObject = stream;
         })
         .catch((err) => console.error('Camera error:', err));
+        
       return () => {
         if (videoRef.current && videoRef.current.srcObject) {
           const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
           tracks.forEach((t) => t.stop());
         }
+        if (requestRef.current) cancelAnimationFrame(requestRef.current);
       };
     }, [deviceId]);
+
+    useEffect(() => {
+      if (!onFrame) return;
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      
+      let isProcessing = false;
+      const processFrame = async () => {
+        if (videoRef.current && videoRef.current.readyState >= 2 && ctx && !isProcessing) {
+          isProcessing = true;
+          try {
+            // Draw video at a slightly reduced resolution for performance
+            const scale = 0.5; // Scale down for faster inference
+            canvas.width = videoRef.current.videoWidth * scale;
+            canvas.height = videoRef.current.videoHeight * scale;
+            ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            await onFrame(imgData);
+          } catch (e) {
+            console.error(e);
+          } finally {
+            isProcessing = false;
+          }
+        }
+        requestRef.current = requestAnimationFrame(processFrame);
+      };
+      
+      requestRef.current = requestAnimationFrame(processFrame);
+      return () => {
+        if (requestRef.current) cancelAnimationFrame(requestRef.current);
+      };
+    }, [onFrame]);
 
     // Expose captureFrames method via ref
     useImperativeHandle(ref, () => ({

@@ -467,34 +467,57 @@ function ConfigScreen({ onStart }: { onStart: (workflow: string[]) => void }) {
 // ==========================================
 // 4. MAIN DASHBOARD (Multi-Camera)
 // ==========================================
+import { globalCadetTracker } from "@/utils/CadetTracker";
+import { CameraFeed } from "@/components/CameraFeed";
+import type { SavadhanTelemetry } from "@/components/PostureAnalyzer";
+
 function Dashboard({ activeWorkflow }: { activeWorkflow: string[] }) {
   const [telemetry, setTelemetry] = useState({
     torso_posture: 0,
     heel_alignment: 0,
     foot_angle: 0,
     arm_alignment: 0,
-    heel_distance: 0,
-    toe_distance: 0,
-    knee_tightness: 0,
-    hands_behind_back: 0,
     overall_score: 0,
     status: "Initializing...",
   });
 
+  const [analyzer, setAnalyzer] = useState<any>(null);
+  const [availableCameras, setAvailableCameras] = useState<MediaDeviceInfo[]>([]);
+  
+  useEffect(() => {
+    // Dynamically load PostureAnalyzer
+    import("@/components/PostureAnalyzer").then((mod) => {
+      setAnalyzer(new mod.default([]));
+    });
+
+    // Enumerate cameras
+    navigator.mediaDevices.enumerateDevices().then(devices => {
+      setAvailableCameras(devices.filter(d => d.kind === 'videoinput'));
+    }).catch(e => console.error("Could not enumerate cameras", e));
+  }, []);
+
   const currentMode = activeWorkflow.length > 0 ? activeWorkflow[0].toUpperCase() : "SAVDHAN";
 
-  useEffect(() => {
-    const ws = new WebSocket("ws://localhost:8000/ws/telemetry");
-
-    ws.onopen = () => {
-      ws.send(JSON.stringify({ mode: currentMode }));
-    };
-
-    ws.onmessage = (event) => {
-      try { setTelemetry(JSON.parse(event.data)); } catch (e) { }
-    };
-    return () => ws.close();
-  }, [currentMode]);
+  const handleFrame = async (cameraId: string, frame: ImageData) => {
+    if (!analyzer) return;
+    try {
+      const result: SavadhanTelemetry = await analyzer.predictFrame(frame);
+      const cadetId = globalCadetTracker.getCadetId(cameraId, result.isPoseDetected);
+      
+      if (cadetId) {
+        setTelemetry(prev => ({
+          torso_posture: Math.round((prev.torso_posture + result.torso_posture) / 2),
+          heel_alignment: Math.round((prev.heel_alignment + result.heel_alignment) / 2),
+          foot_angle: Math.round((prev.foot_angle + result.foot_angle) / 2),
+          arm_alignment: Math.round((prev.arm_alignment + result.arm_alignment) / 2),
+          overall_score: Math.round((prev.overall_score + result.overall_score) / 2),
+          status: result.overall_score > 80 ? "Excellent" : result.overall_score > 50 ? "Good" : "Needs Correction",
+        }));
+      }
+    } catch (e) {
+      console.warn("Pose estimation error", e);
+    }
+  };
 
   return (
     <motion.div
@@ -575,13 +598,7 @@ function Dashboard({ activeWorkflow }: { activeWorkflow: string[] }) {
 
                 {/* Main Camera (Front) - Huge */}
                 <div className="glass-panel rounded-2xl overflow-hidden p-1 relative group bg-[#020203] shadow-2xl h-[500px] border border-blue-500/20">
-                  {/* Premium HUD Overlay */}
                   <div className="absolute inset-1 pointer-events-none z-20 border border-white/5 rounded-xl">
-                    <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-blue-500/50 rounded-tl-xl"></div>
-                    <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-blue-500/50 rounded-tr-xl"></div>
-                    <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-blue-500/50 rounded-bl-xl"></div>
-                    <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-blue-500/50 rounded-br-xl"></div>
-
                     <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md px-4 py-2 rounded-lg text-xs font-bold text-white flex items-center space-x-2 border border-white/10 shadow-lg">
                       <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,1)]"></span>
                       <span className="tracking-widest uppercase">MAIN CAMERA (FRONT)</span>
@@ -589,30 +606,19 @@ function Dashboard({ activeWorkflow }: { activeWorkflow: string[] }) {
                   </div>
 
                   <div className="w-full h-full bg-[#050508] rounded-xl overflow-hidden relative z-10 flex items-center justify-center">
-                    <img
-                      src={`http://localhost:8000/api/video_feed/1`}
-                      alt="Main Feed"
+                    <CameraFeed 
+                      cadetId="CADET-01"
+                      deviceId={availableCameras[0]?.deviceId}
                       className="w-full h-full object-contain transition-opacity duration-300"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.style.opacity = '0';
-                        setTimeout(() => {
-                          target.src = `http://localhost:8000/api/video_feed/1?t=${Date.now()}`;
-                          target.style.opacity = '1';
-                        }, 2500);
-                      }}
+                      onFrame={(frame) => handleFrame("cam-main", frame)}
                     />
-                    <div className="absolute inset-0 flex flex-col items-center justify-center -z-10 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-900 to-[#050508]">
-                      <Activity className="w-12 h-12 text-slate-700 mb-3 opacity-50" />
-                      <div className="text-slate-600 font-mono text-sm tracking-widest">AWAITING SIGNAL...</div>
-                    </div>
                   </div>
                 </div>
 
                 {/* Secondary Cameras Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {[
-                    { id: 0, label: "EXTERNAL CAMERA (SIDE)" },
+                    { id: 1, label: "EXTERNAL CAMERA (SIDE)" },
                     { id: 2, label: "AUX FEED 1 (TOP)" },
                     { id: 3, label: "AUX FEED 2 (FEET)" }
                   ].map((cam) => (
@@ -625,25 +631,23 @@ function Dashboard({ activeWorkflow }: { activeWorkflow: string[] }) {
                       </div>
 
                       <div className="w-full h-full bg-[#050508] rounded-xl overflow-hidden relative z-10 flex items-center justify-center">
-                        <img
-                          src={`http://localhost:8000/api/video_feed/${cam.id}`}
-                          alt={`Feed ${cam.id}`}
-                          className="w-full h-full object-cover transition-opacity duration-300"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.style.opacity = '0';
-                            setTimeout(() => {
-                              target.src = `http://localhost:8000/api/video_feed/${cam.id}?t=${Date.now()}`;
-                              target.style.opacity = '1';
-                            }, 2500);
-                          }}
-                        />
-                        <div className="absolute inset-0 flex flex-col items-center justify-center -z-10 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-900 to-[#050508]">
+                        {availableCameras.length > cam.id ? (
+                          <CameraFeed 
+                            cadetId="CADET-01"
+                            deviceId={availableCameras[cam.id].deviceId}
+                            className="w-full h-full object-cover transition-opacity duration-300"
+                            onFrame={(frame) => handleFrame(`cam-aux-${cam.id}`, frame)}
+                          />
+                        ) : (
+                          <div className="flex flex-col items-center justify-center opacity-30">
+                            <Activity className="w-8 h-8 text-slate-500 mb-2" />
+                            <span className="text-xs font-bold text-slate-500 tracking-widest">NO SIGNAL</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center -z-10 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-900 to-[#050508]">
                           <Activity className="w-6 h-6 text-slate-700 mb-1 opacity-50" />
                         </div>
-                      </div>
-
-
                     </div>
                   ))}
                 </div>
@@ -659,10 +663,10 @@ function Dashboard({ activeWorkflow }: { activeWorkflow: string[] }) {
                   <div className="flex-1 flex flex-col space-y-5">
                     {currentMode === "VISHRAM" ? (
                       <>
-                        <TelemetryGaugeCard label='Heel Spacing (12")' value={telemetry.heel_distance} />
-                        <TelemetryGaugeCard label='Toe Spacing (18")' value={telemetry.toe_distance} />
-                        <TelemetryGaugeCard label="Knee Tightness" value={telemetry.knee_tightness} />
-                        <TelemetryGaugeCard label="Hands Behind Back" value={telemetry.hands_behind_back} />
+                        <TelemetryGaugeCard label="Torso Posture" value={telemetry.torso_posture} />
+                        <TelemetryGaugeCard label="Heel Alignment" value={telemetry.heel_alignment} />
+                        <TelemetryGaugeCard label="Foot Angle" value={telemetry.foot_angle} />
+                        <TelemetryGaugeCard label="Arm Alignment" value={telemetry.arm_alignment} />
                       </>
                     ) : (
                       <>
