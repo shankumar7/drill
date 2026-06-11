@@ -1,5 +1,8 @@
 import cv2
 import asyncio
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import json
 import numpy as np
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
@@ -75,37 +78,23 @@ def estimate_foot_geometry(keypoints):
     
     return {
         "heel_to_heel_in": heel_dist_in,
-        "toe_to_toe_in": toe_dist_in
+        "toe_to_toe_in": toe_dist_in,
+        "true_heel_dist": heel_dist_px,
+        "pose_scale": shoulder_pixel_width,
+        "ground_plane_angle": 30.0 # Mock angle for simulator
     }
 
 async def generate_frames(camera_id: int):
     global LATEST_TELEMETRY, ACTIVE_MODE
     import os
     
-    # 3-Camera Mapping
-    # 0 = Front, 1 = Side, 2 = Back
     home = os.path.expanduser('~')
     desktop = os.path.join(home, 'Desktop')
+    filepath = os.path.join(desktop, 'savadhan_synced_output.mp4')
     
-    video_map = {
-        0: (os.path.join(desktop, 'front.mp4'), 1.034),
-        1: (os.path.join(desktop, 'side.mp4'), 0.0),
-        2: (os.path.join(desktop, 'back.mp4'), 3.138)
-    }
-    
-    if camera_id not in video_map:
-        while True:
-            frame = np.ones((480, 640, 3), dtype=np.uint8) * 50
-            cv2.putText(frame, "INVALID CAMERA ID", (150, 240), 
-                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-            ret, buffer = cv2.imencode('.jpg', frame)
-            yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
-            await asyncio.sleep(1)
-
-    filepath, offset_sec = video_map[camera_id]
     cap = cv2.VideoCapture(filepath)
     
-    if not cap.isOpened():
+    if not cap.isOpened() or camera_id not in [0, 1, 2]:
         while True:
             frame = np.ones((480, 640, 3), dtype=np.uint8) * 150
             cv2.putText(frame, f"CAM {camera_id} - MISSING VIDEO", (150, 240), 
@@ -115,17 +104,22 @@ async def generate_frames(camera_id: int):
             await asyncio.sleep(0.1)
 
     fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
-    start_frame = int(offset_sec * fps)
-    cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
             
     while True:
         success, frame = cap.read()
         if not success:
-            # Loop video, maintaining sync offset
-            cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
+            cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
             success, frame = cap.read()
             if not success:
                 break
+                
+        # Slice the 804x480 frame into 3 sections (268px wide each)
+        if camera_id == 0:
+            frame = frame[:, :268]
+        elif camera_id == 1:
+            frame = frame[:, 268:536]
+        elif camera_id == 2:
+            frame = frame[:, 536:]
         
         if pose_estimator:
             try:
@@ -171,13 +165,18 @@ async def startup_event():
 
 async def fusion_evaluator_loop():
     global LATEST_TELEMETRY
+    current_evaluator_mode = None
+    evaluator = None
+    
     while True:
         await asyncio.sleep(0.05)  # 20 FPS Evaluation
         
         try:
             from backend.evaluation.evaluator import StaticPostureEvaluator
-            evaluator = StaticPostureEvaluator(ACTIVE_MODE)
-            
+            if current_evaluator_mode != ACTIVE_MODE:
+                evaluator = StaticPostureEvaluator(ACTIVE_MODE)
+                current_evaluator_mode = ACTIVE_MODE
+                
             # Copy detections under lock
             async with DETECTION_LOCK:
                 detections_snapshot = dict(MULTI_CAM_DETECTIONS)
@@ -185,6 +184,7 @@ async def fusion_evaluator_loop():
             # Find the most recent timestamp
             timestamps = [v["ts"] for v in detections_snapshot.values() if v]
             if not timestamps:
+                # print("No timestamps found in detections")
                 continue
             latest_ts = max(timestamps)
             
@@ -192,9 +192,12 @@ async def fusion_evaluator_loop():
             for cam_id, entry in detections_snapshot.items():
                 if not entry:
                     continue
-                # Timestamp sync: only use detections within 0.1 s of the latest frame
-                if abs(entry["ts"] - latest_ts) > 0.1:
+                # Timestamp sync: allow up to 2 seconds of drift for the video simulator
+                diff = abs(entry["ts"] - latest_ts)
+                if diff > 2.0:
+                    # print(f"Cam {cam_id} skipped due to time diff: {diff:.3f}s")
                     continue
+                
                 det = entry["det"]
                 conf = entry.get("conf", 1.0)
                 evaluation = evaluator.evaluate(det)
@@ -207,6 +210,7 @@ async def fusion_evaluator_loop():
                             fused_scores[r.name] = weighted_score
 
             if not fused_scores:
+                # print(f"No fused scores! Evaluated cams: {list(detections_snapshot.keys())}")
                 continue
 
             # De‑weight back to 0‑100 range (since we multiplied by confidence ≤ 1)
