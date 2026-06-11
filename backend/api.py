@@ -80,7 +80,20 @@ def estimate_foot_geometry(keypoints):
 
 async def generate_frames(camera_id: int):
     global LATEST_TELEMETRY, ACTIVE_MODE
-    if camera_id not in [0, 1]:
+    import os
+    
+    # 3-Camera Mapping
+    # 0 = Front, 1 = Side, 2 = Back
+    home = os.path.expanduser('~')
+    desktop = os.path.join(home, 'Desktop')
+    
+    video_map = {
+        0: (os.path.join(desktop, 'front.mp4'), 1.034),
+        1: (os.path.join(desktop, 'side.mp4'), 0.0),
+        2: (os.path.join(desktop, 'back.mp4'), 3.138)
+    }
+    
+    if camera_id not in video_map:
         while True:
             frame = np.ones((480, 640, 3), dtype=np.uint8) * 50
             cv2.putText(frame, "INVALID CAMERA ID", (150, 240), 
@@ -89,20 +102,30 @@ async def generate_frames(camera_id: int):
             yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
             await asyncio.sleep(1)
 
-    cap = cv2.VideoCapture(camera_id)
+    filepath, offset_sec = video_map[camera_id]
+    cap = cv2.VideoCapture(filepath)
+    
     if not cap.isOpened():
         while True:
             frame = np.ones((480, 640, 3), dtype=np.uint8) * 150
-            cv2.putText(frame, f"CAM {camera_id} - NO SIGNAL", (150, 240), 
+            cv2.putText(frame, f"CAM {camera_id} - MISSING VIDEO", (150, 240), 
                         cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
             ret, buffer = cv2.imencode('.jpg', frame)
             yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
             await asyncio.sleep(0.1)
+
+    fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
+    start_frame = int(offset_sec * fps)
+    cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
             
     while True:
         success, frame = cap.read()
         if not success:
-            break
+            # Loop video, maintaining sync offset
+            cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
+            success, frame = cap.read()
+            if not success:
+                break
         
         if pose_estimator:
             try:
@@ -110,17 +133,15 @@ async def generate_frames(camera_id: int):
                 if detections:
                     det = detections[0]
                     det.foot_geometry = estimate_foot_geometry(det.keypoints)
-                    # Compute pixels per inch for this detection (fallback if too small)
                     shoulder_px = np.linalg.norm(det.keypoints[5, :2] - det.keypoints[6, :2])
                     if shoulder_px < 10:
                         shoulder_px = 100
                     ppi = shoulder_px / 16.0
                     avg_conf = float(np.mean(det.keypoints[:, 2]))
-                    # Store detection with metadata under lock
+                    
                     async with DETECTION_LOCK:
                         MULTI_CAM_DETECTIONS[camera_id] = {"det": det, "ts": time.time(), "ppi": ppi, "conf": avg_conf}
                     
-                    # Draw skeleton for vis
                     from backend.visualization.debug_view import _draw_skeleton
                     _draw_skeleton(frame, det.keypoints)
                 else:
@@ -129,11 +150,15 @@ async def generate_frames(camera_id: int):
             except Exception as e:
                 print(f"Error in ML pipeline: {e}")
 
-        cv2.putText(frame, f"CAM {camera_id} - {ACTIVE_MODE}", (30, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+        # Add camera label
+        cam_names = {0: "FRONT", 1: "SIDE", 2: "BACK"}
+        cv2.putText(frame, f"{cam_names[camera_id]} - {ACTIVE_MODE}", (30, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
         
         ret, buffer = cv2.imencode('.jpg', frame)
         yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
-        await asyncio.sleep(0.03)
+        # Maintain roughly 30 FPS playback simulation
+        await asyncio.sleep(1/fps)
+
 
 @app.get("/api/video_feed/{camera_id}")
 async def video_feed(camera_id: int):
