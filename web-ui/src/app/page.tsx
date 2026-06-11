@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Gauge } from "../components/Gauge";
 import { Activity, Shield, Users, Camera, LayoutGrid, Settings, LogOut, ChevronRight, CheckCircle2, ChevronRightCircle, Plus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -465,63 +465,154 @@ function ConfigScreen({ onStart }: { onStart: (workflow: string[]) => void }) {
 }
 
 // ==========================================
-// 4. MAIN DASHBOARD (Multi-Camera)
+// 4. COUNTDOWN SCREEN
+// ==========================================
+function CountdownScreen({ onComplete }: { onComplete: () => void }) {
+  const [count, setCount] = useState(5);
+
+  useEffect(() => {
+    if (count > 0) {
+      const timer = setTimeout(() => setCount(count - 1), 1000);
+      return () => clearTimeout(timer);
+    } else {
+      const timer = setTimeout(onComplete, 800);
+      return () => clearTimeout(timer);
+    }
+  }, [count, onComplete]);
+
+  return (
+    <motion.div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[#010101]"
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+    >
+      <div className="absolute inset-0 pointer-events-none z-0 flex items-center justify-center">
+        <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: `linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)`, backgroundSize: '30px 30px' }}></div>
+        <div className="w-[600px] h-[600px] bg-emerald-600/10 rounded-full blur-[150px]"></div>
+      </div>
+
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={count}
+          initial={{ scale: 0.5, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 1.5, opacity: 0 }}
+          transition={{ duration: 0.5 }}
+          className="text-[12rem] font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-400 drop-shadow-[0_0_50px_rgba(255,255,255,0.2)] relative z-10"
+        >
+          {count > 0 ? count : "GO"}
+        </motion.div>
+      </AnimatePresence>
+    </motion.div>
+  );
+}
+
+// ==========================================
+// 5. MAIN DASHBOARD (Multi-Camera)
 // ==========================================
 import { globalCadetTracker } from "@/utils/CadetTracker";
-import { CameraFeed } from "@/components/CameraFeed";
-import type { SavadhanTelemetry } from "@/components/PostureAnalyzer";
-
-function Dashboard({ activeWorkflow }: { activeWorkflow: string[] }) {
-  const [telemetry, setTelemetry] = useState({
-    torso_posture: 0,
-    heel_alignment: 0,
-    foot_angle: 0,
-    arm_alignment: 0,
+// Duplicate import removed
+function Dashboard({ activeWorkflow, onComplete }: { activeWorkflow: string[], onComplete: (results: any[]) => void }) {
+  const [selectedCadet, setSelectedCadet] = useState<string | null>(null);
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [sessionResults, setSessionResults] = useState<{ drill: string, pass: boolean, score: number }[]>([]);
+  const [wsStatus, setWsStatus] = useState<"connecting" | "connected" | "disconnected">("connecting");
+  
+  const [telemetry, setTelemetry] = useState<{ metrics: Record<string, number>, overall_score: number, status: string }>({
+    metrics: {},
     overall_score: 0,
     status: "Initializing...",
   });
 
-  const [analyzer, setAnalyzer] = useState<any>(null);
-  const [availableCameras, setAvailableCameras] = useState<MediaDeviceInfo[]>([]);
-  
-  useEffect(() => {
-    // Dynamically load PostureAnalyzer
-    import("@/components/PostureAnalyzer").then((mod) => {
-      setAnalyzer(new mod.default([]));
-    });
+  const wsRef = useRef<WebSocket | null>(null);
+  const reconnectTimeout = useRef<NodeJS.Timeout | null>(null);
 
-    // Enumerate cameras
-    navigator.mediaDevices.enumerateDevices().then(devices => {
-      setAvailableCameras(devices.filter(d => d.kind === 'videoinput'));
-    }).catch(e => console.error("Could not enumerate cameras", e));
+  const connectWebSocket = () => {
+    const ws = new WebSocket("ws://localhost:8000/ws/telemetry");
+    wsRef.current = ws;
+
+    ws.onopen = () => {
+      setWsStatus("connected");
+      console.log("Telemetry Connected");
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        const { overall_score, status, ...metrics } = data;
+        
+        const cleanMetrics: Record<string, number> = {};
+        for (const key in metrics) {
+           if (metrics[key] > 0) {
+               const formattedKey = key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+               cleanMetrics[formattedKey] = metrics[key];
+           }
+        }
+        
+        setTelemetry({
+          metrics: cleanMetrics,
+          overall_score: overall_score || 0,
+          status: status || "Initializing..."
+        });
+      } catch (e) {
+        console.warn("WebSocket parse error", e);
+      }
+    };
+
+    ws.onclose = () => {
+      setWsStatus("disconnected");
+      reconnectTimeout.current = setTimeout(connectWebSocket, 3000);
+    };
+
+    ws.onerror = () => ws.close();
+  };
+
+  useEffect(() => {
+    connectWebSocket();
+    return () => {
+      if (reconnectTimeout.current) {
+  clearTimeout(reconnectTimeout.current);
+}
+      wsRef.current?.close();
+    };
   }, []);
 
-  const currentMode = activeWorkflow.length > 0 ? activeWorkflow[0].toUpperCase() : "SAVDHAN";
+  const rawMode = activeWorkflow.length > 0 ? activeWorkflow[currentStepIndex].toUpperCase() : "SAVDHAN";
+  const modeMap: Record<string, string> = {
+    "SAMNE SALUTE": "FRONT_SALUTE",
+    "BAYEN SALUTE": "BAYE_SALUTE",
+    "DAHINE SALUTE": "DAINE_SALUTE"
+  };
+  const currentMode = modeMap[rawMode] || rawMode;
 
-  const handleFrame = async (cameraId: string, frame: ImageData) => {
-    if (!analyzer) return;
-    try {
-      const result: SavadhanTelemetry = await analyzer.predictFrame(frame);
-      const cadetId = globalCadetTracker.getCadetId(cameraId, result.isPoseDetected);
-      
-      if (cadetId) {
-        setTelemetry(prev => ({
-          torso_posture: Math.round((prev.torso_posture + result.torso_posture) / 2),
-          heel_alignment: Math.round((prev.heel_alignment + result.heel_alignment) / 2),
-          foot_angle: Math.round((prev.foot_angle + result.foot_angle) / 2),
-          arm_alignment: Math.round((prev.arm_alignment + result.arm_alignment) / 2),
-          overall_score: Math.round((prev.overall_score + result.overall_score) / 2),
-          status: result.overall_score > 80 ? "Excellent" : result.overall_score > 50 ? "Good" : "Needs Correction",
-        }));
-      }
-    } catch (e) {
-      console.warn("Pose estimation error", e);
+  useEffect(() => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ mode: currentMode }));
+    }
+  }, [currentMode]);
+
+  const handleNextDrill = () => {
+    const finalScore = telemetry.overall_score;
+    const isPass = finalScore >= 80;
+    
+    const newResults = [...sessionResults, {
+      drill: activeWorkflow[currentStepIndex],
+      pass: isPass,
+      score: finalScore
+    }];
+    
+    setSessionResults(newResults);
+
+    if (currentStepIndex < activeWorkflow.length - 1) {
+      setCurrentStepIndex(currentStepIndex + 1);
+      setTelemetry({ metrics: {}, overall_score: 0, status: "Initializing..." });
+    } else {
+      onComplete(newResults);
     }
   };
 
   return (
     <motion.div
-      className="min-h-screen flex flex-col font-sans bg-[#050505]"
+      className="min-h-screen flex flex-col font-sans bg-[#050505] relative"
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8 }}
     >
       <header className="glass-header h-16 flex items-center justify-between px-6 lg:px-8 sticky top-0 z-40 border-b border-white/5">
@@ -535,12 +626,14 @@ function Dashboard({ activeWorkflow }: { activeWorkflow: string[] }) {
           </h1>
         </div>
         <div className="flex items-center space-x-6">
-          <div className="flex items-center space-x-3 px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/20">
+          <div className={`flex items-center space-x-3 px-3 py-1.5 rounded-full border ${wsStatus === 'connected' ? 'bg-green-500/10 border-green-500/20' : 'bg-red-500/10 border-red-500/20'}`}>
             <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${wsStatus === 'connected' ? 'bg-green-400' : 'bg-red-400'} opacity-75`}></span>
+              <span className={`relative inline-flex rounded-full h-2 w-2 ${wsStatus === 'connected' ? 'bg-green-500' : 'bg-red-500'}`}></span>
             </span>
-            <span className="text-xs font-semibold text-green-400 tracking-wider">SQUAD ONLINE</span>
+            <span className={`text-xs font-semibold tracking-wider ${wsStatus === 'connected' ? 'text-green-400' : 'text-red-400'}`}>
+              {wsStatus === 'connected' ? 'SYSTEM ONLINE' : 'DISCONNECTED'}
+            </span>
           </div>
         </div>
       </header>
@@ -567,13 +660,19 @@ function Dashboard({ activeWorkflow }: { activeWorkflow: string[] }) {
                   <span>Sequence:</span>
                   <ChevronRight className="w-4 h-4 text-slate-600" />
                   <span className="text-blue-400 font-bold uppercase tracking-wider">
-                    {activeWorkflow.join(" → ") || "SAVDHAN"}
+                    {activeWorkflow[currentStepIndex] || "SAVDHAN"}
+                  </span>
+                  <span className="text-slate-600 font-mono text-xs ml-2">
+                    ({currentStepIndex + 1} / {activeWorkflow.length || 1})
                   </span>
                 </p>
               </div>
-              <button className="px-6 py-2.5 rounded-lg bg-red-600/20 hover:bg-red-600/40 text-red-400 border border-red-500/30 font-medium text-sm transition-all">
-                End Session
-              </button>
+              <div className="flex items-center space-x-4">
+                <button onClick={handleNextDrill} className="px-6 py-2.5 rounded-lg bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 border border-blue-500/30 font-medium text-sm transition-all flex items-center space-x-2">
+                  <span>{currentStepIndex < activeWorkflow.length - 1 ? "Next Drill" : "Finish Session"}</span>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
             {/* Top Stats */}
@@ -606,12 +705,36 @@ function Dashboard({ activeWorkflow }: { activeWorkflow: string[] }) {
                   </div>
 
                   <div className="w-full h-full bg-[#050508] rounded-xl overflow-hidden relative z-10 flex items-center justify-center">
-                    <CameraFeed 
-                      cadetId="CADET-01"
-                      deviceId={availableCameras[0]?.deviceId}
-                      className="w-full h-full object-contain transition-opacity duration-300"
-                      onFrame={(frame) => handleFrame("cam-main", frame)}
-                    />
+                    {selectedCadet ? (
+                      <img 
+                        src="http://localhost:8000/api/video_feed/0" 
+                        alt="Main Camera Feed" 
+                        className="w-full h-full object-contain transition-opacity duration-300"
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-[#050508]"></div>
+                    )}
+                    {!selectedCadet && (
+                      <div 
+                        className="absolute inset-0 z-30 bg-blue-900/20 flex flex-col items-center justify-center cursor-pointer hover:bg-blue-900/10 transition-colors backdrop-blur-[2px]"
+                        onClick={() => {
+                          const id = `CADET-${Math.floor(Math.random()*1000).toString().padStart(3, '0')}`;
+                          globalCadetTracker.setActiveCadetId(id);
+                          setSelectedCadet(id);
+                        }}
+                      >
+                        <div className="w-32 h-48 border-2 border-dashed border-blue-400 rounded-lg animate-[pulse_2s_ease-in-out_Infinity] flex items-center justify-center bg-blue-500/10 mb-4 shadow-[0_0_30px_rgba(59,130,246,0.3)]">
+                          <Users className="w-8 h-8 text-blue-400 opacity-80" />
+                        </div>
+                        <div className="bg-black/80 px-5 py-3 rounded-full border border-blue-500/50 shadow-[0_0_20px_rgba(59,130,246,0.5)]">
+                          <span className="text-sm font-bold text-white uppercase tracking-widest flex items-center space-x-2">
+                            <span className="w-2 h-2 rounded-full bg-blue-400 animate-ping"></span>
+                            <span>Click on Cadet to Lock Tracking</span>
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -631,19 +754,20 @@ function Dashboard({ activeWorkflow }: { activeWorkflow: string[] }) {
                       </div>
 
                       <div className="w-full h-full bg-[#050508] rounded-xl overflow-hidden relative z-10 flex items-center justify-center">
-                        {availableCameras.length > cam.id ? (
-                          <CameraFeed 
-                            cadetId="CADET-01"
-                            deviceId={availableCameras[cam.id].deviceId}
-                            className="w-full h-full object-cover transition-opacity duration-300"
-                            onFrame={(frame) => handleFrame(`cam-aux-${cam.id}`, frame)}
-                          />
-                        ) : (
-                          <div className="flex flex-col items-center justify-center opacity-30">
-                            <Activity className="w-8 h-8 text-slate-500 mb-2" />
-                            <span className="text-xs font-bold text-slate-500 tracking-widest">NO SIGNAL</span>
-                          </div>
-                        )}
+                        <img 
+                          src={`http://localhost:8000/api/video_feed/${cam.id}`} 
+                          alt={`Aux Camera ${cam.id}`} 
+                          className="w-full h-full object-cover transition-opacity duration-300"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                            e.currentTarget.nextElementSibling?.classList.add('flex');
+                          }}
+                        />
+                        <div className="hidden flex-col items-center justify-center opacity-30 absolute inset-0">
+                          <Activity className="w-8 h-8 text-slate-500 mb-2" />
+                          <span className="text-xs font-bold text-slate-500 tracking-widest">NO SIGNAL</span>
+                        </div>
                       </div>
                       <div className="absolute inset-0 flex flex-col items-center justify-center -z-10 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-900 to-[#050508]">
                           <Activity className="w-6 h-6 text-slate-700 mb-1 opacity-50" />
@@ -661,20 +785,11 @@ function Dashboard({ activeWorkflow }: { activeWorkflow: string[] }) {
                     <h2 className="text-lg font-semibold tracking-wide text-white">Live Telemetry</h2>
                   </div>
                   <div className="flex-1 flex flex-col space-y-5">
-                    {currentMode === "VISHRAM" ? (
-                      <>
-                        <TelemetryGaugeCard label="Torso Posture" value={telemetry.torso_posture} />
-                        <TelemetryGaugeCard label="Heel Alignment" value={telemetry.heel_alignment} />
-                        <TelemetryGaugeCard label="Foot Angle" value={telemetry.foot_angle} />
-                        <TelemetryGaugeCard label="Arm Alignment" value={telemetry.arm_alignment} />
-                      </>
-                    ) : (
-                      <>
-                        <TelemetryGaugeCard label="Torso Posture" value={telemetry.torso_posture} />
-                        <TelemetryGaugeCard label="Heel Alignment" value={telemetry.heel_alignment} />
-                        <TelemetryGaugeCard label="Foot Angle" value={telemetry.foot_angle} />
-                        <TelemetryGaugeCard label="Arm Alignment" value={telemetry.arm_alignment} />
-                      </>
+                    {Object.entries(telemetry.metrics).map(([label, value]) => (
+                      <TelemetryGaugeCard key={label} label={label} value={value} />
+                    ))}
+                    {Object.keys(telemetry.metrics).length === 0 && (
+                      <div className="text-slate-500 text-sm italic">Waiting for cadet lock...</div>
                     )}
                   </div>
                 </div>
@@ -706,7 +821,7 @@ function StatCard({ title, value, subtitle, color }: any) {
   const colorMap: Record<string, string> = { blue: "border-l-blue-500", emerald: "border-l-emerald-500" };
   return (
     <div className={`glass-panel rounded-2xl p-5 border-l-4 ${colorMap[color]} relative overflow-hidden group`}>
-      <div className={`absolute -right-4 -top-4 w-24 h-24 bg-${color}-500/5 rounded-full blur-2xl group-hover:bg-${color}-500/10 transition-colors`}></div>
+      <div className={`absolute -right-4 -top-4 w-24 h-24 bg-${color}-500/5 rounded-full blur-2xl group-hover:bg-${color}-500/10 transition-colors`} />
       <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-1">{title}</h3>
       <div className="text-3xl font-bold text-white mb-1">{value}</div>
       <p className="text-xs text-slate-500">{subtitle}</p>
@@ -714,7 +829,7 @@ function StatCard({ title, value, subtitle, color }: any) {
   );
 }
 
-function TelemetryGaugeCard({ label, value }: { label: string, value: number }) {
+function TelemetryGaugeCard({ label, value }: { label: string; value: number }) {
   return (
     <div className="bg-black/30 rounded-xl border border-white/5 p-4 flex flex-col justify-center hover:border-white/10 transition-colors">
       <div className="flex justify-between items-end mb-3">
@@ -732,11 +847,73 @@ function TelemetryGaugeCard({ label, value }: { label: string, value: number }) 
 }
 
 // ==========================================
+// RESULTS SCREEN
+// ==========================================
+function ResultsScreen({ results, onRestart }: { results: any[]; onRestart: () => void }) {
+  const passed = results.filter(r => r.pass).length;
+  const total = results.length;
+
+  return (
+    <motion.div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#010101] overflow-hidden" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+      <div className="absolute inset-0 pointer-events-none z-0">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#010101_80%)]" />
+        <div className="w-[800px] h-[800px] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-blue-600/10 rounded-full blur-[120px]" />
+      </div>
+      <div className="relative z-10 w-full max-w-4xl p-8 glass-panel rounded-3xl border border-white/10 shadow-[0_30px_100px_-15px_rgba(0,0,0,0.9)] bg-gradient-to-br from-[#0c0c10]/80 to-[#050508]/95">
+        <div className="text-center mb-10">
+          <h1 className="text-4xl font-black text-white uppercase tracking-wider mb-2">Final Evaluation</h1>
+          <p className="text-slate-400">Sequence completed. Here is the strict rule‑based breakdown.</p>
+        </div>
+        <div className="grid grid-cols-3 gap-6 mb-10 text-center">
+          <div className="p-6 bg-white/5 rounded-2xl border border-white/10">
+            <div className="text-sm font-bold text-slate-400 tracking-widest uppercase mb-2">Total Drills</div>
+            <div className="text-4xl font-black text-white">{total}</div>
+          </div>
+          <div className="p-6 bg-white/5 rounded-2xl border border-white/10">
+            <div className="text-sm font-bold text-slate-400 tracking-widest uppercase mb-2">Passed</div>
+            <div className="text-4xl font-black text-emerald-400">{passed}</div>
+          </div>
+          <div className="p-6 bg-white/5 rounded-2xl border border-white/10">
+            <div className="text-sm font-bold text-slate-400 tracking-widest uppercase mb-2">Failed</div>
+            <div className="text-4xl font-black text-red-400">{total - passed}</div>
+          </div>
+        </div>
+        <div className="space-y-3 mb-10 max-h-[40vh] overflow-y-auto custom-scrollbar pr-4">
+          {results.map((r, i) => (
+            <div key={i} className="flex items-center justify-between p-4 bg-white/5 border border-white/10 rounded-xl">
+              <div className="flex items-center space-x-4">
+                <span className="text-slate-500 font-mono font-bold text-sm">{(i + 1).toString().padStart(2, '0')}</span>
+                <span className="text-white font-bold text-lg">{r.drill}</span>
+              </div>
+              <div className="flex items-center space-x-6">
+                <div className="text-right">
+                  <div className="text-xs text-slate-400 uppercase tracking-widest">Score</div>
+                  <div className="font-mono text-white font-bold">{r.score}%</div>
+                </div>
+                <div className={`px-4 py-1.5 rounded-md font-bold text-xs uppercase tracking-wider ${r.pass ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}`}>
+                  {r.pass ? 'PASS' : 'FAIL'}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="text-center">
+          <button onClick={onRestart} className="px-10 py-4 bg-white text-black font-bold uppercase tracking-widest rounded-full hover:scale-105 transition-transform shadow-[0_0_30px_rgba(255,255,255,0.15)]">
+            New Session
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// ==========================================
 // APP ENTRY POINT
 // ==========================================
 export default function App() {
-  const [appState, setAppState] = useState<"launch" | "onboarding" | "config" | "dashboard">("launch");
+  const [appState, setAppState] = useState<"launch" | "onboarding" | "config" | "countdown" | "dashboard" | "results">("launch");
   const [workflow, setWorkflow] = useState<string[]>([]);
+  const [finalResults, setFinalResults] = useState<any[]>([]);
 
   return (
     <AnimatePresence mode="wait">
@@ -747,10 +924,16 @@ export default function App() {
         <OnboardingScreen key="onboard" onNext={() => setAppState("config")} />
       )}
       {appState === "config" && (
-        <ConfigScreen key="config" onStart={(wf) => { setWorkflow(wf); setAppState("dashboard"); }} />
+        <ConfigScreen key="config" onStart={(wf) => { setWorkflow(wf); setAppState("countdown"); }} />
+      )}
+      {appState === "countdown" && (
+        <CountdownScreen key="countdown" onComplete={() => setAppState("dashboard")} />
       )}
       {appState === "dashboard" && (
-        <Dashboard key="dashboard" activeWorkflow={workflow} />
+        <Dashboard key="dashboard" activeWorkflow={workflow} onComplete={(results) => { setFinalResults(results); setAppState("results"); }} />
+      )}
+      {appState === "results" && (
+        <ResultsScreen key="results" results={finalResults} onRestart={() => setAppState("launch")} />
       )}
     </AnimatePresence>
   );

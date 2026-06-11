@@ -8,6 +8,16 @@ SKELETON = [
 ]
 
 
+def _draw_skeleton(frame, keypoints):
+    for start, end in SKELETON:
+        if start < len(keypoints) and end < len(keypoints):
+            p1, p2 = keypoints[start], keypoints[end]
+            if p1[2] > 0.25 and p2[2] > 0.25:
+                cv2.line(frame, tuple(p1[:2].astype(int)), tuple(p2[:2].astype(int)), (255, 180, 0), 2)
+    for point in keypoints:
+        if point[2] > 0.25:
+            cv2.circle(frame, tuple(point[:2].astype(int)), 3, (0, 0, 255), -1)
+
 def render_debug_view(result: PipelineResult, show_foot_debug: bool = False):
     frame = result.packet.image.copy()
     for detection in result.detections:

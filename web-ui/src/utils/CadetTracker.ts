@@ -1,8 +1,12 @@
 export class CadetTracker {
-  private activeCadetId: string = "CADET-01";
+  private activeCadetId: string | null = null;
   private lastSeen: Record<string, number> = {}; // timestamp per camera ID
 
   constructor() {}
+
+  public setActiveCadetId(id: string) {
+    this.activeCadetId = id;
+  }
 
   public getCadetId(cameraId: string, isPoseDetected: boolean): string | null {
     const now = Date.now();

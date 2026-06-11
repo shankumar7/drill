@@ -27,10 +27,16 @@ LATEST_TELEMETRY = {
     "toe_distance": 0,
     "knee_tightness": 0,
     "hands_behind_back": 0,
+    "salute_arm_angle": 0,
+    "straight_arm_angle": 0,
+    "head_direction": 0,
+    "salute_hand_position": 0,
     "overall_score": 0,
     "status": "Initializing..."
 }
 ACTIVE_MODE = "SAVDHAN"
+MULTI_CAM_DETECTIONS = {}
+DETECTION_LOCK = asyncio.Lock()
 
 pose_estimator = None
 try:
@@ -98,45 +104,28 @@ async def generate_frames(camera_id: int):
         if not success:
             break
         
-        # Only run ML on camera 1 to save processing
-        if camera_id == 1 and pose_estimator:
+        if pose_estimator:
             try:
-                from backend.evaluation.evaluator import StaticPostureEvaluator
-                evaluator = StaticPostureEvaluator(ACTIVE_MODE)
-                
                 detections = pose_estimator.infer(frame)
                 if detections:
                     det = detections[0]
                     det.foot_geometry = estimate_foot_geometry(det.keypoints)
-                    evaluation = evaluator.evaluate(det)
-                    
-                    scores = {}
-                    for r in evaluation.rules:
-                        scores[r.name] = r.score if r.score is not None else 0
-                    
-                    # Map rule names to telemetry keys
-                    if ACTIVE_MODE == "SAVDHAN":
-                        LATEST_TELEMETRY.update({
-                            "torso_posture": scores.get("Shoulder level", 0),
-                            "heel_alignment": scores.get("Heel contact", 0),
-                            "foot_angle": scores.get("Foot angle", 0),
-                            "arm_alignment": scores.get("Arm position", 0),
-                            "overall_score": evaluation.overall_score or 0,
-                            "status": evaluation.status.replace("_", " ").title()
-                        })
-                    elif ACTIVE_MODE == "VISHRAM":
-                        LATEST_TELEMETRY.update({
-                            "heel_distance": scores.get("Foot spacing", 0),
-                            "toe_distance": scores.get("Foot spacing", 0),
-                            "knee_tightness": scores.get("Knee lock", 0),
-                            "hands_behind_back": scores.get("Hands behind back", 0),
-                            "overall_score": evaluation.overall_score or 0,
-                            "status": evaluation.status.replace("_", " ").title()
-                        })
+                    # Compute pixels per inch for this detection (fallback if too small)
+                    shoulder_px = np.linalg.norm(det.keypoints[5, :2] - det.keypoints[6, :2])
+                    if shoulder_px < 10:
+                        shoulder_px = 100
+                    ppi = shoulder_px / 16.0
+                    avg_conf = float(np.mean(det.keypoints[:, 2]))
+                    # Store detection with metadata under lock
+                    async with DETECTION_LOCK:
+                        MULTI_CAM_DETECTIONS[camera_id] = {"det": det, "ts": time.time(), "ppi": ppi, "conf": avg_conf}
                     
                     # Draw skeleton for vis
                     from backend.visualization.debug_view import _draw_skeleton
                     _draw_skeleton(frame, det.keypoints)
+                else:
+                    async with DETECTION_LOCK:
+                        MULTI_CAM_DETECTIONS[camera_id] = None
             except Exception as e:
                 print(f"Error in ML pipeline: {e}")
 
@@ -149,6 +138,88 @@ async def generate_frames(camera_id: int):
 @app.get("/api/video_feed/{camera_id}")
 async def video_feed(camera_id: int):
     return StreamingResponse(generate_frames(camera_id), media_type="multipart/x-mixed-replace; boundary=frame")
+
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(fusion_evaluator_loop())
+    asyncio.create_task(prune_stale_detections())
+
+async def fusion_evaluator_loop():
+    global LATEST_TELEMETRY
+    while True:
+        await asyncio.sleep(0.05)  # 20 FPS Evaluation
+        
+        try:
+            from backend.evaluation.evaluator import StaticPostureEvaluator
+            evaluator = StaticPostureEvaluator(ACTIVE_MODE)
+            
+            # Copy detections under lock
+            async with DETECTION_LOCK:
+                detections_snapshot = dict(MULTI_CAM_DETECTIONS)
+            
+            # Find the most recent timestamp
+            timestamps = [v["ts"] for v in detections_snapshot.values() if v]
+            if not timestamps:
+                continue
+            latest_ts = max(timestamps)
+            
+            fused_scores = {}
+            for cam_id, entry in detections_snapshot.items():
+                if not entry:
+                    continue
+                # Timestamp sync: only use detections within 0.1 s of the latest frame
+                if abs(entry["ts"] - latest_ts) > 0.1:
+                    continue
+                det = entry["det"]
+                conf = entry.get("conf", 1.0)
+                evaluation = evaluator.evaluate(det)
+                
+                for r in evaluation.rules:
+                    if r.score is not None:
+                        weighted_score = r.score * conf
+                        # Keep the highest weighted score for each rule
+                        if r.name not in fused_scores or weighted_score > fused_scores[r.name]:
+                            fused_scores[r.name] = weighted_score
+
+            if not fused_scores:
+                continue
+
+            # De‑weight back to 0‑100 range (since we multiplied by confidence ≤ 1)
+            overall_score = round(sum(fused_scores.values()) / len(fused_scores))
+            status = "Excellent" if overall_score >= 80 else "Good" if overall_score >= 50 else "Needs Correction"
+
+            if ACTIVE_MODE == "SAVDHAN":
+                LATEST_TELEMETRY.update({
+                    "torso_posture": fused_scores.get("Back Posture", 0),
+                    "heel_alignment": fused_scores.get("Heel contact", 0),
+                    "foot_angle": fused_scores.get("Foot angle", 0),
+                    "arm_alignment": fused_scores.get("Arms at sides", 0),
+                    "knee_tightness": fused_scores.get("Knee distance", 0),
+                    "overall_score": overall_score,
+                    "status": status
+                })
+            elif ACTIVE_MODE == "VISHRAM":
+                LATEST_TELEMETRY.update({
+                    "heel_distance": fused_scores.get("Foot spacing", 0),
+                    "toe_distance": fused_scores.get("Foot spacing", 0),
+                    "knee_tightness": fused_scores.get("Knee lock", 0),
+                    "hands_behind_back": fused_scores.get("Hands behind back", 0),
+                    "torso_posture": fused_scores.get("Back Posture", 0),
+                    "overall_score": overall_score,
+                    "status": status
+                })
+            elif ACTIVE_MODE in ["FRONT_SALUTE", "BAYE_SALUTE", "DAINE_SALUTE"]:
+                LATEST_TELEMETRY.update({
+                    "torso_posture": fused_scores.get("Back Posture", 0),
+                    "salute_arm_angle": fused_scores.get("Saluting Arm Angle", 0),
+                    "straight_arm_angle": fused_scores.get("Straight Arm Angle", 0),
+                    "head_direction": fused_scores.get("Head Direction", 0),
+                    "salute_hand_position": fused_scores.get("Saluting Hand Position", 0),
+                    "overall_score": overall_score,
+                    "status": status
+                })
+        except Exception as e:
+            print(f"Fusion error: {e}")
 
 @app.websocket("/ws/telemetry")
 async def websocket_telemetry(websocket: WebSocket):
@@ -181,6 +252,16 @@ async def websocket_telemetry(websocket: WebSocket):
         task1.cancel()
         task2.cancel()
         print("Client disconnected")
+
+async def prune_stale_detections():
+    """Remove detections older than 2 seconds to avoid stale data poisoning the fusion."""
+    while True:
+        await asyncio.sleep(1)
+        now = time.time()
+        async with DETECTION_LOCK:
+            stale_keys = [k for k, v in MULTI_CAM_DETECTIONS.items() if v and (now - v["ts"] > 2)]
+            for k in stale_keys:
+                del MULTI_CAM_DETECTIONS[k]
 
 if __name__ == "__main__":
     import uvicorn
