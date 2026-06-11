@@ -830,11 +830,12 @@ function StatCard({ title, value, subtitle, color }: any) {
 }
 
 function TelemetryGaugeCard({ label, value }: { label: string; value: number }) {
+  const displayValue = value % 1 === 0 ? value : Number(value.toFixed(1));
   return (
     <div className="bg-black/30 rounded-xl border border-white/5 p-4 flex flex-col justify-center hover:border-white/10 transition-colors">
       <div className="flex justify-between items-end mb-3">
         <h4 className="text-sm font-medium text-slate-300 tracking-wide">{label}</h4>
-        <span className="text-xl font-bold text-white font-mono">{value}<span className="text-xs text-slate-500 ml-0.5">%</span></span>
+        <span className="text-xl font-bold text-white font-mono">{displayValue}<span className="text-xs text-slate-500 ml-0.5">%</span></span>
       </div>
       <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
         <motion.div

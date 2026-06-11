@@ -186,17 +186,15 @@ async def fusion_evaluator_loop():
             if not timestamps:
                 # print("No timestamps found in detections")
                 continue
-            latest_ts = max(timestamps)
             
             fused_scores = {}
+            fused_weights = {}
             for cam_id, entry in detections_snapshot.items():
                 if not entry:
                     continue
-                # Timestamp sync: allow up to 2 seconds of drift for the video simulator
-                diff = abs(entry["ts"] - latest_ts)
-                if diff > 2.0:
-                    # print(f"Cam {cam_id} skipped due to time diff: {diff:.3f}s")
-                    continue
+                # For the demo simulator, all 3 views come from a perfectly synced
+                # video file but different HTTP streams, so we completely bypass
+                # the timestamp drift check.
                 
                 det = entry["det"]
                 conf = entry.get("conf", 1.0)
@@ -205,12 +203,15 @@ async def fusion_evaluator_loop():
                 for r in evaluation.rules:
                     if r.score is not None:
                         weighted_score = r.score * conf
-                        # Keep the highest weighted score for each rule
-                        if r.name not in fused_scores or weighted_score > fused_scores[r.name]:
-                            fused_scores[r.name] = weighted_score
+                        # Keep the raw score from the camera that had the best weighted score
+                        if r.name not in fused_weights or weighted_score > fused_weights[r.name]:
+                            fused_weights[r.name] = weighted_score
+                            fused_scores[r.name] = r.score
 
+            with open("/tmp/fusion_debug.txt", "a") as f:
+                f.write(f"Cams: {list(detections_snapshot.keys())}, Scores: {fused_scores}\n")
+                
             if not fused_scores:
-                # print(f"No fused scores! Evaluated cams: {list(detections_snapshot.keys())}")
                 continue
 
             # De‑weight back to 0‑100 range (since we multiplied by confidence ≤ 1)
@@ -248,6 +249,9 @@ async def fusion_evaluator_loop():
                     "status": status
                 })
         except Exception as e:
+            import traceback
+            with open("/tmp/fusion_error.txt", "a") as f:
+                f.write(traceback.format_exc() + "\n")
             print(f"Fusion error: {e}")
 
 @app.websocket("/ws/telemetry")
@@ -268,7 +272,10 @@ async def websocket_telemetry(websocket: WebSocket):
                 msg = json.loads(data)
                 if "mode" in msg:
                     ACTIVE_MODE = msg["mode"].upper()
-                    print(f"Switched mode to: {ACTIVE_MODE}")
+                    # Fix spelling mismatch from UI "Savadhan" vs backend "SAVDHAN"
+                    if ACTIVE_MODE == "SAVADHAN":
+                        ACTIVE_MODE = "SAVDHAN"
+                    print(f"Mode switched to {ACTIVE_MODE}")
             except Exception:
                 break
                 
