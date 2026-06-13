@@ -704,68 +704,119 @@ function Dashboard({ activeWorkflow, onComplete }: { activeWorkflow: string[], o
               <StatCard title="Tracking System" value="ONLINE" color="emerald" subtitle="Multi-cam telemetry active" />
             </div>
 
-                        {/* Split Pane: Roster and Evaluation */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              
-              {/* Left Pane: Cadet Roster */}
-              <div className="lg:col-span-1 glass-panel rounded-2xl p-6 flex flex-col min-h-[600px]">
-                <div className="flex items-center space-x-3 mb-6 pb-4 border-b border-white/5">
-                  <Users className="w-5 h-5 text-blue-400" />
-                  <h2 className="text-lg font-semibold tracking-wide text-white">Detected Cadets</h2>
-                </div>
-                <div className="flex-1 overflow-y-auto space-y-4">
-                  {telemetry.detected_ids.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full text-slate-500 space-y-3">
-                      <Camera className="w-8 h-8 opacity-50" />
-                      <p className="text-sm font-mono tracking-widest uppercase">No Cadets in frame</p>
+                                    {/* Video Matrix & Telemetry */}
+            <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+
+              {/* Multi-Camera Matrix (Spans 3 cols) */}
+              <div className="xl:col-span-3 flex flex-col gap-6">
+
+                {/* Main Camera (Front) - Huge */}
+                <div className="glass-panel rounded-2xl overflow-hidden p-1 relative group bg-[#020203] shadow-2xl h-[500px] border border-blue-500/20">
+                  <div className="absolute inset-1 pointer-events-none z-20 border border-white/5 rounded-xl">
+                    <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md px-4 py-2 rounded-lg text-xs font-bold text-white flex items-center space-x-2 border border-white/10 shadow-lg">
+                      <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,1)]"></span>
+                      <span className="tracking-widest uppercase">MAIN CAMERA (FRONT)</span>
                     </div>
-                  ) : (
-                    telemetry.detected_ids.map(id => (
-                      <button 
-                        key={id}
-                        onClick={() => lockCadet(id)}
-                        className={`w-full p-5 rounded-xl border flex items-center justify-between transition-all shadow-lg
-                          ${selectedCadet === id.toString() 
-                            ? 'bg-blue-600/20 border-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.3)]' 
-                            : 'bg-white/5 border-white/10 hover:bg-white/10'}`}
-                      >
-                        <div className="flex items-center space-x-4">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black ${selectedCadet === id.toString() ? 'bg-blue-500 text-white' : 'bg-white/10 text-slate-400'}`}>
-                            {id}
+                  </div>
+
+                  <div className="w-full h-full bg-[#050508] rounded-xl overflow-hidden relative z-10 flex items-center justify-center">
+                    {selectedCadet ? (
+                      <img 
+                        src="http://localhost:8000/api/video_feed/0" 
+                        alt="Main Camera Feed" 
+                        className="w-full h-full object-contain transition-opacity duration-300"
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                      />
+                    ) : (
+                      <>
+                        <img 
+                          src="http://localhost:8000/api/video_feed/0" 
+                          alt="Main Camera Feed (Unselected)" 
+                          className="w-full h-full object-contain transition-opacity duration-300 opacity-50"
+                          onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                        />
+                        <div 
+                          className="absolute inset-0 z-30 bg-blue-900/40 flex flex-col items-center justify-center transition-colors backdrop-blur-[2px]"
+                        >
+                          <div className="mb-6 bg-black/80 px-6 py-3 rounded-full border border-blue-500/50 shadow-[0_0_20px_rgba(59,130,246,0.5)]">
+                            <span className="text-sm font-bold text-white uppercase tracking-widest flex items-center space-x-2">
+                              <span className="w-2 h-2 rounded-full bg-blue-400 animate-ping"></span>
+                              <span>Select a Cadet from the Video Feed below</span>
+                            </span>
                           </div>
-                          <span className={`font-bold tracking-widest uppercase ${selectedCadet === id.toString() ? 'text-blue-400' : 'text-slate-300'}`}>
-                            Cadet ID {id}
-                          </span>
+                          <div className="flex gap-4 flex-wrap justify-center max-w-2xl">
+                              {telemetry.detected_ids.length > 0 ? (
+                                telemetry.detected_ids.map(id => (
+                                  <button key={id} onClick={() => lockCadet(id)} className="px-6 py-3 bg-blue-600/80 hover:bg-blue-500 rounded-lg text-white font-bold border border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.5)] backdrop-blur-md">
+                                      TRACK CADET ID: {id}
+                                  </button>
+                                ))
+                              ) : (
+                                <div className="text-white bg-red-600/80 px-6 py-3 rounded-lg font-bold border border-red-400">
+                                  WAITING FOR CADETS TO APPEAR IN FRAME...
+                                </div>
+                              )}
+                          </div>
                         </div>
-                        {selectedCadet === id.toString() && <CheckCircle2 className="w-5 h-5 text-blue-400" />}
-                      </button>
-                    ))
-                  )}
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Secondary Cameras Grid (Side and Back) */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {[
+                    { id: 1, label: "EXTERNAL CAMERA (SIDE)" },
+                    { id: 2, label: "EXTERNAL CAMERA (BACK)" }
+                  ].map((cam) => (
+                    <div key={cam.id} className="glass-panel rounded-2xl overflow-hidden p-1 relative group bg-[#020203] aspect-video">
+                      <div className="absolute inset-1 pointer-events-none z-20 border border-white/5 rounded-xl">
+                        <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md px-2 py-1 rounded text-[9px] font-bold text-slate-300 flex items-center space-x-1 border border-white/10">
+                          <span className="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
+                          <span className="tracking-widest uppercase">{cam.label}</span>
+                        </div>
+                      </div>
+
+                      <div className="w-full h-full bg-[#050508] rounded-xl overflow-hidden relative z-10 flex items-center justify-center">
+                        <img 
+                          src={`http://localhost:8000/api/video_feed/${cam.id}`} 
+                          alt={`Aux Camera ${cam.id}`} 
+                          className="w-full h-full object-cover transition-opacity duration-300"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                            e.currentTarget.nextElementSibling?.classList.add('flex');
+                          }}
+                        />
+                        <div className="hidden flex-col items-center justify-center opacity-30 absolute inset-0">
+                          <Activity className="w-8 h-8 text-slate-500 mb-2" />
+                          <span className="text-xs font-bold text-slate-500 tracking-widest">NO SIGNAL</span>
+                        </div>
+                      </div>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center -z-10 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-900 to-[#050508]">
+                          <Activity className="w-6 h-6 text-slate-700 mb-1 opacity-50" />
+                        </div>
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              {/* Right Pane: Evaluation Checklist */}
-              <div className="lg:col-span-2 glass-panel rounded-2xl p-8 flex flex-col min-h-[600px]">
-                <div className="flex items-center space-x-3 mb-8 pb-4 border-b border-white/10">
-                  <Activity className="w-6 h-6 text-emerald-400" />
-                  <h2 className="text-2xl font-bold tracking-wide text-white">Strict Rule Evaluation</h2>
+              {/* Telemetry Sidebar */}
+              <div className="xl:col-span-1">
+                <div className="glass-panel rounded-2xl p-6 h-full flex flex-col">
+                  <div className="flex items-center space-x-3 mb-6 pb-4 border-b border-white/5">
+                    <Activity className="w-5 h-5 text-blue-400" />
+                    <h2 className="text-lg font-semibold tracking-wide text-white">Live Evaluation</h2>
+                  </div>
+                  <div className="flex-1 flex flex-col space-y-5 overflow-y-auto pr-2 custom-scrollbar">
+                    {Object.entries(telemetry.metrics).map(([label, value]) => (
+                      <TelemetryGaugeCard key={label} label={label} value={value} />
+                    ))}
+                    {Object.keys(telemetry.metrics).length === 0 && (
+                      <div className="text-slate-500 text-sm italic text-center mt-10">Waiting for cadet lock...</div>
+                    )}
+                  </div>
                 </div>
-                
-                {!selectedCadet ? (
-                  <div className="flex-1 flex flex-col items-center justify-center text-slate-500">
-                    <Shield className="w-16 h-16 opacity-20 mb-4" />
-                    <p className="text-lg font-light tracking-wide">Select a Cadet from the roster to begin tracking.</p>
-                  </div>
-                ) : (
-                  <div className="flex-1 overflow-y-auto space-y-4 pr-4 custom-scrollbar">
-                     {Object.entries(telemetry.metrics).map(([label, value]) => (
-                       <TelemetryGaugeCard key={label} label={label} value={value} />
-                     ))}
-                     {Object.keys(telemetry.metrics).length === 0 && (
-                       <div className="text-slate-500 text-sm italic">Waiting for telemetry data...</div>
-                     )}
-                  </div>
-                )}
               </div>
             </div>
           </div>
