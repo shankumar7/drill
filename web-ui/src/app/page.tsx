@@ -13,154 +13,83 @@ function LaunchScreen({ onComplete }: { onComplete: () => void }) {
   const [progress, setProgress] = useState(0);
   const [logs, setLogs] = useState<string[]>([]);
 
-  const bootSequence = [
-    "INIT KERNEL MODULES... OK",
-    "ALLOCATING NEURAL MEMORY (4096 MB)... OK",
-    "LOADING YOLO INFERENCE ENGINE... V8.1 ACTIVE",
-    "ESTABLISHING CAMERA HOOKS... /dev/video0 DETECTED",
-    "CALIBRATING POSE ESTIMATION HEURISTICS...",
-    "SYNCING BIOMECHANICAL MODELS... OK",
-    "SYSTEM SECURE. READY FOR DEPLOYMENT."
-  ];
-
   useEffect(() => {
-    let currentLog = 0;
-    const logInterval = setInterval(() => {
-      if (currentLog < bootSequence.length) {
-        setLogs(prev => [...prev, bootSequence[currentLog]]);
-        currentLog++;
-      }
-    }, 450);
-
-    const timer = setInterval(() => {
+    const bootSequence = [
+      "Initializing core neural matrix...",
+      "Loading pose estimation models...",
+      "Calibrating multi-camera telemetry...",
+      "Establishing secure WebSocket streams...",
+      "System Ready."
+    ];
+    let step = 0;
+    const interval = setInterval(() => {
       setProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(timer);
-          clearInterval(logInterval);
-          setTimeout(onComplete, 800);
-          return 100;
-        }
-        const increment = prev > 80 ? 1.5 : prev > 40 ? 3 : 5;
-        return Math.min(100, prev + increment);
+        const next = prev + (100 / bootSequence.length);
+        if (next >= 100) clearInterval(interval);
+        return next;
       });
-    }, 100);
-
-    return () => { clearInterval(timer); clearInterval(logInterval); };
+      setLogs((prev) => [...prev, bootSequence[step]]);
+      step++;
+      if (step >= bootSequence.length) setTimeout(onComplete, 1200);
+    }, 600);
+    return () => clearInterval(interval);
   }, [onComplete]);
 
   return (
     <motion.div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-50 overflow-hidden font-sans selection:bg-blue-500/30"
-      initial={{ opacity: 1 }}
-      exit={{ opacity: 0, scale: 1.05, filter: "blur(20px)" }}
-      transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white overflow-hidden font-sans"
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, scale: 1.05 }} transition={{ duration: 0.8 }}
     >
-      {/* Background Layer: Tech Grid & Vignette */}
-      <div className="absolute inset-0 pointer-events-none z-0 flex items-center justify-center">
-        <div
-          className="absolute inset-0 opacity-[0.04]"
-          style={{
-            backgroundImage: `linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)`,
-            backgroundSize: '30px 30px'
-          }}
-        ></div>
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#010101_80%)]"></div>
-        <div className="w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[120px]"></div>
+      <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+        <div className="w-[800px] h-[800px] bg-blue-50/50 rounded-full blur-[100px]"></div>
       </div>
 
-      <div className="relative z-10 w-full max-w-4xl px-4 flex flex-col items-center gap-8 mt-[-2vh]">
-
-        {/* Cinematic Logo Container - MASSIVELY SCALED UP */}
-        <div className="relative w-[500px] h-[500px] flex items-center justify-center mb-4">
-          {/* Outer Pulsing Rings */}
-          <motion.div
-            className="absolute inset-[-40px] border-2 border-blue-500/20 rounded-full"
-            animate={{ scale: [1, 1.3, 1], opacity: [0.1, 0, 0.1] }}
-            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+      <div className="relative z-10 flex flex-col items-center justify-center w-full max-w-lg">
+        {/* Geometric Loader */}
+        <div className="relative w-48 h-48 mb-12 flex items-center justify-center">
+          <motion.div 
+            animate={{ rotate: 360 }} transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+            className="absolute inset-0 border-[1px] border-dashed border-blue-300 rounded-full opacity-50"
           />
-          <motion.div
-            className="absolute inset-[-20px] border-2 border-emerald-400/20 rounded-full"
-            animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0, 0.3] }}
-            transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+          <motion.div 
+            animate={{ rotate: -360 }} transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
+            className="absolute inset-4 border-[1px] border-blue-400 rounded-full opacity-30 border-t-transparent"
           />
-
-          {/* Logo Container */}
-          <motion.div
-            className="w-[400px] h-[400px] bg-[#030305] rounded-full overflow-hidden border-[6px] border-white/5 shadow-[0_0_100px_rgba(59,130,246,0.5)] relative z-10"
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 1.5, ease: "easeOut" }}
+          <motion.div 
+            animate={{ scale: [0.95, 1.05, 0.95] }} transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+            className="w-20 h-20 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-full shadow-[0_0_40px_rgba(59,130,246,0.4)] flex items-center justify-center"
           >
-            <div className="absolute inset-0 bg-blue-500/10 mix-blend-overlay z-20 pointer-events-none"></div>
-
-            <Image src="/logo.jpeg" alt="System Logo" fill sizes="400px" priority className="object-cover opacity-100" />
+             <Shield className="w-8 h-8 text-white" />
           </motion.div>
         </div>
 
-        {/* Typography & Boot Sequence */}
-        <div className="w-full max-w-2xl flex flex-col items-center text-center">
-          <motion.div
-            initial={{ y: 30, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 1, delay: 0.4 }}
-          >
-            <h1 className="text-5xl md:text-6xl font-black tracking-tight text-slate-900 mb-2 leading-none uppercase drop-shadow-lg">
-              Military Drill
-            </h1>
-            <h1 className="text-4xl md:text-5xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-emerald-500 mb-8 leading-none drop-shadow-md">
-              Analysis System
-            </h1>
-          </motion.div>
+        {/* Typography */}
+        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3, duration: 0.8 }} className="text-center mb-8">
+          <h1 className="text-4xl font-black tracking-widest text-slate-900 uppercase mb-2">Drill Command</h1>
+          <p className="text-sm font-bold tracking-widest text-blue-500 uppercase">Analysis System</p>
+        </motion.div>
 
-          {/* Progress Bar Container */}
-          <motion.div
-            className="w-full space-y-3 mb-6"
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1, delay: 0.7 }}
-          >
-            <div className="flex justify-between items-end px-1">
-              <span className="text-xs font-mono text-blue-600 tracking-widest uppercase flex items-center space-x-2">
-                <span className="w-1.5 h-1.5 bg-blue-500 animate-pulse rounded-full"></span>
-                <span>Booting Neural Engine</span>
-              </span>
-              <span className="text-sm font-mono text-slate-900 font-bold">{Math.floor(progress)}%</span>
-            </div>
-            <div className="h-2 w-full bg-white shadow-inner border-slate-200 rounded overflow-hidden relative border border-white/10">
-              <motion.div
-                className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-600 to-emerald-400 shadow-[0_0_15px_rgba(56,189,248,0.8)]"
-                initial={{ width: 0 }} animate={{ width: `${progress}%` }}
-                transition={{ ease: "linear", duration: 0.1 }}
-              />
-              <motion.div
-                className="absolute top-0 bottom-0 w-32 bg-white/30 skew-x-[-20deg]"
-                animate={{ left: ['-100%', '200%'] }}
-                transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-              />
-            </div>
-          </motion.div>
-
-          {/* Terminal Logs */}
-          <div className="w-full h-24 bg-white border border-slate-200 rounded-lg p-4 overflow-hidden shadow-sm relative text-left">
-            <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0)_50%,rgba(0,0,0,0.25)_50%)] bg-[length:100%_4px] pointer-events-none z-10"></div>
-            <div className="flex flex-col space-y-1 relative z-0">
-              {logs.map((log, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className={`text-[11px] font-mono tracking-wider ${index === logs.length - 1 ? 'text-emerald-600 font-bold' : 'text-slate-500'}`}
-                >
-                  {`> ${log}`}
-                </motion.div>
-              ))}
-              {progress < 100 && (
-                <motion.div
-                  animate={{ opacity: [1, 0] }} transition={{ repeat: Infinity, duration: 0.5 }}
-                  className="text-[11px] font-mono text-emerald-600 mt-1 font-bold"
-                >
-                  _
-                </motion.div>
-              )}
-            </div>
+        {/* Minimal Progress */}
+        <div className="w-64 space-y-4">
+          <div className="h-[2px] w-full bg-slate-200 rounded-full overflow-hidden relative">
+            <motion.div
+              className="absolute top-0 left-0 h-full bg-blue-500"
+              initial={{ width: 0 }} animate={{ width: `${progress}%` }}
+              transition={{ ease: "linear", duration: 0.1 }}
+            />
+          </div>
+          <div className="h-6 flex items-center justify-center overflow-hidden">
+             <AnimatePresence mode="wait">
+               {logs.length > 0 && (
+                 <motion.div
+                   key={logs.length}
+                   initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -10, opacity: 0 }}
+                   className="text-[10px] font-bold tracking-widest text-slate-400 uppercase text-center"
+                 >
+                   {logs[logs.length - 1]}
+                 </motion.div>
+               )}
+             </AnimatePresence>
           </div>
         </div>
       </div>
@@ -168,8 +97,6 @@ function LaunchScreen({ onComplete }: { onComplete: () => void }) {
   );
 }
 
-// ==========================================
-// 2. ONBOARDING INFO SCREEN
 // ==========================================
 function OnboardingScreen({ onNext }: { onNext: () => void }) {
   return (
@@ -641,6 +568,7 @@ function Dashboard({ activeWorkflow, onComplete }: { activeWorkflow: string[], o
             Drill <span className="text-blue-500 font-normal">Command</span>
           </h1>
         </div>
+        
         </header>
 
       <div className="flex flex-1 overflow-hidden">
@@ -664,32 +592,37 @@ function Dashboard({ activeWorkflow, onComplete }: { activeWorkflow: string[], o
                   </span>
                 </p>
               </div>
-              <div className="flex items-center space-x-4">
-                <button onClick={handleNextDrill} className="px-6 py-2.5 rounded-lg bg-blue-600/20 hover:bg-blue-600/40 text-blue-600 border border-blue-500/30 font-medium text-sm transition-all flex items-center space-x-2">
-                  <span>{currentStepIndex < activeWorkflow.length - 1 ? "Next Drill" : "Finish Session"}</span>
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
+              
             </div>
 
-            {/* Top Stats */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="bg-white shadow-lg border border-slate-200 rounded-2xl p-5 relative overflow-hidden flex flex-col justify-center items-start border-l-4 border-l-blue-500 group">
-                <div className="absolute -right-4 -top-4 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl group-hover:bg-blue-500/10 transition-colors" />
-                <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-2">Evaluation Details</h3>
-                <button onClick={() => setShowEvaluationModal(true)} className="px-5 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold text-sm rounded-lg border border-blue-200 transition-colors w-full text-center">
-                  View Pass/Fail Reasons
-                </button>
-              </div>
-              <div className="bg-white shadow-lg border border-slate-200 rounded-2xl p-5 relative overflow-hidden flex items-center border-l-4 border-l-indigo-500">
-                <div className="flex-1">
-                  <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1">Squad Status</h3>
-                  <div className={`text-3xl font-bold ${telemetry.status === 'Excellent' ? 'text-emerald-600' : telemetry.status === 'Good' ? 'text-yellow-600' : 'text-red-600'}`}>
-                    {telemetry.status}
+                        {/* Massive Evaluation Badge */}
+            <div className={`w-full rounded-2xl p-6 md:p-8 flex flex-col md:flex-row items-center justify-between border shadow-xl relative overflow-hidden transition-all mb-6
+              ${telemetry.status === 'Excellent' || telemetry.status === 'Good' 
+                ? 'bg-emerald-50 border-emerald-200' 
+                : 'bg-red-50 border-red-200'}`}>
+              
+              <div className={`absolute -right-20 -top-20 w-64 h-64 rounded-full blur-[80px] opacity-50
+                ${telemetry.status === 'Excellent' || telemetry.status === 'Good' ? 'bg-emerald-400' : 'bg-red-400'}`} />
+
+              <div className="flex items-center space-x-6 relative z-10 mb-4 md:mb-0">
+                <div className={`w-16 h-16 rounded-full flex items-center justify-center shadow-inner
+                  ${telemetry.status === 'Excellent' || telemetry.status === 'Good' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
+                  {telemetry.status === 'Excellent' || telemetry.status === 'Good' ? <CheckCircle className="w-8 h-8" /> : <XCircle className="w-8 h-8" />}
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-500 tracking-widest uppercase mb-1">Live Evaluation Status</h3>
+                  <div className={`text-4xl md:text-5xl font-black uppercase tracking-tight
+                    ${telemetry.status === 'Excellent' || telemetry.status === 'Good' ? 'text-emerald-700' : 'text-red-700'}`}>
+                    {telemetry.status === "Initializing..." ? "WAITING..." : (telemetry.status === 'Excellent' || telemetry.status === 'Good' ? 'PASS' : 'FAIL')}
                   </div>
                 </div>
               </div>
-              <StatCard title="Tracking System" value="ONLINE" color="emerald" subtitle="Multi-cam telemetry active" />
+
+              <button onClick={() => setShowEvaluationModal(true)} 
+                className="relative z-10 px-8 py-4 bg-white hover:bg-slate-50 text-slate-900 font-bold text-sm tracking-widest uppercase rounded-xl border border-slate-200 shadow-md transition-transform hover:scale-[1.02] active:scale-95 flex items-center space-x-3">
+                <Activity className="w-5 h-5 text-blue-500" />
+                <span>View Pass/Fail Reason</span>
+              </button>
             </div>
 
                                     {/* Video Matrix & Telemetry */}
@@ -724,26 +657,29 @@ function Dashboard({ activeWorkflow, onComplete }: { activeWorkflow: string[], o
                           onError={(e) => { e.currentTarget.style.display = 'none'; }}
                         />
                         <div 
-                          className="absolute inset-0 z-30 bg-white/60 flex flex-col items-center justify-center transition-colors backdrop-blur-[2px]"
+                          className="absolute inset-0 z-30 flex flex-col items-center justify-end pb-8 bg-gradient-to-t from-black/80 via-transparent to-transparent transition-colors pointer-events-none"
                         >
-                          <div className="mb-6 bg-white px-6 py-3 rounded-full border border-blue-200 shadow-[0_0_20px_rgba(59,130,246,0.5)]">
-                            <span className="text-sm font-bold text-slate-900 uppercase tracking-widest flex items-center space-x-2">
-                              <span className="w-2 h-2 rounded-full bg-blue-400 animate-ping"></span>
-                              <span>Select a Cadet from the Video Feed below</span>
-                            </span>
-                          </div>
-                          <div className="flex gap-4 flex-wrap justify-center max-w-2xl">
-                              {telemetry.detected_ids.length > 0 ? (
+                          <div className="pointer-events-auto flex flex-col items-center">
+                            <h3 className="text-xl font-bold text-white mb-2 drop-shadow-md">AWAITING TARGET LOCK</h3>
+                            <p className="text-sm text-slate-300 mb-4 drop-shadow text-center">Observe the camera feed and select a cadet ID</p>
+                            <div className="flex flex-wrap justify-center gap-2 max-w-lg px-4">
+                              {telemetry.detected_ids && telemetry.detected_ids.length > 0 ? (
                                 telemetry.detected_ids.map(id => (
-                                  <button key={id} onClick={() => lockCadet(id)} className="px-6 py-3 bg-blue-600/80 hover:bg-blue-500 rounded-lg text-white font-bold border border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.5)] backdrop-blur-md">
-                                      TRACK CADET ID: {id}
+                                  <button
+                                    key={id}
+                                    onClick={() => lockCadet(id)}
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold text-sm tracking-wider hover:bg-blue-500 transition-colors shadow-lg shadow-blue-900/50 border border-blue-400/30 flex items-center space-x-2"
+                                  >
+                                    <Users className="w-4 h-4 text-emerald-400" />
+                                    <span>TARGET ID: {id}</span>
                                   </button>
                                 ))
                               ) : (
-                                <div className="text-white bg-red-600/80 px-6 py-3 rounded-lg font-bold border border-red-400">
+                                <div className="px-6 py-2 bg-slate-900/60 backdrop-blur-md rounded-full text-slate-400 font-mono text-xs border border-white/10 uppercase tracking-widest shadow-lg">
                                   WAITING FOR CADETS TO APPEAR IN FRAME...
                                 </div>
                               )}
+                            </div>
                           </div>
                         </div>
                       </>
@@ -813,7 +749,6 @@ function Dashboard({ activeWorkflow, onComplete }: { activeWorkflow: string[], o
             </div>
           </div>
         )}
-      </div>
     </motion.div>
   );
 }
