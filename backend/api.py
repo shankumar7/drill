@@ -35,7 +35,8 @@ LATEST_TELEMETRY = {
     "head_direction": 0,
     "salute_hand_position": 0,
     "overall_score": 0,
-    "status": "Initializing..."
+    "status": "Initializing...",
+    "detected_ids": []
 }
 ACTIVE_MODE = "SAVDHAN"
 LOCKED_CADET_ID = None
