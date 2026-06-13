@@ -38,6 +38,7 @@ LATEST_TELEMETRY = {
     "status": "Initializing..."
 }
 ACTIVE_MODE = "SAVDHAN"
+LOCKED_CADET_ID = None
 MULTI_CAM_DETECTIONS = {}
 DETECTION_LOCK = asyncio.Lock()
 
@@ -49,7 +50,7 @@ try:
         confidence=0.5,
         image_size=640,
         prefer_half_precision=False,
-        tracking_enabled=False,
+        tracking_enabled=True,
         tracker_config=None
     )
     print("Pose Estimator loaded in API.")
@@ -125,7 +126,15 @@ async def generate_frames(camera_id: int):
             try:
                 detections = pose_estimator.infer(frame)
                 if detections:
-                    det = detections[0]
+                    det = None
+                    if LOCKED_CADET_ID is not None:
+                        for d in detections:
+                            if getattr(d, 'track_id', None) == LOCKED_CADET_ID:
+                                det = d
+                                break
+                    if not det:
+                        det = detections[0]
+                        
                     det.foot_geometry = estimate_foot_geometry(det.keypoints)
                     shoulder_px = np.linalg.norm(det.keypoints[5, :2] - det.keypoints[6, :2])
                     if shoulder_px < 10:
@@ -138,6 +147,12 @@ async def generate_frames(camera_id: int):
                     
                     from backend.visualization.debug_view import _draw_skeleton
                     _draw_skeleton(frame, det.keypoints)
+                    
+                    tid = getattr(det, 'track_id', 'Unknown')
+                    if tid is not None:
+                        cx, cy = int(det.bbox[0]), int(det.bbox[1])
+                        cv2.putText(frame, f"ID: {tid}", (cx, max(0, cy - 10)), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
+
                 else:
                     async with DETECTION_LOCK:
                         MULTI_CAM_DETECTIONS[camera_id] = None
@@ -153,6 +168,17 @@ async def generate_frames(camera_id: int):
         # Maintain roughly 30 FPS playback simulation
         await asyncio.sleep(1/fps)
 
+
+
+from pydantic import BaseModel
+class LockCadetRequest(BaseModel):
+    track_id: int | None
+
+@app.post("/api/lock_cadet")
+async def lock_cadet(req: LockCadetRequest):
+    global LOCKED_CADET_ID
+    LOCKED_CADET_ID = req.track_id
+    return {"status": "ok", "locked_id": LOCKED_CADET_ID}
 
 @app.get("/api/video_feed/{camera_id}")
 async def video_feed(camera_id: int):
@@ -189,12 +215,10 @@ async def fusion_evaluator_loop():
             
             fused_scores = {}
             fused_weights = {}
+            fused_results = {}
             for cam_id, entry in detections_snapshot.items():
                 if not entry:
                     continue
-                # For the demo simulator, all 3 views come from a perfectly synced
-                # video file but different HTTP streams, so we completely bypass
-                # the timestamp drift check.
                 
                 det = entry["det"]
                 conf = entry.get("conf", 1.0)
@@ -203,48 +227,50 @@ async def fusion_evaluator_loop():
                 for r in evaluation.rules:
                     if r.score is not None:
                         weighted_score = r.score * conf
-                        # Keep the raw score from the camera that had the best weighted score
                         if r.name not in fused_weights or weighted_score > fused_weights[r.name]:
                             fused_weights[r.name] = weighted_score
                             fused_scores[r.name] = r.score
+                            fused_results[r.name] = r
 
-            with open("/tmp/fusion_debug.txt", "a") as f:
-                f.write(f"Cams: {list(detections_snapshot.keys())}, Scores: {fused_scores}\n")
-                
-            if not fused_scores:
+            if not fused_results:
                 continue
 
-            # De‑weight back to 0‑100 range (since we multiplied by confidence ≤ 1)
             overall_score = round(sum(fused_scores.values()) / len(fused_scores))
-            status = "Excellent" if overall_score >= 80 else "Good" if overall_score >= 50 else "Needs Correction"
+            status = "PASS" if overall_score >= 80 else "FAIL"
+
+            def get_payload(rule_name):
+                res = fused_results.get(rule_name)
+                if not res:
+                    return {"status": "not_evaluable", "reason": "No data"}
+                return {"status": res.status, "reason": res.message}
 
             if ACTIVE_MODE == "SAVDHAN":
                 LATEST_TELEMETRY.update({
-                    "torso_posture": fused_scores.get("Back Posture", 0),
-                    "heel_alignment": fused_scores.get("Heel contact", 0),
-                    "foot_angle": fused_scores.get("Foot angle", 0),
-                    "arm_alignment": fused_scores.get("Arms at sides", 0),
-                    "knee_tightness": fused_scores.get("Knee distance", 0),
+                    "torso_posture": get_payload("Back Posture"),
+                    "heel_alignment": get_payload("Heel contact"),
+                    "foot_angle": get_payload("Foot angle"),
+                    "arm_alignment": get_payload("Arms at sides"),
+                    "knee_tightness": get_payload("Knee distance"),
                     "overall_score": overall_score,
                     "status": status
                 })
             elif ACTIVE_MODE == "VISHRAM":
                 LATEST_TELEMETRY.update({
-                    "heel_distance": fused_scores.get("Foot spacing", 0),
-                    "toe_distance": fused_scores.get("Foot spacing", 0),
-                    "knee_tightness": fused_scores.get("Knee lock", 0),
-                    "hands_behind_back": fused_scores.get("Hands behind back", 0),
-                    "torso_posture": fused_scores.get("Back Posture", 0),
+                    "heel_distance": get_payload("Foot spacing"),
+                    "toe_distance": get_payload("Foot spacing"),
+                    "knee_tightness": get_payload("Knee lock"),
+                    "hands_behind_back": get_payload("Hands behind back"),
+                    "torso_posture": get_payload("Back Posture"),
                     "overall_score": overall_score,
                     "status": status
                 })
             elif ACTIVE_MODE in ["FRONT_SALUTE", "BAYE_SALUTE", "DAINE_SALUTE"]:
                 LATEST_TELEMETRY.update({
-                    "torso_posture": fused_scores.get("Back Posture", 0),
-                    "salute_arm_angle": fused_scores.get("Saluting Arm Angle", 0),
-                    "straight_arm_angle": fused_scores.get("Straight Arm Angle", 0),
-                    "head_direction": fused_scores.get("Head Direction", 0),
-                    "salute_hand_position": fused_scores.get("Saluting Hand Position", 0),
+                    "torso_posture": get_payload("Back Posture"),
+                    "salute_arm_angle": get_payload("Saluting Arm Angle"),
+                    "straight_arm_angle": get_payload("Straight Arm Angle"),
+                    "head_direction": get_payload("Head Direction"),
+                    "salute_hand_position": get_payload("Saluting Hand Position"),
                     "overall_score": overall_score,
                     "status": status
                 })

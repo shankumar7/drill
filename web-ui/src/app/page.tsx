@@ -517,7 +517,7 @@ function Dashboard({ activeWorkflow, onComplete }: { activeWorkflow: string[], o
   const [sessionResults, setSessionResults] = useState<{ drill: string, pass: boolean, score: number }[]>([]);
   const [wsStatus, setWsStatus] = useState<"connecting" | "connected" | "disconnected">("connecting");
   
-  const [telemetry, setTelemetry] = useState<{ metrics: Record<string, number>, overall_score: number, status: string }>({
+  const [telemetry, setTelemetry] = useState<{ metrics: Record<string, any>, overall_score: number, status: string }>({
     metrics: {},
     overall_score: 0,
     status: "Initializing...",
@@ -540,10 +540,10 @@ function Dashboard({ activeWorkflow, onComplete }: { activeWorkflow: string[], o
         const data = JSON.parse(event.data);
         const { overall_score, status, ...metrics } = data;
         
-        const cleanMetrics: Record<string, number> = {};
+        const cleanMetrics: Record<string, any> = {};
         for (const key in metrics) {
-           if (metrics[key] > 0) {
-               const formattedKey = key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+           if (metrics[key] && metrics[key].status !== "not_evaluable") {
+               const formattedKey = key.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
                cleanMetrics[formattedKey] = metrics[key];
            }
         }
@@ -589,6 +589,19 @@ function Dashboard({ activeWorkflow, onComplete }: { activeWorkflow: string[], o
       wsRef.current.send(JSON.stringify({ mode: currentMode }));
     }
   }, [currentMode]);
+
+  const [availableIds, setAvailableIds] = useState<number[]>([1, 2, 3]);
+
+  const lockCadet = async (id: number) => {
+    setSelectedCadet(id.toString());
+    try {
+      await fetch("http://localhost:8000/api/lock_cadet", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({track_id: id})
+      });
+    } catch(e) { console.error(e); }
+  };
 
   const handleNextDrill = () => {
     const finalScore = telemetry.overall_score;
@@ -686,7 +699,7 @@ function Dashboard({ activeWorkflow, onComplete }: { activeWorkflow: string[], o
                   </div>
                 </div>
               </div>
-              <StatCard title="Active Feeds" value="4/4" color="emerald" subtitle="Front, Top, Side, Feet" />
+              <StatCard title="Active Feeds" value="3/3" color="emerald" subtitle="Front, Side, Back" />
             </div>
 
             {/* Video Matrix & Telemetry */}
@@ -717,33 +730,27 @@ function Dashboard({ activeWorkflow, onComplete }: { activeWorkflow: string[], o
                     )}
                     {!selectedCadet && (
                       <div 
-                        className="absolute inset-0 z-30 bg-blue-900/20 flex flex-col items-center justify-center cursor-pointer hover:bg-blue-900/10 transition-colors backdrop-blur-[2px]"
-                        onClick={() => {
-                          const id = `CADET-${Math.floor(Math.random()*1000).toString().padStart(3, '0')}`;
-                          globalCadetTracker.setActiveCadetId(id);
-                          setSelectedCadet(id);
-                        }}
+                        className="absolute inset-0 z-30 bg-blue-900/20 flex flex-col items-center justify-center transition-colors backdrop-blur-[2px]"
                       >
-                        <div className="w-32 h-48 border-2 border-dashed border-blue-400 rounded-lg animate-[pulse_2s_ease-in-out_Infinity] flex items-center justify-center bg-blue-500/10 mb-4 shadow-[0_0_30px_rgba(59,130,246,0.3)]">
-                          <Users className="w-8 h-8 text-blue-400 opacity-80" />
+                        <div className="flex gap-4">
+                            {availableIds.map(id => (
+                                <button key={id} onClick={() => lockCadet(id)} className="px-6 py-3 bg-blue-600 hover:bg-blue-500 rounded-lg text-white font-bold border border-blue-400">
+                                    TRACK CADET ID: {id}
+                                </button>
+                            ))}
                         </div>
-                        <div className="bg-black/80 px-5 py-3 rounded-full border border-blue-500/50 shadow-[0_0_20px_rgba(59,130,246,0.5)]">
-                          <span className="text-sm font-bold text-white uppercase tracking-widest flex items-center space-x-2">
-                            <span className="w-2 h-2 rounded-full bg-blue-400 animate-ping"></span>
-                            <span>Click on Cadet to Lock Tracking</span>
-                          </span>
-                        </div>
+
+
                       </div>
                     )}
                   </div>
                 </div>
 
-                {/* Secondary Cameras Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Secondary Cameras Grid (Side and Back) */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {[
                     { id: 1, label: "EXTERNAL CAMERA (SIDE)" },
-                    { id: 2, label: "AUX FEED 1 (TOP)" },
-                    { id: 3, label: "AUX FEED 2 (FEET)" }
+                    { id: 2, label: "EXTERNAL CAMERA (BACK)" }
                   ].map((cam) => (
                     <div key={cam.id} className="glass-panel rounded-2xl overflow-hidden p-1 relative group bg-[#020203] aspect-video">
                       <div className="absolute inset-1 pointer-events-none z-20 border border-white/5 rounded-xl">
@@ -829,19 +836,18 @@ function StatCard({ title, value, subtitle, color }: any) {
   );
 }
 
-function TelemetryGaugeCard({ label, value }: { label: string; value: number }) {
-  const displayValue = value % 1 === 0 ? value : Number(value.toFixed(1));
+import { CheckCircle, XCircle } from "lucide-react";
+function TelemetryGaugeCard({ label, value }: { label: string; value: any }) {
+  if (typeof value === "number") return null; // Fallback
+  const isPass = value.status === "pass";
   return (
-    <div className="bg-black/30 rounded-xl border border-white/5 p-4 flex flex-col justify-center hover:border-white/10 transition-colors">
-      <div className="flex justify-between items-end mb-3">
+    <div className={`bg-black/30 rounded-xl border ${isPass ? 'border-emerald-500/30' : 'border-red-500/30'} p-4 flex flex-col justify-center hover:border-white/20 transition-colors`}>
+      <div className="flex justify-between items-center mb-2">
         <h4 className="text-sm font-medium text-slate-300 tracking-wide">{label}</h4>
-        <span className="text-xl font-bold text-white font-mono">{displayValue}<span className="text-xs text-slate-500 ml-0.5">%</span></span>
+        {isPass ? <CheckCircle className="w-5 h-5 text-emerald-500" /> : <XCircle className="w-5 h-5 text-red-500" />}
       </div>
-      <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
-        <motion.div
-          className={`h-full rounded-full ${value >= 80 ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : value >= 50 ? 'bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.6)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]'}`}
-          initial={{ width: 0 }} animate={{ width: `${value}%` }} transition={{ duration: 0.5 }}
-        />
+      <div className="text-xs text-slate-400 font-mono mt-1 leading-relaxed">
+        {value.reason}
       </div>
     </div>
   );
