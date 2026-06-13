@@ -26,17 +26,17 @@ class KneeDistanceRule(EvaluationRule):
         
         score = 0.0
         if self.target == "close":
-            if norm_dist <= 0.3:
+            if norm_dist <= 0.85:
                 score = 100.0
-            elif norm_dist < 0.6:
-                score = 100.0 - ((norm_dist - 0.3) * 333.3)
+            elif norm_dist < 1.1:
+                score = max(0.0, 100.0 - ((norm_dist - 0.85) * 400.0))
             msg = f"Knees should be close together (norm_dist: {norm_dist:.2f})"
         else:
-            # Salute is slightly more relaxed, 20-80 pixels -> norm_dist up to 0.7
-            if norm_dist <= 0.7:
+            # Salute is slightly more relaxed, up to 1.0
+            if norm_dist <= 1.0:
                 score = 100.0
-            elif norm_dist < 1.0:
-                score = 100.0 - ((norm_dist - 0.7) * 333.3)
+            elif norm_dist < 1.3:
+                score = max(0.0, 100.0 - ((norm_dist - 1.0) * 333.3))
             msg = f"Knees should be relatively close (norm_dist: {norm_dist:.2f})"
             
         smoothed = self.smooth_score(detection, score)

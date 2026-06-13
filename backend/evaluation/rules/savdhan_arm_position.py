@@ -25,12 +25,12 @@ class SavdhanArmPositionRule(EvaluationRule):
         norm_r = r_wrist_hip_dist / shoulder_width
         
         def calculate_score(norm):
-            if 0.1 <= norm <= 0.5:
+            if 0.25 <= norm <= 0.55:
                 return 100.0
-            elif 0.5 < norm <= 0.8:
-                return max(0.0, 100.0 - ((norm - 0.5) * 333.3))
-            elif 0.05 <= norm < 0.1:
-                return max(0.0, 100.0 - ((0.1 - norm) * 2000.0))
+            elif 0.55 < norm <= 0.8:
+                return max(0.0, 100.0 - ((norm - 0.55) * 400.0))
+            elif 0.05 <= norm < 0.25:
+                return max(0.0, 100.0 - ((0.25 - norm) * 500.0))
             return 0.0
             
         score_l = calculate_score(norm_l)
