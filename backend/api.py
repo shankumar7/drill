@@ -157,6 +157,8 @@ async def generate_frames(camera_id: int):
                     async with DETECTION_LOCK:
                         MULTI_CAM_DETECTIONS[camera_id] = None
             except Exception as e:
+                import traceback
+                traceback.print_exc()
                 print(f"Error in ML pipeline: {e}")
 
         # Add camera label
