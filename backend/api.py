@@ -90,11 +90,8 @@ async def generate_frames(camera_id: int):
     global LATEST_TELEMETRY, ACTIVE_MODE
     import os
     
-    home = os.path.expanduser('~')
-    desktop = os.path.join(home, 'Desktop')
-    filepath = os.path.join(desktop, 'savadhan_synced_output.mp4')
-    
-    cap = cv2.VideoCapture(filepath)
+    cap = cv2.VideoCapture(camera_id)
+    is_webcam = True
     
     if not cap.isOpened() or camera_id not in [0, 1, 2]:
         while True:
@@ -116,12 +113,13 @@ async def generate_frames(camera_id: int):
                 break
                 
         # Slice the 804x480 frame into 3 sections (268px wide each)
-        if camera_id == 0:
-            frame = frame[:, :268]
-        elif camera_id == 1:
-            frame = frame[:, 268:536]
-        elif camera_id == 2:
-            frame = frame[:, 536:]
+        if not is_webcam:
+            if camera_id == 0:
+                frame = frame[:, :268]
+            elif camera_id == 1:
+                frame = frame[:, 268:536]
+            elif camera_id == 2:
+                frame = frame[:, 536:]
         
         if pose_estimator:
             try:
@@ -295,8 +293,11 @@ async def websocket_telemetry(websocket: WebSocket):
     
     async def send_telemetry():
         while True:
-            await websocket.send_text(json.dumps(LATEST_TELEMETRY))
-            await asyncio.sleep(0.5)
+            try:
+                await websocket.send_text(json.dumps(LATEST_TELEMETRY))
+                await asyncio.sleep(0.5)
+            except Exception:
+                break
 
     async def receive_mode():
         global ACTIVE_MODE
