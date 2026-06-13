@@ -128,6 +128,7 @@ async def generate_frames(camera_id: int):
                 detections = pose_estimator.infer(frame)
                 if detections:
                     det = None
+                    available_ids = [getattr(d, 'track_id', -1) for d in detections]
                     if LOCKED_CADET_ID is not None:
                         for d in detections:
                             if getattr(d, 'track_id', None) == LOCKED_CADET_ID:
@@ -144,7 +145,7 @@ async def generate_frames(camera_id: int):
                     avg_conf = float(np.mean(det.keypoints[:, 2]))
                     
                     async with DETECTION_LOCK:
-                        MULTI_CAM_DETECTIONS[camera_id] = {"det": det, "ts": time.time(), "ppi": ppi, "conf": avg_conf}
+                        MULTI_CAM_DETECTIONS[camera_id] = {"det": det, "ts": time.time(), "ppi": ppi, "conf": avg_conf, "available_ids": available_ids}
                     
                     from backend.visualization.debug_view import _draw_skeleton
                     _draw_skeleton(frame, det.keypoints)
@@ -244,6 +245,12 @@ async def fusion_evaluator_loop():
                 if not res:
                     return {"status": "not_evaluable", "reason": "No data"}
                 return {"status": res.status, "reason": res.message}
+                
+            all_ids = set()
+            for entry in detections_snapshot.values():
+                if entry and "available_ids" in entry:
+                    all_ids.update(entry["available_ids"])
+            LATEST_TELEMETRY["detected_ids"] = list(all_ids)
 
             if ACTIVE_MODE == "SAVDHAN":
                 LATEST_TELEMETRY.update({
