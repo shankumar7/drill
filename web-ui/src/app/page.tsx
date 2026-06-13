@@ -516,6 +516,7 @@ function Dashboard({ activeWorkflow, onComplete }: { activeWorkflow: string[], o
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [sessionResults, setSessionResults] = useState<{ drill: string, pass: boolean, score: number }[]>([]);
   const [wsStatus, setWsStatus] = useState<"connecting" | "connected" | "disconnected">("connecting");
+  const [showEvaluationModal, setShowEvaluationModal] = useState(false);
   
   const [telemetry, setTelemetry] = useState<{ metrics: Record<string, any>, overall_score: number, status: string, detected_ids: number[] }>({
     metrics: {},
@@ -673,7 +674,13 @@ function Dashboard({ activeWorkflow, onComplete }: { activeWorkflow: string[], o
 
             {/* Top Stats */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <StatCard title="Overall Alignment Score" value={`${telemetry.overall_score}%`} color="blue" subtitle="Aggregated multi-angle evaluation" />
+              <div className="bg-white shadow-lg border border-slate-200 rounded-2xl p-5 relative overflow-hidden flex flex-col justify-center items-start border-l-4 border-l-blue-500 group">
+                <div className="absolute -right-4 -top-4 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl group-hover:bg-blue-500/10 transition-colors" />
+                <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-2">Evaluation Details</h3>
+                <button onClick={() => setShowEvaluationModal(true)} className="px-5 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold text-sm rounded-lg border border-blue-200 transition-colors w-full text-center">
+                  View Pass/Fail Reasons
+                </button>
+              </div>
               <div className="bg-white shadow-lg border border-slate-200 rounded-2xl p-5 relative overflow-hidden flex items-center border-l-4 border-l-indigo-500">
                 <div className="flex-1">
                   <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1">Squad Status</h3>
@@ -689,7 +696,7 @@ function Dashboard({ activeWorkflow, onComplete }: { activeWorkflow: string[], o
             <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
 
               {/* Multi-Camera Matrix (Spans 3 cols) */}
-              <div className="xl:col-span-3 flex flex-col gap-6">
+              <div className="xl:col-span-4 flex flex-col gap-6">
 
                 {/* Main Camera (Front) - Huge */}
                 <div className="bg-white shadow-lg border border-slate-200 overflow-hidden p-1 relative group w-full aspect-video border border-blue-200 rounded-xl">
@@ -782,26 +789,30 @@ function Dashboard({ activeWorkflow, onComplete }: { activeWorkflow: string[], o
                 </div>
               </div>
 
-              {/* Telemetry Sidebar */}
-              <div className="xl:col-span-1">
-                <div className="bg-white shadow-lg border border-slate-200 rounded-2xl p-6 h-full flex flex-col">
-                  <div className="flex items-center space-x-3 mb-6 pb-4 border-b border-white/5">
-                    <Activity className="w-5 h-5 text-blue-600" />
-                    <h2 className="text-lg font-semibold tracking-wide text-slate-900">Live Evaluation</h2>
-                  </div>
-                  <div className="flex-1 flex flex-col space-y-5 overflow-y-auto pr-2 custom-scrollbar">
-                    {Object.entries(telemetry.metrics).map(([label, value]) => (
-                      <TelemetryGaugeCard key={label} label={label} value={value} />
-                    ))}
-                    {Object.keys(telemetry.metrics).length === 0 && (
-                      <div className="text-slate-500 text-sm italic text-center mt-10">Waiting for cadet lock...</div>
-                    )}
-                  </div>
-                </div>
-              </div>
+              
             </div>
           </div>
         </main>
+      </div>
+
+        {showEvaluationModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm" onClick={() => setShowEvaluationModal(false)}>
+            <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-8 relative max-h-[80vh] flex flex-col border border-slate-200" onClick={e => e.stopPropagation()}>
+               <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
+                 <h2 className="text-2xl font-bold text-slate-900">Drill Pass/Fail Reasons</h2>
+                 <button onClick={() => setShowEvaluationModal(false)} className="text-slate-400 hover:text-slate-600 font-bold text-3xl leading-none">&times;</button>
+               </div>
+               <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-4">
+                 {Object.entries(telemetry.metrics).map(([label, value]) => (
+                    <TelemetryGaugeCard key={label} label={label} value={value} />
+                 ))}
+                 {Object.keys(telemetry.metrics).length === 0 && (
+                    <div className="text-slate-500 text-sm italic text-center mt-10 font-medium">Waiting for cadet lock...</div>
+                 )}
+               </div>
+            </div>
+          </div>
+        )}
       </div>
     </motion.div>
   );
