@@ -81,6 +81,12 @@ def estimate_foot_geometry(keypoints):
     
     pixels_per_inch = shoulder_pixel_width / 16.0 
     
+    # Check if ankles are actually visible (confidence > 0.3)
+    l_ankle_conf = keypoints[15, 2] if keypoints.shape[1] > 2 else 1.0
+    r_ankle_conf = keypoints[16, 2] if keypoints.shape[1] > 2 else 1.0
+    if l_ankle_conf < 0.3 or r_ankle_conf < 0.3:
+        return None
+        
     l_ankle, r_ankle = keypoints[15, :2], keypoints[16, :2]
     # Simple heuristic: ankles represent heels, and toes are slightly further apart
     heel_dist_px = segment_length(l_ankle, r_ankle)
@@ -94,7 +100,7 @@ def estimate_foot_geometry(keypoints):
         "toe_to_toe_in": toe_dist_in,
         "true_heel_dist": heel_dist_px,
         "pose_scale": shoulder_pixel_width,
-        "ground_plane_angle": 30.0 # Mock angle for simulator
+        "ground_plane_angle": 30.0 # Restored mock angle so rule can evaluate when standing
     }
 
 async def generate_frames(camera_id: int):
@@ -201,12 +207,18 @@ async def process_voice_command(audio: UploadFile = File(...)):
     if not whisper_model:
         return {"error": "Whisper model not loaded"}
     
+    content = await audio.read()
+    # WebM headers are small. If file is < 1KB, it contains no actual audio frames
+    if len(content) < 1000:
+        return {"error": "Recording too short. Please hold the button longer while speaking."}
+    
     with tempfile.NamedTemporaryFile(delete=False, suffix=".webm") as temp_audio:
-        temp_audio.write(await audio.read())
+        temp_audio.write(content)
         temp_audio_path = temp_audio.name
         
     try:
         # Whisper automatically handles various audio formats including webm
+        # Note: This requires ffmpeg to be installed on the system
         result = whisper_model.transcribe(temp_audio_path)
         text = result.get("text", "").strip()
         text_lower = text.lower()
@@ -230,10 +242,14 @@ async def process_voice_command(audio: UploadFile = File(...)):
         LATEST_TELEMETRY["active_mode"] = ACTIVE_MODE
         LATEST_TELEMETRY["last_command"] = text
         
+        return {"text": text, "active_mode": ACTIVE_MODE}
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        print(f"Whisper Transcription Error: {e}")
+        return {"error": str(e)}
     finally:
         os.remove(temp_audio_path)
-        
-    return {"text": text, "active_mode": ACTIVE_MODE}
 
 @app.get("/api/video_feed/{camera_id}")
 async def video_feed(camera_id: int):
@@ -286,12 +302,24 @@ async def fusion_evaluator_loop():
                             fused_weights[r.name] = weighted_score
                             fused_scores[r.name] = r.score
                             fused_results[r.name] = r
+                    else:
+                        if r.name not in fused_results:
+                            fused_results[r.name] = r
 
             if not fused_results:
                 continue
 
-            overall_score = round(sum(fused_scores.values()) / len(fused_scores))
-            status = "PASS" if overall_score >= 80 else "FAIL"
+            overall_score = round(sum(fused_scores.values()) / len(fused_scores)) if fused_scores else 0
+            
+            any_fail = any(res.status == "fail" for res in fused_results.values())
+            any_missing = any(res.status == "not_evaluable" for res in fused_results.values())
+            
+            if any_fail:
+                status = "FAIL"
+            elif any_missing or not fused_scores:
+                status = "Initializing..."
+            else:
+                status = "PASS" if overall_score >= 80 else "FAIL"
 
             def get_payload(rule_name):
                 res = fused_results.get(rule_name)
@@ -307,7 +335,7 @@ async def fusion_evaluator_loop():
 
             if ACTIVE_MODE == "SAVDHAN":
                 LATEST_TELEMETRY.update({
-                    "torso_posture": get_payload("Back Posture"),
+                    "torso_posture": get_payload("Body Posture"),
                     "heel_alignment": get_payload("Heel contact"),
                     "foot_angle": get_payload("Foot angle"),
                     "arm_alignment": get_payload("Arms at sides"),
@@ -321,13 +349,13 @@ async def fusion_evaluator_loop():
                     "toe_distance": get_payload("Foot spacing"),
                     "knee_tightness": get_payload("Knee lock"),
                     "hands_behind_back": get_payload("Hands behind back"),
-                    "torso_posture": get_payload("Back Posture"),
+                    "torso_posture": get_payload("Body Posture"),
                     "overall_score": overall_score,
                     "status": status
                 })
             elif ACTIVE_MODE in ["FRONT_SALUTE", "BAYE_SALUTE", "DAINE_SALUTE"]:
                 LATEST_TELEMETRY.update({
-                    "torso_posture": get_payload("Back Posture"),
+                    "torso_posture": get_payload("Body Posture"),
                     "salute_arm_angle": get_payload("Saluting Arm Angle"),
                     "straight_arm_angle": get_payload("Straight Arm Angle"),
                     "head_direction": get_payload("Head Direction"),

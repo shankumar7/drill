@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import { Gauge } from "../components/Gauge";
-import { Activity, Shield, Users, Camera, LayoutGrid, Settings, LogOut, ChevronRight, CheckCircle2, ChevronRightCircle, Plus, Mic } from "lucide-react";
+import { Activity, Shield, Users, Camera, LayoutGrid, Settings, LogOut, ChevronRight, CheckCircle2, ChevronRightCircle, Plus, Mic, CheckCircle, XCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 
@@ -59,7 +59,7 @@ function LaunchScreen({ onComplete }: { onComplete: () => void }) {
             animate={{ scale: [0.95, 1.05, 0.95] }} transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
             className="w-20 h-20 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-full shadow-[0_0_40px_rgba(59,130,246,0.4)] flex items-center justify-center"
           >
-             <Shield className="w-8 h-8 text-white" />
+             <img src="/logo.jpeg" alt="Logo" className="w-full h-full object-cover rounded-full" />
           </motion.div>
         </div>
 
@@ -153,7 +153,7 @@ function OnboardingScreen({ onNext }: { onNext: () => void }) {
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 1, ease: "easeOut" }}>
 
           <div className="flex items-center space-x-4 mb-6">
-            <Shield className="w-8 h-8 text-blue-500 opacity-80" />
+            <img src="/logo.jpeg" alt="Logo" className="w-10 h-10 object-cover rounded-full shadow-lg" />
             <h3 className="text-sm font-bold text-slate-500 tracking-[0.3em] uppercase">
               Simulation Development Division (SDD), MCEME
             </h3>
@@ -256,6 +256,7 @@ function Dashboard({ onComplete }: { onComplete: (results: any[]) => void }) {
   });
 
   const [isRecording, setIsRecording] = useState(false);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const wsRef = useRef<WebSocket | null>(null);
@@ -326,9 +327,17 @@ function Dashboard({ onComplete }: { onComplete: (results: any[]) => void }) {
         formData.append("audio", audioBlob, "command.webm");
         
         try {
-          await fetch("http://localhost:8000/api/voice_command", { method: "POST", body: formData });
+          const res = await fetch("http://localhost:8000/api/voice_command", { method: "POST", body: formData });
+          const data = await res.json();
+          if (data.error) {
+              setVoiceError(data.error);
+              console.error("Backend Whisper Error:", data.error);
+          } else {
+              setVoiceError(null);
+          }
         } catch (e) {
-          console.error("Voice command error", e);
+          console.error("Voice command fetch error", e);
+          setVoiceError("Network error: Could not reach backend.");
         }
         stream.getTracks().forEach(track => track.stop());
       };
@@ -388,7 +397,7 @@ function Dashboard({ onComplete }: { onComplete: (results: any[]) => void }) {
       <header className="h-16 flex items-center justify-between px-6 lg:px-8 border-b border-white/10 bg-slate-900/50 backdrop-blur-md relative z-40 shrink-0">
         <div className="flex items-center space-x-4">
           <div className="w-8 h-8 rounded border border-white/20 bg-slate-800 flex items-center justify-center overflow-hidden">
-             <Shield className="w-5 h-5 text-blue-400" />
+             <img src="/logo.jpeg" alt="Logo" className="w-full h-full object-cover" />
           </div>
           <h1 className="text-sm font-bold tracking-widest uppercase text-slate-100">
             Military Drill <span className="text-blue-500 font-normal">Analysis System</span>
@@ -562,7 +571,12 @@ function Dashboard({ onComplete }: { onComplete: (results: any[]) => void }) {
 
       {/* Floating Voice Command Bar */}
       <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center">
-        {telemetry.last_command && (
+        {voiceError && (
+           <div className="mb-3 px-4 py-2 bg-red-900/90 backdrop-blur-md rounded-lg border border-red-500/50 text-xs font-mono text-red-200 shadow-lg text-center max-w-sm">
+             <span className="font-bold">Error:</span> {voiceError.includes('ffmpeg') ? "FFmpeg is missing on the backend. Please install it." : voiceError}
+           </div>
+        )}
+        {telemetry.last_command && !voiceError && (
            <div className="mb-3 px-4 py-1.5 bg-black/60 backdrop-blur-md rounded-full border border-white/10 text-xs font-mono text-slate-300">
              Heard: <span className="text-blue-400 font-bold uppercase">"{telemetry.last_command}"</span>
            </div>
