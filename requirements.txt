@@ -10,3 +10,5 @@ lapx
 pytest
 customtkinter
 Pillow
+openai-whisper
+python-multipart

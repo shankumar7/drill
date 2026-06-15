@@ -9,6 +9,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 import time
+import tempfile
 
 app = FastAPI(title="Military Drill Analysis API")
 
@@ -36,7 +37,9 @@ LATEST_TELEMETRY = {
     "salute_hand_position": 0,
     "overall_score": 0,
     "status": "Initializing...",
-    "detected_ids": []
+    "detected_ids": [],
+    "active_mode": "SAVDHAN",
+    "last_command": ""
 }
 ACTIVE_MODE = "SAVDHAN"
 LOCKED_CADET_ID = None
@@ -52,11 +55,19 @@ try:
         image_size=640,
         prefer_half_precision=False,
         tracking_enabled=True,
-        tracker_config=None
+        tracker_config="bytetrack.yaml"
     )
     print("Pose Estimator loaded in API.")
 except Exception as e:
     print(f"Failed to load Pose Estimator: {e}")
+
+whisper_model = None
+try:
+    import whisper
+    whisper_model = whisper.load_model("base")
+    print("Whisper Model loaded in API.")
+except Exception as e:
+    print(f"Failed to load Whisper Model: {e}")
 
 # Helper to map pixel distance to inches based on a heuristic (shoulder width ~16 inches)
 def estimate_foot_geometry(keypoints):
@@ -181,6 +192,48 @@ async def lock_cadet(req: LockCadetRequest):
     global LOCKED_CADET_ID
     LOCKED_CADET_ID = req.track_id
     return {"status": "ok", "locked_id": LOCKED_CADET_ID}
+
+from fastapi import UploadFile, File
+
+@app.post("/api/voice_command")
+async def process_voice_command(audio: UploadFile = File(...)):
+    global ACTIVE_MODE, LATEST_TELEMETRY
+    if not whisper_model:
+        return {"error": "Whisper model not loaded"}
+    
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".webm") as temp_audio:
+        temp_audio.write(await audio.read())
+        temp_audio_path = temp_audio.name
+        
+    try:
+        # Whisper automatically handles various audio formats including webm
+        result = whisper_model.transcribe(temp_audio_path)
+        text = result.get("text", "").strip()
+        text_lower = text.lower()
+        
+        # Simple keyword matching
+        if "savadhan" in text_lower or "attention" in text_lower or "savdhan" in text_lower:
+            ACTIVE_MODE = "SAVDHAN"
+        elif "vishram" in text_lower or "ease" in text_lower or "vish" in text_lower:
+            ACTIVE_MODE = "VISHRAM"
+        elif "salute" in text_lower or "samne" in text_lower:
+            if "baye" in text_lower or "left" in text_lower:
+                ACTIVE_MODE = "BAYE_SALUTE"
+            elif "dahine" in text_lower or "right" in text_lower:
+                ACTIVE_MODE = "DAINE_SALUTE"
+            else:
+                ACTIVE_MODE = "FRONT_SALUTE"
+        elif "aaram" in text_lower:
+            ACTIVE_MODE = "AARAM_SE"
+            
+        print(f"Voice Command Received: '{text}', Mode updated to: {ACTIVE_MODE}")
+        LATEST_TELEMETRY["active_mode"] = ACTIVE_MODE
+        LATEST_TELEMETRY["last_command"] = text
+        
+    finally:
+        os.remove(temp_audio_path)
+        
+    return {"text": text, "active_mode": ACTIVE_MODE}
 
 @app.get("/api/video_feed/{camera_id}")
 async def video_feed(camera_id: int):
