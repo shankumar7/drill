@@ -219,7 +219,12 @@ async def process_voice_command(audio: UploadFile = File(...)):
     try:
         # Whisper automatically handles various audio formats including webm
         # Note: This requires ffmpeg to be installed on the system
-        result = whisper_model.transcribe(temp_audio_path)
+        result = whisper_model.transcribe(
+            temp_audio_path,
+            language="en",
+            fp16=False,
+            initial_prompt="Military drill commands: savadhan, attention, vishram, ease, salute, samne, baye, dahine, aaram."
+        )
         text = result.get("text", "").strip()
         text_lower = text.lower()
         
