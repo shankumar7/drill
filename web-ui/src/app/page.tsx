@@ -313,7 +313,21 @@ function Dashboard({ onComplete }: { onComplete: (results: any[]) => void }) {
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      
+      let mimeType = 'audio/webm';
+      if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+        mimeType = 'audio/webm;codecs=opus';
+      } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+        mimeType = 'audio/mp4';
+      } else if (MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')) {
+        mimeType = 'audio/ogg;codecs=opus';
+      } else if (!MediaRecorder.isTypeSupported('audio/webm')) {
+        mimeType = ''; // Let browser choose default
+      }
+
+      const options = mimeType ? { mimeType } : undefined;
+      const mediaRecorder = new MediaRecorder(stream, options);
+      
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
 
@@ -322,16 +336,20 @@ function Dashboard({ onComplete }: { onComplete: (results: any[]) => void }) {
       };
 
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        const recordedMimeType = mediaRecorder.mimeType || 'audio/webm';
+        const audioBlob = new Blob(chunksRef.current, { type: recordedMimeType });
         const formData = new FormData();
-        formData.append("audio", audioBlob, "command.webm");
+        
+        // Use an extension based on the mime type
+        const extension = recordedMimeType.includes('mp4') ? '.mp4' : recordedMimeType.includes('ogg') ? '.ogg' : '.webm';
+        formData.append("audio", audioBlob, `command${extension}`);
         
         try {
           const res = await fetch("http://localhost:8000/api/voice_command", { method: "POST", body: formData });
           const data = await res.json();
           if (data.error) {
               setVoiceError(data.error);
-              console.error("Backend Whisper Error:", data.error);
+              console.warn("Backend Whisper Info:", data.error);
           } else {
               setVoiceError(null);
           }
@@ -346,6 +364,7 @@ function Dashboard({ onComplete }: { onComplete: (results: any[]) => void }) {
       setIsRecording(true);
     } catch (err) {
       console.error("Mic error", err);
+      setVoiceError("Microphone access denied or unsupported.");
     }
   };
 

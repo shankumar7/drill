@@ -212,7 +212,12 @@ async def process_voice_command(audio: UploadFile = File(...)):
     if len(content) < 1000:
         return {"error": "Recording too short. Please hold the button longer while speaking."}
     
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".webm") as temp_audio:
+    filename = audio.filename if audio.filename else "command.webm"
+    ext = os.path.splitext(filename)[1]
+    if not ext:
+        ext = ".webm"
+        
+    with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as temp_audio:
         temp_audio.write(content)
         temp_audio_path = temp_audio.name
         
@@ -228,19 +233,26 @@ async def process_voice_command(audio: UploadFile = File(...)):
         text = result.get("text", "").strip()
         text_lower = text.lower()
         
-        # Simple keyword matching
-        if "savadhan" in text_lower or "attention" in text_lower or "savdhan" in text_lower:
+        # Enhanced keyword matching for Indian accents and common whisper mis-transcriptions
+        savdhan_keywords = ["savadhan", "attention", "savdhan", "south on", "sawan", "some down", "savage on", "sound on", "sab dhan", "sabdan"]
+        vishram_keywords = ["vishram", "ease", "vish", "mushroom", "wish ram", "visram", "rest", "base ram", "besram", "bharam"]
+        salute_keywords = ["salute", "samne", "someday", "sam ne"]
+        baye_keywords = ["baye", "left", "bye", "by a", "baen", "baaye"]
+        dahine_keywords = ["dahine", "right", "dining", "diane", "daehne", "dahin", "dhahine"]
+        aaram_keywords = ["aaram", "aram", "alarm", "aram se"]
+
+        if any(kw in text_lower for kw in savdhan_keywords):
             ACTIVE_MODE = "SAVDHAN"
-        elif "vishram" in text_lower or "ease" in text_lower or "vish" in text_lower:
+        elif any(kw in text_lower for kw in vishram_keywords):
             ACTIVE_MODE = "VISHRAM"
-        elif "salute" in text_lower or "samne" in text_lower:
-            if "baye" in text_lower or "left" in text_lower:
+        elif any(kw in text_lower for kw in salute_keywords) or any(kw in text_lower for kw in baye_keywords) or any(kw in text_lower for kw in dahine_keywords):
+            if any(kw in text_lower for kw in baye_keywords):
                 ACTIVE_MODE = "BAYE_SALUTE"
-            elif "dahine" in text_lower or "right" in text_lower:
+            elif any(kw in text_lower for kw in dahine_keywords):
                 ACTIVE_MODE = "DAINE_SALUTE"
             else:
                 ACTIVE_MODE = "FRONT_SALUTE"
-        elif "aaram" in text_lower:
+        elif any(kw in text_lower for kw in aaram_keywords):
             ACTIVE_MODE = "AARAM_SE"
             
         print(f"Voice Command Received: '{text}', Mode updated to: {ACTIVE_MODE}")
