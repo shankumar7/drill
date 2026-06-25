@@ -56,12 +56,13 @@ class YoloPoseEstimator(PoseEstimator):
                 if result.boxes.id is not None
                 else np.arange(len(boxes))
             )
+            confs = result.boxes.conf.detach().cpu().numpy()
             for index, points in enumerate(keypoints):
                 detections.append(
                     PoseDetection(
                         track_id=int(ids[index]),
                         bbox=boxes[index, :4],
-                        confidence=float(boxes[index, 4]),
+                        confidence=float(confs[index]),
                         keypoints=points,
                     )
                 )
