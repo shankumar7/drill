@@ -7,20 +7,36 @@ class SaluteRightArmAngleRule(EvaluationRule):
 
     def evaluate(self, detection: PoseDetection) -> RuleResult:
         k = detection.keypoints
-        # Right Arm: Wrist (10), Elbow (8), Shoulder (6)
-        if min(k[10, 2], k[8, 2], k[6, 2]) < 0.5:
-            return RuleResult(self.name, "not_evaluable", None, "Right arm keypoints not reliable.")
-            
-        angle = angle_degrees(k[10, :2], k[8, :2], k[6, :2])
+        # Try right arm first: Wrist (10), Elbow (8), Shoulder (6)
+        # Then fall back to left arm: Wrist (9), Elbow (7), Shoulder (5)
+        # This handles mirrored webcam feeds where the saluting arm may appear on either side
         
-        # Ideal saluting interior angle is roughly 35 to 100 degrees
+        right_conf = min(k[10, 2], k[8, 2], k[6, 2])
+        left_conf = min(k[9, 2], k[7, 2], k[5, 2])
+        
+        if right_conf >= 0.3:
+            wrist, elbow, shoulder = k[10, :2], k[8, :2], k[6, :2]
+            arm_label = "Right"
+        elif left_conf >= 0.3:
+            wrist, elbow, shoulder = k[9, :2], k[7, :2], k[5, :2]
+            arm_label = "Left"
+        else:
+            return RuleResult(self.name, "not_evaluable", None, "Arm keypoints not reliable.")
+        
+        # Check if the wrist is raised above the elbow (saluting position)
+        if wrist[1] > elbow[1]:  # y increases downward, so wrist below elbow means not saluting
+            return RuleResult(self.name, "fail", 20.0, f"{arm_label} arm is not raised for salute.")
+            
+        angle = angle_degrees(wrist, elbow, shoulder)
+        
+        # Ideal saluting interior angle is roughly 25 to 120 degrees (widened for real-world tolerance)
         score = 0.0
-        if 35 <= angle <= 100:
+        if 25 <= angle <= 120:
             score = 100.0
-        elif 20 <= angle < 35:
-            score = 100.0 - ((35 - angle) * 6.6)
-        elif 100 < angle <= 120:
-            score = 100.0 - ((angle - 100) * 5.0)
+        elif 15 <= angle < 25:
+            score = 100.0 - ((25 - angle) * 10.0)
+        elif 120 < angle <= 145:
+            score = 100.0 - ((angle - 120) * 4.0)
             
         score = max(0.0, score)
         
@@ -29,7 +45,7 @@ class SaluteRightArmAngleRule(EvaluationRule):
             return smoothed
             
         status = "pass" if smoothed >= 80 else "fail"
-        return RuleResult(self.name, status, round(smoothed, 1), f"Arm Angle: {angle:.1f} (Ideal: 35-100)")
+        return RuleResult(self.name, status, round(smoothed, 1), f"{arm_label} Arm Angle: {angle:.1f}° (Ideal: 25-120)")
 
 
 class StraightLeftArmAngleRule(EvaluationRule):
@@ -37,18 +53,29 @@ class StraightLeftArmAngleRule(EvaluationRule):
 
     def evaluate(self, detection: PoseDetection) -> RuleResult:
         k = detection.keypoints
-        # Left Arm: Wrist (9), Elbow (7), Shoulder (5)
-        if min(k[9, 2], k[7, 2], k[5, 2]) < 0.5:
-            return RuleResult(self.name, "not_evaluable", None, "Left arm keypoints not reliable.")
-            
-        angle = angle_degrees(k[9, :2], k[7, :2], k[5, :2])
+        # Try left arm first: Wrist (9), Elbow (7), Shoulder (5)
+        # Then fall back to right arm: Wrist (10), Elbow (8), Shoulder (6)
         
-        # Ideal straight arm is roughly 160 to 180 degrees
+        left_conf = min(k[9, 2], k[7, 2], k[5, 2])
+        right_conf = min(k[10, 2], k[8, 2], k[6, 2])
+        
+        if left_conf >= 0.3:
+            wrist, elbow, shoulder = k[9, :2], k[7, :2], k[5, :2]
+            arm_label = "Left"
+        elif right_conf >= 0.3:
+            wrist, elbow, shoulder = k[10, :2], k[8, :2], k[6, :2]
+            arm_label = "Right"
+        else:
+            return RuleResult(self.name, "not_evaluable", None, "Arm keypoints not reliable.")
+            
+        angle = angle_degrees(wrist, elbow, shoulder)
+        
+        # Ideal straight arm is roughly 145 to 180 degrees (relaxed lower bound)
         score = 0.0
-        if 160 <= angle <= 180:
+        if 145 <= angle <= 180:
             score = 100.0
-        elif 140 <= angle < 160:
-            score = 100.0 - ((160 - angle) * 5.0)
+        elif 120 <= angle < 145:
+            score = 100.0 - ((145 - angle) * 4.0)
             
         score = max(0.0, score)
         
@@ -57,4 +84,4 @@ class StraightLeftArmAngleRule(EvaluationRule):
             return smoothed
             
         status = "pass" if smoothed >= 80 else "fail"
-        return RuleResult(self.name, status, round(smoothed, 1), f"Arm Angle: {angle:.1f} (Ideal: 160-180)")
+        return RuleResult(self.name, status, round(smoothed, 1), f"{arm_label} Arm Angle: {angle:.1f}° (Ideal: 145-180)")

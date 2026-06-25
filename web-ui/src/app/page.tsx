@@ -46,7 +46,7 @@ function LaunchScreen({ onComplete }: { onComplete: () => void }) {
 
       <div className="relative z-10 flex flex-col items-center justify-center w-full max-w-lg">
         {/* Geometric Loader */}
-        <div className="relative w-48 h-48 mb-12 flex items-center justify-center">
+        <div className="relative w-64 h-64 mb-12 flex items-center justify-center">
           <motion.div 
             animate={{ rotate: 360 }} transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
             className="absolute inset-0 border-[1px] border-dashed border-blue-300 rounded-full opacity-50"
@@ -57,7 +57,7 @@ function LaunchScreen({ onComplete }: { onComplete: () => void }) {
           />
           <motion.div 
             animate={{ scale: [0.95, 1.05, 0.95] }} transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-            className="w-20 h-20 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-full shadow-[0_0_40px_rgba(59,130,246,0.4)] flex items-center justify-center"
+            className="w-48 h-48 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-full shadow-[0_0_40px_rgba(59,130,246,0.4)] flex items-center justify-center"
           >
              <img src="/logo.jpeg" alt="Logo" className="w-full h-full object-cover rounded-full" />
           </motion.div>
@@ -149,8 +149,13 @@ function OnboardingScreen({ onNext }: { onNext: () => void }) {
       <div className="absolute top-8 left-8 w-16 h-16 border-t-2 border-l-2 border-blue-200 opacity-50"></div>
       <div className="absolute bottom-8 right-8 w-16 h-16 border-b-2 border-r-2 border-emerald-500/50 opacity-50"></div>
 
-      <div className="bg-white shadow-lg border border-slate-200 p-12 lg:p-16 rounded-3xl max-w-5xl w-full mx-6 relative z-10 border border-slate-200 shadow-2xl bg-white">
-        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 1, ease: "easeOut" }}>
+      <div className="bg-white shadow-2xl border border-slate-200 p-12 lg:p-16 rounded-3xl max-w-7xl w-full mx-6 relative z-10 overflow-hidden">
+        <img 
+          src="/top_right_logo.png" 
+          alt="Secondary Logo" 
+          className="absolute top-12 right-12 w-48 lg:w-64 h-auto object-contain opacity-90"
+        />
+        <motion.div className="relative z-10" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 1, ease: "easeOut" }}>
 
           <div className="flex items-center space-x-4 mb-6">
             <img src="/logo.jpeg" alt="Logo" className="w-10 h-10 object-cover rounded-full shadow-lg" />
@@ -375,6 +380,12 @@ function Dashboard({ onComplete }: { onComplete: (results: any[]) => void }) {
     }
   };
 
+  const changeMode = (mode: string) => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ mode }));
+    }
+  };
+
   const lockCadet = async (id: number) => {
     setSelectedCadet(id.toString());
     try {
@@ -403,7 +414,7 @@ function Dashboard({ onComplete }: { onComplete: (results: any[]) => void }) {
   const isInitializing = telemetry.status === "Initializing...";
 
   return (
-    <motion.div className="h-screen w-full flex flex-col font-sans bg-[#0B0F19] text-slate-200 overflow-hidden relative" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8 }}>
+    <motion.div className="h-screen w-full flex flex-col font-sans bg-slate-50 text-slate-800 overflow-hidden relative" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8 }}>
       
       {/* Background Tech Details */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
@@ -413,12 +424,12 @@ function Dashboard({ onComplete }: { onComplete: (results: any[]) => void }) {
       </div>
 
       {/* Header */}
-      <header className="h-16 flex items-center justify-between px-6 lg:px-8 border-b border-white/10 bg-slate-900/50 backdrop-blur-md relative z-40 shrink-0">
+      <header className="h-16 flex items-center justify-between px-6 lg:px-8 border-b border-slate-200 glass-header relative z-40 shrink-0">
         <div className="flex items-center space-x-4">
           <div className="w-8 h-8 rounded border border-white/20 bg-slate-800 flex items-center justify-center overflow-hidden">
              <img src="/logo.jpeg" alt="Logo" className="w-full h-full object-cover" />
           </div>
-          <h1 className="text-sm font-bold tracking-widest uppercase text-slate-100">
+          <h1 className="text-sm font-bold tracking-widest uppercase text-slate-800">
             Military Drill <span className="text-blue-500 font-normal">Analysis System</span>
           </h1>
         </div>
@@ -427,7 +438,7 @@ function Dashboard({ onComplete }: { onComplete: (results: any[]) => void }) {
              <span className={`w-2 h-2 rounded-full ${wsStatus === 'connected' ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`}></span>
              <span className="text-slate-400 uppercase tracking-widest">{wsStatus}</span>
           </div>
-          <button onClick={saveSession} className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded text-xs font-bold uppercase tracking-wider transition-colors flex items-center space-x-2">
+          <button onClick={saveSession} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-800 rounded text-xs font-bold uppercase tracking-wider transition-colors flex items-center space-x-2">
             <LogOut className="w-3 h-3" />
             <span>End Session</span>
           </button>
@@ -441,11 +452,11 @@ function Dashboard({ onComplete }: { onComplete: (results: any[]) => void }) {
         <div className="flex-1 flex flex-col min-h-0 gap-6">
           
           {/* Main Camera HUD */}
-          <div className="flex-1 min-h-0 relative bg-slate-900/40 rounded-2xl border border-white/10 backdrop-blur-sm overflow-hidden flex flex-col shadow-[0_0_40px_rgba(0,0,0,0.5)]">
+          <div className="flex-1 min-h-0 relative glass-panel rounded-2xl overflow-hidden flex flex-col">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 via-cyan-400 to-transparent z-20"></div>
             
             <div className="absolute top-4 left-4 z-20 flex items-center space-x-3">
-              <div className="px-3 py-1 bg-black/60 backdrop-blur border border-white/10 rounded text-[10px] font-bold text-white tracking-widest uppercase flex items-center space-x-2">
+              <div className="px-3 py-1 bg-white/80 backdrop-blur border border-slate-200 rounded text-[10px] font-bold text-slate-800 tracking-widest uppercase flex items-center space-x-2">
                 <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
                 <span>CAM 1: FRONT</span>
               </div>
@@ -455,8 +466,26 @@ function Dashboard({ onComplete }: { onComplete: (results: any[]) => void }) {
                 </div>
               )}
             </div>
+            
+            {/* Mode Selection Controls */}
+            <div className="absolute top-4 right-4 z-20 flex gap-2">
+              {[
+                { label: "Savadhan", val: "SAVDHAN" },
+                { label: "Vishram", val: "VISHRAM" },
+                { label: "Salute", val: "FRONT_SALUTE" },
+                { label: "Aaram Se", val: "AARAM_SE" }
+              ].map(m => (
+                <button 
+                  key={m.val}
+                  onClick={() => changeMode(m.val)}
+                  className={`px-3 py-1.5 backdrop-blur border rounded text-[10px] font-bold tracking-widest uppercase shadow-sm transition-colors ${telemetry.active_mode === m.val ? 'bg-blue-500 text-white border-blue-600' : 'bg-white/80 border-slate-200 text-slate-700 hover:bg-slate-100'}`}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
 
-            <div className="w-full h-full relative flex items-center justify-center bg-black/50">
+            <div className="w-full h-full relative flex items-center justify-center bg-slate-100/50">
               {selectedCadet ? (
                 <img 
                   src="http://localhost:8000/api/video_feed/0" 
@@ -472,12 +501,12 @@ function Dashboard({ onComplete }: { onComplete: (results: any[]) => void }) {
                     className="w-full h-full object-contain opacity-40 blur-sm"
                     onError={(e) => { e.currentTarget.style.display = 'none'; }}
                   />
-                  <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-slate-950/60 backdrop-blur-sm">
+                  <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm">
                     <div className="w-24 h-24 border border-blue-500/50 rounded-full flex items-center justify-center relative mb-6">
                        <div className="absolute inset-0 border-t-2 border-blue-400 rounded-full animate-spin"></div>
                        <Activity className="w-8 h-8 text-blue-400" />
                     </div>
-                    <h3 className="text-xl font-bold text-white mb-2 tracking-widest">AWAITING TARGET ACQUISITION</h3>
+                    <h3 className="text-xl font-bold text-slate-800 mb-2 tracking-widest">AWAITING TARGET ACQUISITION</h3>
                     <p className="text-xs text-slate-400 mb-6 font-mono uppercase tracking-widest">Select a detected cadet ID to lock focus</p>
                     <div className="flex gap-3">
                       {telemetry.detected_ids && telemetry.detected_ids.length > 0 ? (
@@ -510,8 +539,8 @@ function Dashboard({ onComplete }: { onComplete: (results: any[]) => void }) {
               { id: 1, label: "CAM 2: SIDE" },
               { id: 2, label: "CAM 3: BACK" }
             ].map((cam) => (
-              <div key={cam.id} className="flex-1 relative bg-slate-900/40 rounded-xl border border-white/10 backdrop-blur-sm overflow-hidden flex items-center justify-center group">
-                <div className="absolute top-2 left-2 z-20 px-2 py-1 bg-black/60 backdrop-blur border border-white/10 rounded text-[9px] font-bold text-slate-300 tracking-widest uppercase">
+              <div key={cam.id} className="flex-1 relative glass-panel rounded-xl overflow-hidden flex items-center justify-center group">
+                <div className="absolute top-2 left-2 z-20 px-2 py-1 bg-white/80 backdrop-blur border border-slate-200 rounded text-[9px] font-bold text-slate-700 tracking-widest uppercase">
                   {cam.label}
                 </div>
                 <img 
@@ -537,7 +566,7 @@ function Dashboard({ onComplete }: { onComplete: (results: any[]) => void }) {
         <div className="lg:w-[400px] shrink-0 flex flex-col gap-6 h-full min-h-0">
           
           {/* Status Panel */}
-          <div className="bg-slate-900/60 rounded-2xl border border-white/10 backdrop-blur-md p-6 flex flex-col relative overflow-hidden shrink-0">
+          <div className="glass-panel rounded-2xl p-6 flex flex-col relative overflow-hidden shrink-0">
             <div className={`absolute top-0 left-0 w-full h-1 ${isInitializing ? 'bg-slate-500' : (isPass ? 'bg-emerald-500 shadow-[0_0_20px_#10b981]' : 'bg-red-500 shadow-[0_0_20px_#ef4444]')}`}></div>
             
             <h3 className="text-xs font-bold tracking-widest text-slate-400 uppercase mb-4">Live Evaluation Status</h3>
@@ -545,7 +574,7 @@ function Dashboard({ onComplete }: { onComplete: (results: any[]) => void }) {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <div className="text-[10px] text-slate-500 font-mono uppercase tracking-widest mb-1">Target Identity</div>
-                <div className="font-bold text-slate-200">{selectedCadet ? `CADET ID-${selectedCadet}` : 'UNASSIGNED'}</div>
+                <div className="font-bold text-slate-800">{selectedCadet ? `CADET ID-${selectedCadet}` : 'UNASSIGNED'}</div>
               </div>
               <div className="text-right">
                 <div className="text-[10px] text-slate-500 font-mono uppercase tracking-widest mb-1">System Confidence</div>
@@ -565,13 +594,13 @@ function Dashboard({ onComplete }: { onComplete: (results: any[]) => void }) {
             {!isInitializing && (
               <div className="mt-4 text-center">
                  <div className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">Overall Score</div>
-                 <div className="text-2xl font-bold text-white">{telemetry.overall_score}%</div>
+                 <div className="text-2xl font-bold text-slate-800">{telemetry.overall_score}%</div>
               </div>
             )}
           </div>
 
           {/* Telemetry Metrics List */}
-          <div className="flex-1 min-h-0 bg-slate-900/40 rounded-2xl border border-white/10 backdrop-blur-sm p-5 flex flex-col relative">
+          <div className="flex-1 min-h-0 glass-panel rounded-2xl p-5 flex flex-col relative">
             <h3 className="text-xs font-bold tracking-widest text-slate-400 uppercase mb-4 pb-2 border-b border-white/5">Diagnostic Breakdown</h3>
             
             <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-3">
@@ -588,19 +617,20 @@ function Dashboard({ onComplete }: { onComplete: (results: any[]) => void }) {
         </div>
       </main>
 
-      {/* Floating Voice Command Bar */}
+      {/* Floating Voice Command Bar (Temporarily Disabled) */}
+      {/*
       <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center">
         {voiceError && (
-           <div className="mb-3 px-4 py-2 bg-red-900/90 backdrop-blur-md rounded-lg border border-red-500/50 text-xs font-mono text-red-200 shadow-lg text-center max-w-sm">
+           <div className="mb-3 px-4 py-2 bg-red-50/90 backdrop-blur-md rounded-lg border border-red-200 text-xs font-mono text-red-600 shadow-lg text-center max-w-sm">
              <span className="font-bold">Error:</span> {voiceError.includes('ffmpeg') ? "FFmpeg is missing on the backend. Please install it." : voiceError}
            </div>
         )}
         {telemetry.last_command && !voiceError && (
-           <div className="mb-3 px-4 py-1.5 bg-black/60 backdrop-blur-md rounded-full border border-white/10 text-xs font-mono text-slate-300">
+           <div className="mb-3 px-4 py-1.5 bg-white/90 backdrop-blur-md rounded-full border border-slate-200 text-xs font-mono text-slate-700">
              Heard: <span className="text-blue-400 font-bold uppercase">"{telemetry.last_command}"</span>
            </div>
         )}
-        <div className="flex items-center p-2 bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-full shadow-[0_10px_40px_rgba(0,0,0,0.5)]">
+        <div className="flex items-center p-2 bg-white/90 backdrop-blur-xl border border-slate-200 rounded-full shadow-[0_10px_40px_rgba(0,0,0,0.1)]">
           <button 
             onMouseDown={startRecording}
             onMouseUp={stopRecording}
@@ -618,19 +648,21 @@ function Dashboard({ onComplete }: { onComplete: (results: any[]) => void }) {
           </button>
         </div>
       </div>
+      */}
 
     </motion.div>
   );
 }
 
+
 function TelemetryGaugeCard({ label, value }: { label: string; value: any }) {
   if (typeof value === "number") return null; 
   const isPass = value.status === "pass";
   return (
-    <div className={`p-3 rounded-lg border bg-black/20 backdrop-blur-sm transition-colors
+    <div className={`p-3 rounded-lg border bg-white/80 shadow-sm backdrop-blur-sm transition-colors
       ${isPass ? 'border-emerald-500/20 hover:border-emerald-500/40' : 'border-red-500/20 hover:border-red-500/40'}`}>
       <div className="flex justify-between items-center mb-1.5">
-        <h4 className="text-[11px] font-bold text-slate-300 tracking-wider uppercase">{label}</h4>
+        <h4 className="text-[11px] font-bold text-slate-700 tracking-wider uppercase">{label}</h4>
         <div className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-widest ${isPass ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
           {isPass ? 'PASS' : 'FAIL'}
         </div>
@@ -662,22 +694,22 @@ function ResultsScreen({ results, onRestart }: { results: any[]; onRestart: () =
           <p className="text-slate-500">Sequence completed. Here is the strict rule‑based breakdown.</p>
         </div>
         <div className="grid grid-cols-3 gap-6 mb-10 text-center">
-          <div className="p-6 bg-white/5 rounded-2xl border border-white/10">
+          <div className="p-6 bg-white shadow-sm rounded-2xl border border-slate-200">
             <div className="text-sm font-bold text-slate-500 tracking-widest uppercase mb-2">Total Drills</div>
             <div className="text-4xl font-black text-slate-900">{total}</div>
           </div>
-          <div className="p-6 bg-white/5 rounded-2xl border border-white/10">
+          <div className="p-6 bg-white shadow-sm rounded-2xl border border-slate-200">
             <div className="text-sm font-bold text-slate-500 tracking-widest uppercase mb-2">Passed</div>
             <div className="text-4xl font-black text-emerald-400">{passed}</div>
           </div>
-          <div className="p-6 bg-white/5 rounded-2xl border border-white/10">
+          <div className="p-6 bg-white shadow-sm rounded-2xl border border-slate-200">
             <div className="text-sm font-bold text-slate-500 tracking-widest uppercase mb-2">Failed</div>
             <div className="text-4xl font-black text-red-400">{total - passed}</div>
           </div>
         </div>
         <div className="space-y-3 mb-10 max-h-[40vh] overflow-y-auto custom-scrollbar pr-4">
           {results.map((r, i) => (
-            <div key={i} className="flex items-center justify-between p-4 bg-white/5 border border-white/10 rounded-xl">
+            <div key={i} className="flex items-center justify-between p-4 bg-white shadow-sm border border-slate-200 rounded-xl">
               <div className="flex items-center space-x-4">
                 <span className="text-slate-500 font-mono font-bold text-sm">{(i + 1).toString().padStart(2, '0')}</span>
                 <span className="text-slate-900 font-bold text-lg">{r.drill}</span>

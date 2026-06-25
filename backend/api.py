@@ -328,15 +328,12 @@ async def fusion_evaluator_loop():
 
             overall_score = round(sum(fused_scores.values()) / len(fused_scores)) if fused_scores else 0
             
-            any_fail = any(res.status == "fail" for res in fused_results.values())
             any_missing = any(res.status == "not_evaluable" for res in fused_results.values())
             
-            if any_fail:
-                status = "FAIL"
-            elif any_missing or not fused_scores:
+            if any_missing or not fused_scores:
                 status = "Initializing..."
             else:
-                status = "PASS" if overall_score >= 80 else "FAIL"
+                status = "PASS" if overall_score >= 85 else "FAIL"
 
             def get_payload(rule_name):
                 res = fused_results.get(rule_name)

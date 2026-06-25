@@ -1,17 +1,17 @@
 @import "tailwindcss";
 
 @theme {
-  --color-background: #050505;
-  --color-foreground: #FAFAFA;
+  --color-background: #F8FAFC;
+  --color-foreground: #0F172A;
   
-  --color-card: rgba(20, 20, 20, 0.4);
-  --color-card-border: rgba(255, 255, 255, 0.08);
+  --color-card: rgba(255, 255, 255, 0.9);
+  --color-card-border: rgba(0, 0, 0, 0.05);
   
-  --color-primary: #3B82F6;
-  --color-primary-glow: rgba(59, 130, 246, 0.5);
+  --color-primary: #2563EB;
+  --color-primary-glow: rgba(37, 99, 235, 0.3);
   
   --color-success: #10B981;
-  --color-success-glow: rgba(16, 185, 129, 0.5);
+  --color-success-glow: rgba(16, 185, 129, 0.3);
   
   --color-warning: #F59E0B;
   --color-danger: #EF4444;
@@ -19,16 +19,16 @@
 
 @layer base {
   :root {
-    --background: #050505;
-    --foreground: #FAFAFA;
+    --background: #F8FAFC;
+    --foreground: #0F172A;
   }
   
   body {
     background-color: var(--background);
     color: var(--foreground);
     background-image: 
-      radial-gradient(ellipse at top left, rgba(59, 130, 246, 0.15), transparent 40%),
-      radial-gradient(ellipse at bottom right, rgba(16, 185, 129, 0.08), transparent 40%);
+      radial-gradient(ellipse at top left, rgba(37, 99, 235, 0.08), transparent 40%),
+      radial-gradient(ellipse at bottom right, rgba(16, 185, 129, 0.05), transparent 40%);
     background-attachment: fixed;
     min-height: 100vh;
   }
@@ -36,29 +36,29 @@
 
 @layer utilities {
   .glass-panel {
-    background: rgba(15, 15, 17, 0.6);
+    background: rgba(255, 255, 255, 0.7);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.03);
   }
   
   .glass-header {
-    background: rgba(10, 10, 12, 0.8);
+    background: rgba(255, 255, 255, 0.85);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
   }
 
   .text-glow-primary {
-    text-shadow: 0 0 20px var(--color-primary-glow);
+    text-shadow: 0 0 15px var(--color-primary-glow);
   }
   
   .text-glow-success {
-    text-shadow: 0 0 20px var(--color-success-glow);
+    text-shadow: 0 0 15px var(--color-success-glow);
   }
 
-  /* Premium Dark Mode Scrollbar */
+  /* Premium Light Mode Scrollbar */
   .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -69,11 +69,11 @@
   }
   
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(0, 0, 0, 0.15);
     border-radius: 10px;
   }
   
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: rgba(59, 130, 246, 0.4); /* Blue accent on hover */
+    background: rgba(37, 99, 235, 0.4); /* Blue accent on hover */
   }
 }
