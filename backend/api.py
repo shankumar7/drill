@@ -53,7 +53,7 @@ try:
         model_path="yolo11n-pose.pt",
         confidence=0.5,
         image_size=640,
-        prefer_half_precision=False,
+        prefer_half_precision=True,
         tracking_enabled=True,
         tracker_config="bytetrack.yaml"
     )
@@ -64,8 +64,10 @@ except Exception as e:
 whisper_model = None
 try:
     import whisper
-    whisper_model = whisper.load_model("base")
-    print("Whisper Model loaded in API.")
+    import torch
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    whisper_model = whisper.load_model("base", device=device)
+    print(f"Whisper Model loaded in API on {device}.")
 except Exception as e:
     print(f"Failed to load Whisper Model: {e}")
 
@@ -162,8 +164,8 @@ async def generate_frames(camera_id: int):
                     async with DETECTION_LOCK:
                         MULTI_CAM_DETECTIONS[camera_id] = {"det": det, "ts": time.time(), "ppi": ppi, "conf": avg_conf, "available_ids": available_ids}
                     
-                    from backend.visualization.debug_view import _draw_skeleton
-                    _draw_skeleton(frame, det.keypoints)
+                    # Skeleton drawing moved to client side to avoid duplicate overlays
+                    # _draw_skeleton(frame, det.keypoints)  # Disabled to prevent multiple line artifacts
                     
                     tid = getattr(det, 'track_id', 'Unknown')
                     if tid is not None:
@@ -224,10 +226,11 @@ async def process_voice_command(audio: UploadFile = File(...)):
     try:
         # Whisper automatically handles various audio formats including webm
         # Note: This requires ffmpeg to be installed on the system
+        import torch
         result = whisper_model.transcribe(
             temp_audio_path,
             language="en",
-            fp16=False,
+            fp16=torch.cuda.is_available(),
             initial_prompt="Military drill commands: savadhan, attention, vishram, ease, salute, samne, baye, dahine, aaram."
         )
         text = result.get("text", "").strip()

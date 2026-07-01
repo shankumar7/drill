@@ -114,7 +114,7 @@ class DashboardWindow(ctk.CTkToplevel):
                 model_path="yolo11n-pose.pt",
                 confidence=0.5,
                 image_size=640,
-                prefer_half_precision=False,
+                prefer_half_precision=True,
                 tracking_enabled=False,
                 tracker_config=None
             )
