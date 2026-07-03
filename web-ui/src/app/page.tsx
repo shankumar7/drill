@@ -218,12 +218,22 @@ function OnboardingScreen({ onNext }: { onNext: () => void }) {
             Initialize the workspace to begin real-time, multi-camera drill compliance assessment powered by state-of-the-art neural engines.
           </p>
 
-          <div className="flex items-center space-x-8">
+          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mt-4">
+            <div className="flex flex-col space-y-2 text-stone-400">
+              <p className="text-sm tracking-wide font-medium">
+                <span className="text-stone-300 font-bold uppercase tracking-widest text-xs mr-2">Project By:</span> 
+                Janardhan & Shankumar
+              </p>
+              <p className="text-xs tracking-wider uppercase font-bold opacity-70">
+                Under the Guidance & Mentorship of <span className="text-stone-300">Lt Col K Srinath</span>
+              </p>
+            </div>
+
             <button
               onClick={onNext}
-              className="group relative overflow-hidden flex items-center justify-center space-x-4 bg-stone-800 text-stone-100 border border-white/10 px-10 py-5 rounded-full font-bold text-lg hover:bg-stone-700 active:scale-95 transition-all shadow-xl"
+              className="group shrink-0 relative overflow-hidden flex items-center justify-center space-x-4 bg-stone-800 text-stone-100 border border-white/10 px-12 py-4 rounded-full font-bold text-lg hover:bg-stone-700 active:scale-95 transition-all shadow-xl"
             >
-              <span className="relative z-10 tracking-wide uppercase">Initialize Workspace</span>
+              <span className="relative z-10 tracking-widest uppercase">Start</span>
               <ChevronRightCircle className="relative z-10 w-6 h-6 group-hover:translate-x-1 transition-transform opacity-50 group-hover:opacity-100" />
             </button>
           </div>
