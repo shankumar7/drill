@@ -118,14 +118,14 @@ function SettingsModal({ isOpen, onClose, mapping, onSave, baseUrl }: {
 
   if (!isOpen) return null;
 
-  const tabs: { id: SettingsTab; label: string; icon: string }[] = [
-    { id: "camera",     label: "Camera",    icon: "📷" },
-    { id: "ai",         label: "AI Engine", icon: "🧠" },
-    { id: "evaluation", label: "Scoring",   icon: "📊" },
-    { id: "voice",      label: "Voice",     icon: "🎙️" },
-    { id: "display",    label: "Display",   icon: "🖥️" },
-    { id: "session",    label: "Session",   icon: "📋" },
-    { id: "network",    label: "Network",   icon: "🌐" },
+  const tabs: { id: SettingsTab; label: string }[] = [
+    { id: "camera",     label: "Camera" },
+    { id: "ai",         label: "AI Engine" },
+    { id: "evaluation", label: "Scoring" },
+    { id: "voice",      label: "Voice" },
+    { id: "display",    label: "Display" },
+    { id: "session",    label: "Session" },
+    { id: "network",    label: "Network" },
   ];
 
   const Section = ({ title }: { title: string }) => (
@@ -237,12 +237,11 @@ function SettingsModal({ isOpen, onClose, mapping, onSave, baseUrl }: {
           <button onClick={onClose} className="w-8 h-8 rounded-full bg-stone-800 hover:bg-stone-700 flex items-center justify-center text-stone-400 hover:text-stone-200 transition-colors text-xl">×</button>
         </div>
 
-        {/* Tabs */}
         <div className="flex border-b border-white/[0.06] px-4 pt-2 overflow-x-auto shrink-0 gap-1">
           {tabs.map(t => (
             <button key={t.id} onClick={() => setActiveTab(t.id)}
               className={`whitespace-nowrap px-3 py-2 text-[10px] font-black uppercase tracking-widest border-b-2 transition-all rounded-t ${activeTab === t.id ? "text-stone-100 border-stone-300 bg-stone-800/60" : "text-stone-600 border-transparent hover:text-stone-400 hover:bg-stone-800/30"}`}>
-              <span className="mr-1">{t.icon}</span>{t.label}
+              {t.label}
             </button>
           ))}
         </div>
