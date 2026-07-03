@@ -191,11 +191,13 @@ function OnboardingScreen({ onNext }: { onNext: () => void }) {
       <div className="absolute top-8 left-8 w-16 h-16 border-t-2 border-l-2 border-blue-200 opacity-50"></div>
       <div className="absolute bottom-8 right-8 w-16 h-16 border-b-2 border-r-2 border-emerald-500/50 opacity-50"></div>
 
-      <div className="bg-white shadow-2xl border border-slate-200 p-12 lg:p-16 rounded-3xl max-w-7xl w-full mx-6 relative z-10 overflow-hidden">
-        <img 
-          src="/top_right_logo.png" 
-          alt="Secondary Logo" 
-          className="absolute top-12 right-12 w-48 lg:w-64 h-auto object-contain opacity-90"
+      <div className="bg-white/90 backdrop-blur-3xl shadow-[0_30px_60px_rgba(0,0,0,0.1)] border border-slate-200/50 p-12 lg:p-16 rounded-3xl max-w-7xl w-full mx-6 relative z-10 overflow-hidden">
+        <motion.img 
+          src="/hello.jpg" 
+          alt="Hero Graphic" 
+          animate={{ y: [-10, 10, -10] }}
+          transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-0 right-0 w-[300px] lg:w-[500px] h-auto object-contain drop-shadow-[0_20px_40px_rgba(0,0,0,0.2)] opacity-95 rounded-bl-[100px]"
         />
         <motion.div className="relative z-10" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 1, ease: "easeOut" }}>
 
@@ -206,9 +208,9 @@ function OnboardingScreen({ onNext }: { onNext: () => void }) {
             </h3>
           </div>
 
-          <h1 className="text-5xl lg:text-[5rem] font-black text-slate-900 tracking-tight mb-8 leading-[1.1]">
+          <h1 className="text-5xl lg:text-[5rem] font-black text-slate-900 tracking-tighter mb-8 leading-[1.05]">
             Military Drill <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-cyan-500 to-emerald-500 drop-shadow-[0_0_15px_rgba(56,189,248,0.3)]">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-cyan-500 to-emerald-500 drop-shadow-[0_0_20px_rgba(56,189,248,0.4)]">
               Analysis System.
             </span>
           </h1>
