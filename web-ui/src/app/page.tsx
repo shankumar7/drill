@@ -78,27 +78,28 @@ function LaunchScreen({ onComplete }: { onComplete: () => void }) {
   }, [onComplete]);
 
   return (
-    <motion.div
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden font-sans"
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, scale: 1.05 }} transition={{ duration: 0.8 }}
-    >
-      {/* Background Image Overlay */}
-      <div className="absolute inset-0 z-0 pointer-events-none">
-        <img src="/hello.jpg" alt="Background" className="w-full h-full object-cover blur-md scale-105" />
-        <div className="absolute inset-0 bg-black/20"></div>
-        
-        {/* Oversized Background Text */}
-        <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
-          <h1 className="text-[10rem] lg:text-[18rem] font-black font-sans tracking-tighter text-white/20 select-none whitespace-nowrap">
-            INDIAN ARMY
-          </h1>
-        </div>
+    <>
+      {/* Persistent SDD Logo (Unaffected by animations) */}
+      <div className="fixed top-8 left-8 z-[100] pointer-events-none">
+        <img src="/top_right_logo.png" alt="SDD Logo" className="w-16 lg:w-20 h-auto object-contain drop-shadow-md" />
       </div>
 
-      {/* Persistent SDD Logo */}
-      <div className="absolute top-8 left-8 z-50 pointer-events-none">
-        <img src="/top_right_logo.png" alt="SDD Logo" className="w-24 lg:w-32 h-auto object-contain drop-shadow-md" />
-      </div>
+      <motion.div
+        className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden font-sans"
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, scale: 1.05 }} transition={{ duration: 0.8 }}
+      >
+        {/* Background Image Overlay */}
+        <div className="absolute inset-0 z-0 pointer-events-none">
+          <img src="/hello.jpg" alt="Background" className="w-full h-full object-cover blur-md scale-105" />
+          <div className="absolute inset-0 bg-black/20"></div>
+          
+          {/* Oversized Background Text */}
+          <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
+            <h1 className="text-[10rem] lg:text-[18rem] font-black font-sans tracking-tighter text-white/20 select-none whitespace-nowrap">
+              INDIAN ARMY
+            </h1>
+          </div>
+        </div>
 
       <div className="relative z-10 flex flex-col items-center justify-center w-full max-w-lg mt-10">
         {/* Sleek Matte Loader */}
@@ -145,36 +146,37 @@ function LaunchScreen({ onComplete }: { onComplete: () => void }) {
              </AnimatePresence>
           </div>
         </div>
-      </div>
-    </motion.div>
+      </motion.div>
+    </>
   );
 }
 
 // ==========================================
 function OnboardingScreen({ onNext }: { onNext: () => void }) {
   return (
-    <motion.div
-      className="fixed inset-0 z-40 flex items-center justify-center overflow-hidden"
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, x: -50, filter: "blur(10px)" }}
-      transition={{ duration: 0.8, ease: "easeOut" }}
-    >
-      {/* Background Image Overlay */}
-      <div className="absolute inset-0 z-0 pointer-events-none">
-        <img src="/hello2.jpg" alt="Background" className="w-full h-full object-cover blur-md scale-105" />
-        <div className="absolute inset-0 bg-black/20"></div>
-        
-        {/* Oversized Background Text */}
-        <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
-          <h1 className="text-[10rem] lg:text-[18rem] font-black font-sans tracking-tighter text-white/10 select-none whitespace-nowrap">
-            INDIAN ARMY
-          </h1>
-        </div>
+    <>
+      {/* Persistent SDD Logo (Unaffected by animations) */}
+      <div className="fixed top-8 left-8 z-[100] pointer-events-none">
+        <img src="/top_right_logo.png" alt="SDD Logo" className="w-16 lg:w-20 h-auto object-contain drop-shadow-md" />
       </div>
 
-      {/* Persistent SDD Logo */}
-      <div className="absolute top-8 left-8 z-50 pointer-events-none">
-        <img src="/top_right_logo.png" alt="SDD Logo" className="w-24 lg:w-32 h-auto object-contain drop-shadow-md" />
-      </div>
+      <motion.div
+        className="fixed inset-0 z-40 flex items-center justify-center overflow-hidden"
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, x: -50, filter: "blur(10px)" }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
+      >
+        {/* Background Image Overlay */}
+        <div className="absolute inset-0 z-0 pointer-events-none">
+          <img src="/hello2.jpg" alt="Background" className="w-full h-full object-cover blur-md scale-105" />
+          <div className="absolute inset-0 bg-black/20"></div>
+          
+          {/* Oversized Background Text */}
+          <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
+            <h1 className="text-[10rem] lg:text-[18rem] font-black font-sans tracking-tighter text-white/10 select-none whitespace-nowrap">
+              INDIAN ARMY
+            </h1>
+          </div>
+        </div>
 
       {/* Dynamic Immersive Background */}
       <div className="absolute inset-0 pointer-events-none z-0">
@@ -232,8 +234,8 @@ function OnboardingScreen({ onNext }: { onNext: () => void }) {
           </div>
 
         </motion.div>
-      </div>
-    </motion.div>
+      </motion.div>
+    </>
   );
 }
 
