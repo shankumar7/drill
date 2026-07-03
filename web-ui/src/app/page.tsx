@@ -103,12 +103,11 @@ function LaunchScreen({ onComplete }: { onComplete: () => void }) {
             animate={{ rotate: -360 }} transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
             className="absolute inset-4 border-[1px] border-blue-400 rounded-full opacity-30 border-t-transparent"
           />
-          <motion.div 
-            animate={{ scale: [0.95, 1.05, 0.95] }} transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+          <div 
             className="w-48 h-48 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-full shadow-[0_0_40px_rgba(59,130,246,0.4)] flex items-center justify-center"
           >
              <img src="/logo.jpeg" alt="Logo" className="w-full h-full object-cover rounded-full" />
-          </motion.div>
+          </div>
         </div>
 
         {/* Typography */}
@@ -204,11 +203,9 @@ function OnboardingScreen({ onNext }: { onNext: () => void }) {
       <div className="absolute bottom-8 right-8 w-16 h-16 border-b-2 border-r-2 border-emerald-500/50 opacity-50"></div>
 
       <div className="bg-white/90 backdrop-blur-3xl shadow-[0_30px_60px_rgba(0,0,0,0.1)] border border-slate-200/50 p-12 lg:p-16 rounded-3xl max-w-7xl w-full mx-6 relative z-10 overflow-hidden">
-        <motion.img 
+        <img 
           src="/hello.jpg" 
           alt="Hero Graphic" 
-          animate={{ y: [-10, 10, -10] }}
-          transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
           className="absolute top-0 right-0 w-[300px] lg:w-[500px] h-auto object-contain drop-shadow-[0_20px_40px_rgba(0,0,0,0.2)] opacity-95 rounded-bl-[100px]"
         />
         <motion.div className="relative z-10" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 1, ease: "easeOut" }}>
