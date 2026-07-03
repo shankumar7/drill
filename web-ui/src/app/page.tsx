@@ -85,35 +85,30 @@ function LaunchScreen({ onComplete }: { onComplete: () => void }) {
       {/* Background Image Overlay */}
       <div className="absolute inset-0 z-0 pointer-events-none">
         <img src="/hello.jpg" alt="Background" className="w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-white/40 backdrop-blur-sm"></div>
+        <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm mix-blend-multiply"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/20 to-transparent"></div>
       </div>
 
-      <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-0">
-        <div className="w-[800px] h-[800px] bg-blue-50/50 rounded-full blur-[100px]"></div>
-      </div>
-
-      <div className="relative z-10 flex flex-col items-center justify-center w-full max-w-lg">
-        {/* Geometric Loader */}
-        <div className="relative w-64 h-64 mb-12 flex items-center justify-center">
+      <div className="relative z-10 flex flex-col items-center justify-center w-full max-w-lg mt-10">
+        {/* Sleek Loader */}
+        <div className="relative w-56 h-56 mb-12 flex items-center justify-center">
           <motion.div 
-            animate={{ rotate: 360 }} transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-            className="absolute inset-0 border-[1px] border-dashed border-blue-300 rounded-full opacity-50"
+            animate={{ rotate: 360 }} transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
+            className="absolute inset-0 border border-blue-400/20 rounded-full"
           />
           <motion.div 
-            animate={{ rotate: -360 }} transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
-            className="absolute inset-4 border-[1px] border-blue-400 rounded-full opacity-30 border-t-transparent"
+            animate={{ rotate: -360 }} transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
+            className="absolute inset-4 border border-blue-400/40 rounded-full border-t-transparent border-b-transparent"
           />
-          <div 
-            className="w-48 h-48 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-full shadow-[0_0_40px_rgba(59,130,246,0.4)] flex items-center justify-center"
-          >
-             <img src="/logo.jpeg" alt="Logo" className="w-full h-full object-cover rounded-full" />
+          <div className="w-40 h-40 bg-slate-900/50 backdrop-blur-md rounded-full shadow-[0_0_30px_rgba(59,130,246,0.3)] flex items-center justify-center border border-blue-500/20 p-2">
+             <img src="/logo.jpeg" alt="Logo" className="w-full h-full object-cover rounded-full opacity-90" />
           </div>
         </div>
 
         {/* Typography */}
-        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3, duration: 0.8 }} className="text-center mb-8">
-          <h1 className="text-4xl font-black tracking-widest text-slate-900 uppercase mb-2">Drill Command</h1>
-          <p className="text-sm font-bold tracking-widest text-blue-500 uppercase">Analysis System</p>
+        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3, duration: 0.8 }} className="text-center mb-10">
+          <h1 className="text-4xl font-black tracking-[0.2em] text-white uppercase mb-2 drop-shadow-lg">Drill Command</h1>
+          <p className="text-xs font-bold tracking-[0.3em] text-blue-400 uppercase">Analysis System</p>
         </motion.div>
 
         {/* Minimal Progress */}
@@ -155,14 +150,14 @@ function OnboardingScreen({ onNext }: { onNext: () => void }) {
       {/* Background Image Overlay */}
       <div className="absolute inset-0 z-0 pointer-events-none">
         <img src="/hello2.jpg" alt="Background" className="w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-slate-50/40 backdrop-blur-sm"></div>
+        <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm mix-blend-multiply"></div>
       </div>
 
       {/* Dynamic Immersive Background */}
       <div className="absolute inset-0 pointer-events-none z-0">
         {/* Glows */}
-        <div className="absolute top-0 right-0 w-[1000px] h-[1000px] bg-blue-600/10 rounded-full blur-[150px] transform translate-x-1/3 -translate-y-1/3"></div>
-        <div className="absolute bottom-0 left-0 w-[800px] h-[800px] bg-emerald-600/10 rounded-full blur-[150px] transform -translate-x-1/3 translate-y-1/3"></div>
+        <div className="absolute top-0 right-0 w-[1000px] h-[1000px] bg-blue-600/5 rounded-full blur-[150px] transform translate-x-1/3 -translate-y-1/3"></div>
+        <div className="absolute bottom-0 left-0 w-[800px] h-[800px] bg-cyan-600/5 rounded-full blur-[150px] transform -translate-x-1/3 translate-y-1/3"></div>
 
         {/* Tech Grid Overlay */}
         <div
@@ -202,35 +197,35 @@ function OnboardingScreen({ onNext }: { onNext: () => void }) {
       <div className="absolute top-8 left-8 w-16 h-16 border-t-2 border-l-2 border-blue-200 opacity-50"></div>
       <div className="absolute bottom-8 right-8 w-16 h-16 border-b-2 border-r-2 border-emerald-500/50 opacity-50"></div>
 
-      <div className="bg-white/90 backdrop-blur-3xl shadow-[0_30px_60px_rgba(0,0,0,0.1)] border border-slate-200/50 p-12 lg:p-16 rounded-3xl max-w-7xl w-full mx-6 relative z-10 overflow-hidden">
+      <div className="bg-slate-900/40 backdrop-blur-3xl shadow-[0_30px_80px_rgba(0,0,0,0.5)] border border-white/10 p-12 lg:p-16 rounded-3xl max-w-7xl w-full mx-6 relative z-10 overflow-hidden">
         <img 
           src="/hello.jpg" 
           alt="Hero Graphic" 
-          className="absolute top-0 right-0 w-[300px] lg:w-[500px] h-auto object-contain drop-shadow-[0_20px_40px_rgba(0,0,0,0.2)] opacity-95 rounded-bl-[100px]"
+          className="absolute top-0 right-0 w-[300px] lg:w-[450px] h-auto object-contain drop-shadow-[0_20px_40px_rgba(0,0,0,0.4)] opacity-80 rounded-bl-[100px] mix-blend-lighten"
         />
         <motion.div className="relative z-10" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 1, ease: "easeOut" }}>
 
           <div className="flex items-center space-x-4 mb-6">
-            <img src="/logo.jpeg" alt="Logo" className="w-10 h-10 object-cover rounded-full shadow-lg" />
-            <h3 className="text-sm font-bold text-slate-500 tracking-[0.3em] uppercase">
+            <img src="/logo.jpeg" alt="Logo" className="w-10 h-10 object-cover rounded-full shadow-lg border border-white/20" />
+            <h3 className="text-xs font-bold text-slate-300 tracking-[0.4em] uppercase opacity-80">
               Simulation Development Division (SDD), MCEME
             </h3>
           </div>
 
-          <h1 className="text-5xl lg:text-[5rem] font-black text-slate-900 tracking-tighter mb-8 leading-[1.05]">
+          <h1 className="text-5xl lg:text-[5.5rem] font-black text-white tracking-tighter mb-8 leading-[1.05] drop-shadow-xl">
             Military Drill <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-cyan-500 to-emerald-500 drop-shadow-[0_0_20px_rgba(56,189,248,0.4)]">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-500 drop-shadow-[0_0_20px_rgba(56,189,248,0.3)]">
               Analysis System.
             </span>
           </h1>
 
           <div className="flex items-center space-x-4 mb-10">
-            <div className="w-32 h-1 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-full"></div>
-            <div className="w-4 h-1 bg-emerald-500 rounded-full"></div>
-            <div className="w-2 h-1 bg-emerald-500 rounded-full opacity-50"></div>
+            <div className="w-32 h-[3px] bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full shadow-[0_0_10px_rgba(56,189,248,0.5)]"></div>
+            <div className="w-4 h-[3px] bg-cyan-400 rounded-full"></div>
+            <div className="w-2 h-[3px] bg-cyan-400 rounded-full opacity-50"></div>
           </div>
 
-          <p className="text-lg lg:text-xl text-slate-400 max-w-3xl leading-relaxed mb-14 font-medium">
+          <p className="text-lg lg:text-xl text-slate-300 max-w-3xl leading-relaxed mb-14 font-medium drop-shadow-md">
             A professional evaluation suite designed for rigorous posture and alignment tracking.
             Initialize the workspace to begin real-time, multi-camera drill compliance assessment powered by state-of-the-art neural engines.
           </p>
