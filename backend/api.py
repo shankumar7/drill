@@ -46,6 +46,30 @@ LOCKED_CADET_ID = None
 MULTI_CAM_DETECTIONS = {}
 DETECTION_LOCK = asyncio.Lock()
 
+# ─── Configurable Settings ────────────────────────────────────────────────────
+SETTINGS = {
+    "backend_host": "localhost",
+    "backend_port": 8000,
+    "confidence": 0.5,
+    "image_size": 640,
+    "pass_threshold": 85,
+    "voice_language": "en",
+    "show_skeleton": True,
+    "show_id_overlay": True,
+    "auto_save_session": False,
+    "camera_mapping": {"front": 0, "side": 1, "back": 2},
+}
+
+class SettingsUpdate(BaseModel):
+    confidence: float | None = None
+    pass_threshold: int | None = None
+    voice_language: str | None = None
+    show_skeleton: bool | None = None
+    show_id_overlay: bool | None = None
+    auto_save_session: bool | None = None
+    camera_mapping: dict | None = None
+    image_size: int | None = None
+
 pose_estimator = None
 try:
     from backend.inference.pose_estimator import YoloPoseEstimator
@@ -201,6 +225,24 @@ async def lock_cadet(req: LockCadetRequest):
     LOCKED_CADET_ID = req.track_id
     return {"status": "ok", "locked_id": LOCKED_CADET_ID}
 
+@app.get("/api/settings")
+async def get_settings():
+    return SETTINGS
+
+@app.post("/api/settings")
+async def update_settings(update: SettingsUpdate):
+    global SETTINGS, pose_estimator
+    data = update.model_dump(exclude_none=True)
+    SETTINGS.update(data)
+    # Live-apply confidence to pose estimator if changed
+    if "confidence" in data and pose_estimator:
+        try:
+            pose_estimator.model.conf = data["confidence"]
+        except Exception:
+            pass
+    return {"status": "ok", "settings": SETTINGS}
+
+
 from fastapi import UploadFile, File
 
 @app.post("/api/voice_command")
@@ -336,7 +378,7 @@ async def fusion_evaluator_loop():
             if any_missing or not fused_scores:
                 status = "Initializing..."
             else:
-                status = "PASS" if overall_score >= 85 else "FAIL"
+                status = "PASS" if overall_score >= SETTINGS["pass_threshold"] else "FAIL"
 
             def get_payload(rule_name):
                 res = fused_results.get(rule_name)
