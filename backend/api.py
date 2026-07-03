@@ -48,27 +48,101 @@ DETECTION_LOCK = asyncio.Lock()
 
 # ─── Configurable Settings ────────────────────────────────────────────────────
 SETTINGS = {
+    # ── Network
     "backend_host": "localhost",
     "backend_port": 8000,
+    "ws_reconnect_interval": 3,
+    # ── AI / Pose Detection
     "confidence": 0.5,
     "image_size": 640,
+    "keypoint_visibility_threshold": 0.3,
+    "max_detections": 10,
+    "stale_detection_timeout": 2.0,
+    "prefer_half_precision": True,
+    "tracking_config": "bytetrack.yaml",
+    "evaluation_fps": 20,
+    # ── Evaluation / Scoring
     "pass_threshold": 85,
+    "score_smoothing_window": 1,
+    "savdhan_threshold": 85,
+    "vishram_threshold": 80,
+    "salute_threshold": 80,
+    "aaram_se_threshold": 75,
+    # ── Voice
+    "voice_enabled": True,
     "voice_language": "en",
+    "voice_initial_prompt": "Military drill commands: savadhan, attention, vishram, ease, salute, samne, baye, dahine, aaram.",
+    # ── Display
     "show_skeleton": True,
     "show_id_overlay": True,
+    "show_confidence_score": False,
+    "camera_label_position": "top-left",
+    "skeleton_color": "green",
+    "overlay_opacity": 0.8,
+    # ── Session
     "auto_save_session": False,
+    "unit_name": "",
+    "instructor_name": "Lt Col K Srinath",
+    "export_format": "json",
+    "session_duration_limit": 0,
+    # ── Camera
     "camera_mapping": {"front": 0, "side": 1, "back": 2},
+    "camera_flip_horizontal": False,
+    "camera_flip_vertical": False,
+    "camera_fps_cap": 30,
+    # ── Alerts
+    "alert_on_pass": False,
+    "alert_on_fail": True,
+    "alert_visual_flash": True,
 }
 
 class SettingsUpdate(BaseModel):
+    # Network
+    backend_host: str | None = None
+    backend_port: int | None = None
+    ws_reconnect_interval: int | None = None
+    # AI
     confidence: float | None = None
+    image_size: int | None = None
+    keypoint_visibility_threshold: float | None = None
+    max_detections: int | None = None
+    stale_detection_timeout: float | None = None
+    prefer_half_precision: bool | None = None
+    tracking_config: str | None = None
+    evaluation_fps: int | None = None
+    # Evaluation
     pass_threshold: int | None = None
+    score_smoothing_window: int | None = None
+    savdhan_threshold: int | None = None
+    vishram_threshold: int | None = None
+    salute_threshold: int | None = None
+    aaram_se_threshold: int | None = None
+    # Voice
+    voice_enabled: bool | None = None
     voice_language: str | None = None
+    voice_initial_prompt: str | None = None
+    # Display
     show_skeleton: bool | None = None
     show_id_overlay: bool | None = None
+    show_confidence_score: bool | None = None
+    camera_label_position: str | None = None
+    skeleton_color: str | None = None
+    overlay_opacity: float | None = None
+    # Session
     auto_save_session: bool | None = None
+    unit_name: str | None = None
+    instructor_name: str | None = None
+    export_format: str | None = None
+    session_duration_limit: int | None = None
+    # Camera
     camera_mapping: dict | None = None
-    image_size: int | None = None
+    camera_flip_horizontal: bool | None = None
+    camera_flip_vertical: bool | None = None
+    camera_fps_cap: int | None = None
+    # Alerts
+    alert_on_pass: bool | None = None
+    alert_on_fail: bool | None = None
+    alert_visual_flash: bool | None = None
 
 pose_estimator = None
 try:
@@ -234,12 +308,24 @@ async def update_settings(update: SettingsUpdate):
     global SETTINGS, pose_estimator
     data = update.model_dump(exclude_none=True)
     SETTINGS.update(data)
-    # Live-apply confidence to pose estimator if changed
-    if "confidence" in data and pose_estimator:
-        try:
-            pose_estimator.model.conf = data["confidence"]
-        except Exception:
-            pass
+    # Live-apply to pose estimator
+    if pose_estimator:
+        if "confidence" in data:
+            try: pose_estimator.model.conf = data["confidence"]
+            except Exception: pass
+        if "image_size" in data:
+            try: pose_estimator.model.imgsz = data["image_size"]
+            except Exception: pass
+    return {"status": "ok", "settings": SETTINGS}
+
+@app.get("/api/settings/reset")
+async def reset_settings():
+    """Reset all settings to defaults."""
+    global SETTINGS
+    SETTINGS["confidence"] = 0.5
+    SETTINGS["pass_threshold"] = 85
+    SETTINGS["image_size"] = 640
+    SETTINGS["voice_language"] = "en"
     return {"status": "ok", "settings": SETTINGS}
 
 
