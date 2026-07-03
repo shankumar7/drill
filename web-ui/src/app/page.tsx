@@ -84,38 +84,49 @@ function LaunchScreen({ onComplete }: { onComplete: () => void }) {
     >
       {/* Background Image Overlay */}
       <div className="absolute inset-0 z-0 pointer-events-none">
-        <img src="/hello.jpg" alt="Background" className="w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm mix-blend-multiply"></div>
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/20 to-transparent"></div>
+        <img src="/hello.jpg" alt="Background" className="w-full h-full object-cover blur-md scale-105" />
+        <div className="absolute inset-0 bg-black/20"></div>
+        
+        {/* Oversized Background Text */}
+        <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
+          <h1 className="text-[10rem] lg:text-[18rem] font-black font-sans tracking-tighter text-white/20 select-none whitespace-nowrap">
+            INDIAN ARMY
+          </h1>
+        </div>
+      </div>
+
+      {/* Persistent SDD Logo */}
+      <div className="absolute top-8 left-8 z-50 pointer-events-none">
+        <img src="/top_right_logo.png" alt="SDD Logo" className="w-24 lg:w-32 h-auto object-contain drop-shadow-md" />
       </div>
 
       <div className="relative z-10 flex flex-col items-center justify-center w-full max-w-lg mt-10">
-        {/* Sleek Loader */}
+        {/* Sleek Matte Loader */}
         <div className="relative w-56 h-56 mb-12 flex items-center justify-center">
           <motion.div 
             animate={{ rotate: 360 }} transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
-            className="absolute inset-0 border border-blue-400/20 rounded-full"
+            className="absolute inset-0 border border-stone-400/10 rounded-full"
           />
           <motion.div 
             animate={{ rotate: -360 }} transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
-            className="absolute inset-4 border border-blue-400/40 rounded-full border-t-transparent border-b-transparent"
+            className="absolute inset-4 border border-stone-400/30 rounded-full border-t-transparent border-b-transparent"
           />
-          <div className="w-40 h-40 bg-slate-900/50 backdrop-blur-md rounded-full shadow-[0_0_30px_rgba(59,130,246,0.3)] flex items-center justify-center border border-blue-500/20 p-2">
-             <img src="/logo.jpeg" alt="Logo" className="w-full h-full object-cover rounded-full opacity-90" />
+          <div className="w-40 h-40 bg-stone-800/40 backdrop-blur-2xl rounded-full shadow-2xl flex items-center justify-center border border-white/5 p-2">
+             <img src="/logo.jpeg" alt="Logo" className="w-full h-full object-cover rounded-full opacity-80 mix-blend-luminosity" />
           </div>
         </div>
 
         {/* Typography */}
         <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3, duration: 0.8 }} className="text-center mb-10">
-          <h1 className="text-4xl font-black tracking-[0.2em] text-white uppercase mb-2 drop-shadow-lg">Drill Command</h1>
-          <p className="text-xs font-bold tracking-[0.3em] text-blue-400 uppercase">Analysis System</p>
+          <h1 className="text-4xl font-black tracking-[0.2em] text-stone-100 uppercase mb-2 drop-shadow-md">Drill Command</h1>
+          <p className="text-xs font-bold tracking-[0.3em] text-stone-400 uppercase">Analysis System</p>
         </motion.div>
 
         {/* Minimal Progress */}
         <div className="w-64 space-y-4">
-          <div className="h-[2px] w-full bg-slate-200 rounded-full overflow-hidden relative">
+          <div className="h-[2px] w-full bg-stone-800 rounded-full overflow-hidden relative">
             <motion.div
-              className="absolute top-0 left-0 h-full bg-blue-500"
+              className="absolute top-0 left-0 h-full bg-stone-300"
               initial={{ width: 0 }} animate={{ width: `${progress}%` }}
               transition={{ ease: "linear", duration: 0.1 }}
             />
@@ -149,83 +160,63 @@ function OnboardingScreen({ onNext }: { onNext: () => void }) {
     >
       {/* Background Image Overlay */}
       <div className="absolute inset-0 z-0 pointer-events-none">
-        <img src="/hello2.jpg" alt="Background" className="w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm mix-blend-multiply"></div>
+        <img src="/hello2.jpg" alt="Background" className="w-full h-full object-cover blur-md scale-105" />
+        <div className="absolute inset-0 bg-black/20"></div>
+        
+        {/* Oversized Background Text */}
+        <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
+          <h1 className="text-[10rem] lg:text-[18rem] font-black font-sans tracking-tighter text-white/10 select-none whitespace-nowrap">
+            INDIAN ARMY
+          </h1>
+        </div>
+      </div>
+
+      {/* Persistent SDD Logo */}
+      <div className="absolute top-8 left-8 z-50 pointer-events-none">
+        <img src="/top_right_logo.png" alt="SDD Logo" className="w-24 lg:w-32 h-auto object-contain drop-shadow-md" />
       </div>
 
       {/* Dynamic Immersive Background */}
       <div className="absolute inset-0 pointer-events-none z-0">
-        {/* Glows */}
-        <div className="absolute top-0 right-0 w-[1000px] h-[1000px] bg-blue-600/5 rounded-full blur-[150px] transform translate-x-1/3 -translate-y-1/3"></div>
-        <div className="absolute bottom-0 left-0 w-[800px] h-[800px] bg-cyan-600/5 rounded-full blur-[150px] transform -translate-x-1/3 translate-y-1/3"></div>
-
-        {/* Tech Grid Overlay */}
+        {/* Matte Tech Grid Overlay */}
         <div
-          className="absolute inset-0 opacity-[0.03]"
+          className="absolute inset-0 opacity-[0.02]"
           style={{
             backgroundImage: `linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)`,
             backgroundSize: '40px 40px'
           }}
         ></div>
-
-        {/* Animated Particles / Stars */}
-        {Array.from({ length: 20 }).map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute bg-white rounded-full opacity-20"
-            style={{
-              width: Math.random() * 3 + 1 + 'px',
-              height: Math.random() * 3 + 1 + 'px',
-              left: Math.random() * 100 + '%',
-              top: Math.random() * 100 + '%',
-            }}
-            animate={{
-              y: [0, Math.random() * -100 - 50],
-              opacity: [0, 0.5, 0],
-            }}
-            transition={{
-              duration: Math.random() * 5 + 5,
-              repeat: Infinity,
-              ease: "linear",
-              delay: Math.random() * 5,
-            }}
-          />
-        ))}
       </div>
 
-      {/* Decorative Corner Accents */}
-      <div className="absolute top-8 left-8 w-16 h-16 border-t-2 border-l-2 border-blue-200 opacity-50"></div>
-      <div className="absolute bottom-8 right-8 w-16 h-16 border-b-2 border-r-2 border-emerald-500/50 opacity-50"></div>
-
-      <div className="bg-slate-900/40 backdrop-blur-3xl shadow-[0_30px_80px_rgba(0,0,0,0.5)] border border-white/10 p-12 lg:p-16 rounded-3xl max-w-7xl w-full mx-6 relative z-10 overflow-hidden">
+      <div className="bg-stone-900/40 backdrop-blur-3xl shadow-2xl border border-white/5 p-12 lg:p-16 rounded-[2.5rem] max-w-7xl w-full mx-6 relative z-10 overflow-hidden">
         <img 
           src="/hello.jpg" 
           alt="Hero Graphic" 
-          className="absolute top-0 right-0 w-[300px] lg:w-[450px] h-auto object-contain drop-shadow-[0_20px_40px_rgba(0,0,0,0.4)] opacity-80 rounded-bl-[100px] mix-blend-lighten"
+          className="absolute top-0 right-0 w-[300px] lg:w-[450px] h-auto object-contain opacity-40 rounded-bl-[100px] mix-blend-luminosity"
         />
         <motion.div className="relative z-10" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 1, ease: "easeOut" }}>
 
           <div className="flex items-center space-x-4 mb-6">
-            <img src="/logo.jpeg" alt="Logo" className="w-10 h-10 object-cover rounded-full shadow-lg border border-white/20" />
-            <h3 className="text-xs font-bold text-slate-300 tracking-[0.4em] uppercase opacity-80">
+            <img src="/logo.jpeg" alt="Logo" className="w-10 h-10 object-cover rounded-full shadow-lg border border-white/10 mix-blend-luminosity" />
+            <h3 className="text-xs font-bold text-stone-400 tracking-[0.4em] uppercase opacity-90">
               Simulation Development Division (SDD), MCEME
             </h3>
           </div>
 
-          <h1 className="text-5xl lg:text-[5.5rem] font-black text-white tracking-tighter mb-8 leading-[1.05] drop-shadow-xl">
+          <h1 className="text-5xl lg:text-[5.5rem] font-black text-stone-100 tracking-tighter mb-8 leading-[1.05] drop-shadow-md">
             Military Drill <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-500 drop-shadow-[0_0_20px_rgba(56,189,248,0.3)]">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-stone-400 via-stone-300 to-stone-500">
               Analysis System.
             </span>
           </h1>
 
           <div className="flex items-center space-x-4 mb-10">
-            <div className="w-32 h-[3px] bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full shadow-[0_0_10px_rgba(56,189,248,0.5)]"></div>
-            <div className="w-4 h-[3px] bg-cyan-400 rounded-full"></div>
-            <div className="w-2 h-[3px] bg-cyan-400 rounded-full opacity-50"></div>
+            <div className="w-32 h-[2px] bg-gradient-to-r from-stone-500 to-stone-400 rounded-full"></div>
+            <div className="w-4 h-[2px] bg-stone-400 rounded-full"></div>
+            <div className="w-2 h-[2px] bg-stone-400 rounded-full opacity-50"></div>
           </div>
 
-          <p className="text-lg lg:text-xl text-slate-300 max-w-3xl leading-relaxed mb-14 font-medium drop-shadow-md">
+          <p className="text-lg lg:text-xl text-stone-400 max-w-3xl leading-relaxed mb-14 font-medium">
             A professional evaluation suite designed for rigorous posture and alignment tracking.
             Initialize the workspace to begin real-time, multi-camera drill compliance assessment powered by state-of-the-art neural engines.
           </p>
@@ -233,11 +224,10 @@ function OnboardingScreen({ onNext }: { onNext: () => void }) {
           <div className="flex items-center space-x-8">
             <button
               onClick={onNext}
-              className="group relative overflow-hidden flex items-center justify-center space-x-4 bg-blue-600 text-white px-10 py-5 rounded-full font-bold text-lg hover:scale-[1.02] active:scale-95 transition-all shadow-[0_0_30px_rgba(255,255,255,0.15)] hover:shadow-[0_0_40px_rgba(255,255,255,0.3)]"
+              className="group relative overflow-hidden flex items-center justify-center space-x-4 bg-stone-800 text-stone-100 border border-white/10 px-10 py-5 rounded-full font-bold text-lg hover:bg-stone-700 active:scale-95 transition-all shadow-xl"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-blue-500 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"></div>
               <span className="relative z-10 tracking-wide uppercase">Initialize Workspace</span>
-              <ChevronRightCircle className="relative z-10 w-6 h-6 group-hover:translate-x-1 transition-transform" />
+              <ChevronRightCircle className="relative z-10 w-6 h-6 group-hover:translate-x-1 transition-transform opacity-50 group-hover:opacity-100" />
             </button>
           </div>
 
