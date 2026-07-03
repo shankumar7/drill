@@ -79,10 +79,16 @@ function LaunchScreen({ onComplete }: { onComplete: () => void }) {
 
   return (
     <motion.div
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white overflow-hidden font-sans"
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden font-sans"
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, scale: 1.05 }} transition={{ duration: 0.8 }}
     >
-      <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+      {/* Background Image Overlay */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <img src="/hello.jpg" alt="Background" className="w-full h-full object-cover" />
+        <div className="absolute inset-0 bg-white/40 backdrop-blur-sm"></div>
+      </div>
+
+      <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-0">
         <div className="w-[800px] h-[800px] bg-blue-50/50 rounded-full blur-[100px]"></div>
       </div>
 
@@ -143,12 +149,18 @@ function LaunchScreen({ onComplete }: { onComplete: () => void }) {
 function OnboardingScreen({ onNext }: { onNext: () => void }) {
   return (
     <motion.div
-      className="fixed inset-0 z-40 flex items-center justify-center bg-slate-50 overflow-hidden"
+      className="fixed inset-0 z-40 flex items-center justify-center overflow-hidden"
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, x: -50, filter: "blur(10px)" }}
       transition={{ duration: 0.8, ease: "easeOut" }}
     >
+      {/* Background Image Overlay */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <img src="/hello2.jpg" alt="Background" className="w-full h-full object-cover" />
+        <div className="absolute inset-0 bg-slate-50/40 backdrop-blur-sm"></div>
+      </div>
+
       {/* Dynamic Immersive Background */}
-      <div className="absolute inset-0 pointer-events-none">
+      <div className="absolute inset-0 pointer-events-none z-0">
         {/* Glows */}
         <div className="absolute top-0 right-0 w-[1000px] h-[1000px] bg-blue-600/10 rounded-full blur-[150px] transform translate-x-1/3 -translate-y-1/3"></div>
         <div className="absolute bottom-0 left-0 w-[800px] h-[800px] bg-emerald-600/10 rounded-full blur-[150px] transform -translate-x-1/3 translate-y-1/3"></div>
