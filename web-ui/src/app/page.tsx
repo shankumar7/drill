@@ -6,6 +6,48 @@ import { Activity, Shield, Users, Camera, LayoutGrid, Settings, LogOut, ChevronR
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 
+type CameraMapping = {
+  front: number;
+  side: number;
+  back: number;
+};
+
+function SettingsModal({ isOpen, onClose, mapping, onSave }: { isOpen: boolean, onClose: () => void, mapping: CameraMapping, onSave: (m: CameraMapping) => void }) {
+  const [localMap, setLocalMap] = useState<CameraMapping>(mapping);
+
+  const handleChange = (field: keyof CameraMapping, value: number) => {
+    setLocalMap((prev) => ({ ...prev, [field]: value }));
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+      <div className="bg-white rounded-xl shadow-lg p-6 w-96">
+        <h2 className="text-xl font-bold mb-4 text-slate-800">Camera Mapping</h2>
+        {(['front', 'side', 'back'] as (keyof CameraMapping)[]).map((field) => (
+          <div key={field} className="mb-3 flex items-center justify-between">
+            <label className="text-sm font-medium text-slate-600 capitalize">{field}</label>
+            <select
+              className="border rounded px-2 py-1"
+              value={localMap[field]}
+              onChange={(e) => handleChange(field, Number(e.target.value))}
+            >
+              {[0, 1, 2].map((i) => (
+                <option key={i} value={i}>Camera {i}</option>
+              ))}
+            </select>
+          </div>
+        ))}
+        <div className="flex justify-end space-x-2 mt-4">
+          <button className="px-4 py-2 text-sm bg-slate-200 hover:bg-slate-300 rounded" onClick={onClose}>Cancel</button>
+          <button className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700" onClick={() => { onSave(localMap); onClose(); }}>Save</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ==========================================
 // 1. LAUNCH SCREEN (System Boot Sequence)
 // ==========================================
@@ -247,6 +289,28 @@ function CountdownScreen({ onComplete }: { onComplete: () => void }) {
 import { globalCadetTracker } from "@/utils/CadetTracker";
 // Duplicate import removed
 function Dashboard({ onComplete }: { onComplete: (results: any[]) => void }) {
+  const defaultMapping: CameraMapping = { front: 0, side: 1, back: 2 };
+  const [cameraMap, setCameraMap] = useState<CameraMapping>(defaultMapping);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [selectedCam, setSelectedCam] = useState<number>(0);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("cameraMapping");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setCameraMap(parsed);
+        setSelectedCam(parsed.front);
+      }
+    } catch (e) {}
+  }, []);
+
+  const persistMapping = (map: CameraMapping) => {
+    localStorage.setItem("cameraMapping", JSON.stringify(map));
+    setCameraMap(map);
+    setSelectedCam(map.front);
+  };
+
   const [selectedCadet, setSelectedCadet] = useState<string | null>(null);
   const [sessionResults, setSessionResults] = useState<{ drill: string, pass: boolean, score: number }[]>([]);
   const [wsStatus, setWsStatus] = useState<"connecting" | "connected" | "disconnected">("connecting");
@@ -415,6 +479,7 @@ function Dashboard({ onComplete }: { onComplete: (results: any[]) => void }) {
 
   return (
     <motion.div className="h-screen w-full flex flex-col font-sans bg-slate-50 text-slate-800 overflow-hidden relative" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8 }}>
+      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} mapping={cameraMap} onSave={persistMapping} />
       
       {/* Background Tech Details */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
@@ -438,6 +503,9 @@ function Dashboard({ onComplete }: { onComplete: (results: any[]) => void }) {
              <span className={`w-2 h-2 rounded-full ${wsStatus === 'connected' ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`}></span>
              <span className="text-slate-400 uppercase tracking-widest">{wsStatus}</span>
           </div>
+          <button onClick={() => setIsSettingsOpen(true)} className="p-2 bg-slate-100 hover:bg-slate-200 rounded text-slate-700 transition-colors">
+            <Settings className="w-4 h-4" />
+          </button>
           <button onClick={saveSession} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-800 rounded text-xs font-bold uppercase tracking-wider transition-colors flex items-center space-x-2">
             <LogOut className="w-3 h-3" />
             <span>End Session</span>
@@ -448,17 +516,45 @@ function Dashboard({ onComplete }: { onComplete: (results: any[]) => void }) {
       {/* Main Grid Content */}
       <main className="flex-1 p-4 lg:p-6 overflow-hidden flex flex-col lg:flex-row gap-6 relative z-10 w-full max-w-[2000px] mx-auto min-h-0">
         
-        {/* Left Column: Cameras */}
-        <div className="flex-1 flex flex-col min-h-0 gap-6">
+        {/* Left Column: Camera Sidebar + Main View */}
+        <div className="flex-1 flex gap-4 min-h-0">
           
-          {/* Main Camera HUD */}
+          {/* Vertical Sidebar for 3 Cameras */}
+          <div className="w-64 flex flex-col gap-4 shrink-0">
+            {(['front', 'side', 'back'] as (keyof CameraMapping)[]).map((pos) => {
+              const camId = cameraMap[pos];
+              const isSelected = selectedCam === camId;
+              return (
+                <div 
+                  key={pos} 
+                  onClick={() => setSelectedCam(camId)}
+                  className={`flex-1 relative glass-panel rounded-xl overflow-hidden flex items-center justify-center group cursor-pointer border-2 transition-all ${isSelected ? 'border-blue-500 shadow-md' : 'border-transparent hover:border-slate-300'}`}
+                >
+                  <div className="absolute top-2 left-2 z-20 px-2 py-1 bg-white/80 backdrop-blur border border-slate-200 rounded text-[9px] font-bold text-slate-700 tracking-widest uppercase shadow-sm">
+                    {pos} (CAM {camId})
+                  </div>
+                  <img 
+                    src={`http://localhost:8000/api/video_feed/${camId}`}
+                    alt={pos}
+                    className={`w-full h-full object-cover transition-opacity ${isSelected ? 'opacity-100' : 'opacity-60 group-hover:opacity-100'}`}
+                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                  />
+                  <div className="hidden absolute inset-0 flex flex-col items-center justify-center text-slate-600">
+                    <Activity className="w-5 h-5 mb-1 opacity-50" />
+                    <span className="text-[9px] font-bold tracking-widest uppercase">NO SIGNAL</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Main Camera View */}
           <div className="flex-1 min-h-0 relative glass-panel rounded-2xl overflow-hidden flex flex-col">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 via-cyan-400 to-transparent z-20"></div>
-            
             <div className="absolute top-4 left-4 z-20 flex items-center space-x-3">
               <div className="px-3 py-1 bg-white/80 backdrop-blur border border-slate-200 rounded text-[10px] font-bold text-slate-800 tracking-widest uppercase flex items-center space-x-2">
                 <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-                <span>CAM 1: FRONT</span>
+                <span>CAM {selectedCam} {selectedCam === cameraMap.front ? '(FRONT)' : selectedCam === cameraMap.side ? '(SIDE)' : selectedCam === cameraMap.back ? '(BACK)' : ''}</span>
               </div>
               {telemetry.active_mode && (
                 <div className="px-3 py-1 bg-blue-600/20 backdrop-blur border border-blue-500/30 rounded text-[10px] font-bold text-blue-400 tracking-widest uppercase">
@@ -467,7 +563,6 @@ function Dashboard({ onComplete }: { onComplete: (results: any[]) => void }) {
               )}
             </div>
             
-            {/* Mode Selection Controls */}
             <div className="absolute top-4 right-4 z-20 flex gap-2">
               {[
                 { label: "Savadhan", val: "SAVDHAN" },
@@ -486,79 +581,37 @@ function Dashboard({ onComplete }: { onComplete: (results: any[]) => void }) {
             </div>
 
             <div className="w-full h-full relative flex items-center justify-center bg-slate-100/50">
-              {selectedCadet ? (
-                <img 
-                  src="http://localhost:8000/api/video_feed/0" 
-                  alt="Main Camera Feed" 
-                  className="w-full h-full object-contain"
-                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                />
-              ) : (
-                <>
-                  <img 
-                    src="http://localhost:8000/api/video_feed/0" 
-                    alt="Main Camera Feed (Unselected)" 
-                    className="w-full h-full object-contain opacity-40 blur-sm"
-                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                  />
-                  <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm">
-                    <div className="w-24 h-24 border border-blue-500/50 rounded-full flex items-center justify-center relative mb-6">
-                       <div className="absolute inset-0 border-t-2 border-blue-400 rounded-full animate-spin"></div>
-                       <Activity className="w-8 h-8 text-blue-400" />
+              <img 
+                src={`http://localhost:8000/api/video_feed/${selectedCam}`} 
+                alt="Main Camera Feed" 
+                className="w-full h-full object-contain"
+                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+              />
+              {(!selectedCadet && selectedCam === cameraMap.front) && (
+                  <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-white/40 backdrop-blur-[2px]">
+                    <div className="w-24 h-24 border border-blue-500/50 rounded-full flex items-center justify-center relative mb-6 bg-white/80">
+                       <Activity className="w-8 h-8 text-blue-500" />
                     </div>
-                    <h3 className="text-xl font-bold text-slate-800 mb-2 tracking-widest">AWAITING TARGET ACQUISITION</h3>
-                    <p className="text-xs text-slate-400 mb-6 font-mono uppercase tracking-widest">Select a detected cadet ID to lock focus</p>
-                    <div className="flex gap-3">
+                    <h3 className="text-xl font-bold text-slate-800 mb-2 tracking-widest drop-shadow-md bg-white/60 px-4 py-1 rounded">AWAITING TARGET ACQUISITION</h3>
+                    <div className="flex gap-3 mt-4">
                       {telemetry.detected_ids && telemetry.detected_ids.length > 0 ? (
                         telemetry.detected_ids.map(id => (
                           <button
                             key={id}
                             onClick={() => lockCadet(id)}
-                            className="px-6 py-2 bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 rounded border border-blue-500/50 font-bold text-xs tracking-widest uppercase transition-colors flex items-center space-x-2"
+                            className="px-6 py-2 bg-blue-600 text-white rounded font-bold text-xs tracking-widest uppercase transition-colors shadow-lg flex items-center space-x-2"
                           >
                             <Users className="w-4 h-4" />
-                            <span>ID: {id}</span>
+                            <span>LOCK ID: {id}</span>
                           </button>
                         ))
                       ) : (
-                        <div className="text-slate-500 font-mono text-xs uppercase tracking-widest animate-pulse">Scanning environment...</div>
+                        <div className="text-slate-700 font-mono text-xs uppercase tracking-widest animate-pulse bg-white/80 px-3 py-1 rounded">Scanning environment...</div>
                       )}
                     </div>
                   </div>
-                </>
               )}
             </div>
-            {/* HUD Corner Accents */}
-            <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-blue-500/50 pointer-events-none"></div>
-            <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-blue-500/50 pointer-events-none"></div>
-          </div>
-
-          {/* Secondary Cameras (Horizontal Split) */}
-          <div className="h-48 shrink-0 flex gap-6">
-            {[
-              { id: 1, label: "CAM 2: SIDE" },
-              { id: 2, label: "CAM 3: BACK" }
-            ].map((cam) => (
-              <div key={cam.id} className="flex-1 relative glass-panel rounded-xl overflow-hidden flex items-center justify-center group">
-                <div className="absolute top-2 left-2 z-20 px-2 py-1 bg-white/80 backdrop-blur border border-slate-200 rounded text-[9px] font-bold text-slate-700 tracking-widest uppercase">
-                  {cam.label}
-                </div>
-                <img 
-                  src={`http://localhost:8000/api/video_feed/${cam.id}`} 
-                  alt={cam.label}
-                  className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                    e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                    e.currentTarget.nextElementSibling?.classList.add('flex');
-                  }}
-                />
-                <div className="hidden absolute inset-0 flex flex-col items-center justify-center text-slate-600">
-                  <Activity className="w-6 h-6 mb-2 opacity-50" />
-                  <span className="text-[10px] font-bold tracking-widest uppercase">NO SIGNAL</span>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
 
