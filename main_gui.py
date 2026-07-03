@@ -1,4 +1,5 @@
 import customtkinter as ctk
+from ui.components.settings import SettingsWindow
 import cv2
 from PIL import Image, ImageDraw, ImageOps
 import sys
@@ -36,7 +37,7 @@ class DashboardWindow(ctk.CTkToplevel):
         # LEFT: VIDEO FEED AREA
         # ==========================================
         # Use modular dashboard component
-        self.dashboard = DashboardContent(self, workflow_actions)
+        self.dashboard = DashboardContent(self, workflow_actions, open_settings_callback=self.open_settings_window)
         self.dashboard.grid(row=0, column=0, columnspan=2, sticky="nsew", padx=20, pady=20)
 
         # Alias video frame and camera labels for backward compatibility
@@ -413,6 +414,10 @@ class AppManager(ctk.CTk):
         self.withdraw()
         dashboard = DashboardWindow(self, self.workflow_actions)
         dashboard.protocol("WM_DELETE_WINDOW", lambda: sys.exit(0))
+
+    def open_settings_window(self):
+        """Open the settings dialog for camera mapping."""
+        SettingsWindow(self)
 
 if __name__ == "__main__":
     app = AppManager()

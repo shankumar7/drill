@@ -3,6 +3,43 @@ from pathlib import Path
 
 import cv2
 import numpy as np
+import json
+import os
+
+# Path to camera mapping config
+CAMERA_MAPPING_FILE = os.path.join(os.path.dirname(__file__), "..", "..", "camera_mapping.json")
+
+def load_camera_mapping():
+    """Load camera mapping from JSON file if it exists, else default mapping."""
+    default = {"front": 0, "back": 1, "side": 2}
+    try:
+        with open(CAMERA_MAPPING_FILE, "r") as f:
+            data = json.load(f)
+            # Ensure all required keys exist
+            for key in default:
+                if key not in data:
+                    data[key] = default[key]
+            return data
+    except Exception:
+        return default
+
+# Global mapping dictionary
+camera_mapping = load_camera_mapping()
+
+def set_camera_mapping(front: int, back: int, side: int):
+    """Update the global camera mapping and persist to file."""
+    global camera_mapping
+    camera_mapping = {"front": front, "back": back, "side": side}
+    try:
+        with open(CAMERA_MAPPING_FILE, "w") as f:
+            json.dump(camera_mapping, f, indent=2)
+    except Exception as e:
+        print(f"Failed to save camera mapping: {e}")
+
+def get_camera_mapping():
+    """Return current camera mapping."""
+    return camera_mapping
+
 
 from backend.calibration.ground_plane import GroundPlaneMapper
 
