@@ -79,7 +79,6 @@ function LaunchScreen({ onComplete }: { onComplete: () => void }) {
 
   return (
     <>
-      {/* Persistent SDD Logo (Unaffected by animations) */}
       <div className="fixed top-8 left-8 z-[100] pointer-events-none">
         <img src="/top_right_logo.png" alt="SDD Logo" className="w-16 lg:w-20 h-auto object-contain drop-shadow-md" />
       </div>
@@ -88,62 +87,58 @@ function LaunchScreen({ onComplete }: { onComplete: () => void }) {
         className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden font-sans"
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, scale: 1.05 }} transition={{ duration: 0.8 }}
       >
-        {/* Background Image Overlay */}
         <div className="absolute inset-0 z-0 pointer-events-none">
           <img src="/hello.jpg" alt="Background" className="w-full h-full object-cover blur-md scale-105" />
           <div className="absolute inset-0 bg-black/20"></div>
           
-          {/* Oversized Background Text */}
           <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
-            <h1 className="text-[10rem] lg:text-[18rem] font-black font-sans tracking-tighter text-white/20 select-none whitespace-nowrap">
+            <h1 className="text-[10rem] lg:text-[18rem] font-black font-sans tracking-tighter text-white/5 select-none whitespace-nowrap">
               INDIAN ARMY
             </h1>
           </div>
         </div>
 
-      <div className="relative z-10 flex flex-col items-center justify-center w-full max-w-lg mt-10">
-        {/* Sleek Matte Loader */}
-        <div className="relative w-56 h-56 mb-12 flex items-center justify-center">
-          <motion.div 
-            animate={{ rotate: 360 }} transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
-            className="absolute inset-0 border border-stone-400/10 rounded-full"
-          />
-          <motion.div 
-            animate={{ rotate: -360 }} transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
-            className="absolute inset-4 border border-stone-400/30 rounded-full border-t-transparent border-b-transparent"
-          />
-          <div className="w-40 h-40 bg-stone-800/40 backdrop-blur-2xl rounded-full shadow-2xl flex items-center justify-center border border-white/5 p-2">
-             <img src="/logo.jpeg" alt="Logo" className="w-full h-full object-cover rounded-full opacity-80 mix-blend-luminosity" />
-          </div>
-        </div>
-
-        {/* Typography */}
-        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3, duration: 0.8 }} className="text-center mb-10">
-          <h1 className="text-4xl font-black tracking-[0.2em] text-stone-100 uppercase mb-2 drop-shadow-md">Drill Command</h1>
-          <p className="text-xs font-bold tracking-[0.3em] text-stone-400 uppercase">Analysis System</p>
-        </motion.div>
-
-        {/* Minimal Progress */}
-        <div className="w-64 space-y-4">
-          <div className="h-[2px] w-full bg-stone-800 rounded-full overflow-hidden relative">
-            <motion.div
-              className="absolute top-0 left-0 h-full bg-stone-300"
-              initial={{ width: 0 }} animate={{ width: `${progress}%` }}
-              transition={{ ease: "linear", duration: 0.1 }}
+        <div className="relative z-10 flex flex-col items-center justify-center w-full max-w-lg mt-10">
+          <div className="relative w-56 h-56 mb-12 flex items-center justify-center">
+            <motion.div 
+              animate={{ rotate: 360 }} transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
+              className="absolute inset-0 border border-stone-400/10 rounded-full"
             />
+            <motion.div 
+              animate={{ rotate: -360 }} transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
+              className="absolute inset-4 border border-stone-400/30 rounded-full border-t-transparent border-b-transparent"
+            />
+            <div className="w-40 h-40 bg-stone-800/40 backdrop-blur-2xl rounded-full shadow-2xl flex items-center justify-center border border-white/5 p-2">
+               <img src="/logo.jpeg" alt="Logo" className="w-full h-full object-cover rounded-full opacity-80 mix-blend-luminosity" />
+            </div>
           </div>
-          <div className="h-6 flex items-center justify-center overflow-hidden">
-             <AnimatePresence mode="wait">
-               {logs.length > 0 && (
-                 <motion.div
-                   key={logs.length}
-                   initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -10, opacity: 0 }}
-                   className="text-[10px] font-bold tracking-widest text-slate-400 uppercase text-center"
-                 >
-                   {logs[logs.length - 1]}
-                 </motion.div>
-               )}
-             </AnimatePresence>
+
+          <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3, duration: 0.8 }} className="text-center mb-10">
+            <h1 className="text-4xl font-black tracking-[0.2em] text-stone-100 uppercase mb-2 drop-shadow-md">Drill Command</h1>
+            <p className="text-xs font-bold tracking-[0.3em] text-stone-400 uppercase">Analysis System</p>
+          </motion.div>
+
+          <div className="w-64 space-y-4">
+            <div className="h-[2px] w-full bg-stone-800 rounded-full overflow-hidden relative">
+              <motion.div
+                className="absolute top-0 left-0 h-full bg-stone-300"
+                initial={{ width: 0 }} animate={{ width: `${progress}%` }}
+                transition={{ ease: "linear", duration: 0.1 }}
+              />
+            </div>
+            <div className="h-6 flex items-center justify-center overflow-hidden">
+               <AnimatePresence mode="wait">
+                 {logs.length > 0 && (
+                   <motion.div
+                     key={logs.length}
+                     initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -10, opacity: 0 }}
+                     className="text-[10px] font-bold tracking-widest text-slate-400 uppercase text-center"
+                   >
+                     {logs[logs.length - 1]}
+                   </motion.div>
+                 )}
+               </AnimatePresence>
+            </div>
           </div>
         </div>
       </motion.div>
@@ -172,7 +167,7 @@ function OnboardingScreen({ onNext }: { onNext: () => void }) {
           
           {/* Oversized Background Text */}
           <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
-            <h1 className="text-[10rem] lg:text-[18rem] font-black font-sans tracking-tighter text-white/10 select-none whitespace-nowrap">
+            <h1 className="text-[10rem] lg:text-[18rem] font-black font-sans tracking-tighter text-white/5 select-none whitespace-nowrap opacity-50">
               INDIAN ARMY
             </h1>
           </div>
@@ -232,9 +227,9 @@ function OnboardingScreen({ onNext }: { onNext: () => void }) {
               <ChevronRightCircle className="relative z-10 w-6 h-6 group-hover:translate-x-1 transition-transform opacity-50 group-hover:opacity-100" />
             </button>
           </div>
-
         </motion.div>
-      </motion.div>
+      </div>
+    </motion.div>
     </>
   );
 }
