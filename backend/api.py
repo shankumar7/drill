@@ -297,9 +297,13 @@ async def generate_frames(camera_id: int):
                 traceback.print_exc()
                 print(f"Error in ML pipeline: {e}")
 
-        # Add camera label
-        cam_names = {0: "FRONT", 1: "SIDE", 2: "BACK"}
-        cv2.putText(frame, f"{cam_names[camera_id]} - {ACTIVE_MODE}", (30, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+        # Add camera label based on dynamic CAMERA_MAPPING
+        cam_name = "UNKNOWN"
+        for k, v in CAMERA_MAPPING.items():
+            if v == camera_id:
+                cam_name = k.upper()
+                break
+        cv2.putText(frame, f"{cam_name} - {ACTIVE_MODE}", (30, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
         
         ret, buffer = cv2.imencode('.jpg', frame)
         yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')

@@ -672,10 +672,10 @@ function Dashboard({ onComplete }: { onComplete: (results: any[]) => void }) {
             <div className="text-[8px] font-bold tracking-[0.3em] text-stone-700 uppercase mt-0.5">SDD · MCEME · REAL-TIME</div>
           </div>
         </div>
-        <div className="hidden lg:flex items-center gap-1 bg-stone-900 border border-white/[0.06] rounded-full p-1">
+        <div className="hidden lg:flex flex-1 mx-4 overflow-x-auto no-scrollbar items-center gap-1 bg-stone-900 border border-white/[0.06] rounded-full p-1">
           {drillModes.map(m => (
             <button key={m.val} onClick={() => changeMode(m.val)}
-              className={`px-4 py-1.5 text-[10px] font-black tracking-widest uppercase rounded-full transition-all duration-200 ${telemetry.active_mode === m.val ? "bg-stone-200 text-stone-950 shadow-sm" : "text-stone-600 hover:text-stone-300"}`}>
+              className={`shrink-0 px-4 py-1.5 text-[10px] font-black tracking-widest uppercase rounded-full transition-all duration-200 ${telemetry.active_mode === m.val ? "bg-stone-200 text-stone-950 shadow-sm" : "text-stone-600 hover:text-stone-300"}`}>
               {m.label}
             </button>
           ))}
