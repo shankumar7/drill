@@ -172,36 +172,48 @@ except Exception as e:
 
 # Helper to map pixel distance to inches based on a heuristic (shoulder width ~16 inches)
 def estimate_foot_geometry(keypoints):
-    from backend.evaluation.geometry import segment_length
-    # 5: L Shoulder, 6: R Shoulder, 15: L Ankle, 16: R Ankle, 11: L Hip, 12: R Hip
+    from backend.evaluation.geometry import segment_length, mid_point
+    
+    # 5: L Shoulder, 6: R Shoulder, 11: L Hip, 12: R Hip, 15: L Ankle, 16: R Ankle, 19: L Toe, 22: R Toe
+    # (Note: YOLO11n-POSE uses COCO 17 or similar, toes are typically not explicitly 19/22 in COCO, 
+    # but ankles are 15, 16 and we can use ankles as proxies for heel distance, and toes are not reliably available 
+    # in standard 17-keypoint models without mediapipe. Let's just use 15 and 16).
+    
     l_shoulder, r_shoulder = keypoints[5, :2], keypoints[6, :2]
+    l_hip, r_hip = keypoints[11, :2], keypoints[12, :2]
+    
     shoulder_pixel_width = segment_length(l_shoulder, r_shoulder)
+    spine_length = segment_length(mid_point(l_shoulder, r_shoulder), mid_point(l_hip, r_hip))
     
+    if spine_length < 10:
+        spine_length = 100 # Fallback for extreme cases
     if shoulder_pixel_width < 10:
-        shoulder_pixel_width = 100 # Fallback
-    
-    pixels_per_inch = shoulder_pixel_width / 16.0 
+        shoulder_pixel_width = 100
     
     # Check if ankles are actually visible (confidence > 0.3)
     l_ankle_conf = keypoints[15, 2] if keypoints.shape[1] > 2 else 1.0
     r_ankle_conf = keypoints[16, 2] if keypoints.shape[1] > 2 else 1.0
+    
     if l_ankle_conf < 0.3 or r_ankle_conf < 0.3:
         return None
         
     l_ankle, r_ankle = keypoints[15, :2], keypoints[16, :2]
-    # Simple heuristic: ankles represent heels, and toes are slightly further apart
     heel_dist_px = segment_length(l_ankle, r_ankle)
-    heel_dist_in = heel_dist_px / pixels_per_inch
     
-    # We fake toe distance based on heel distance + 6 inches for the V-shape
-    toe_dist_in = heel_dist_in + 6.0 
+    # If the model has more than 17 keypoints (e.g. 23+ for hands/feet), try to extract toes.
+    # Otherwise, fallback to ankles for heel dist.
+    toe_dist_px = heel_dist_px
+    l_toe_conf = keypoints[19, 2] if keypoints.shape[0] > 19 and keypoints.shape[1] > 2 else 0.0
+    r_toe_conf = keypoints[22, 2] if keypoints.shape[0] > 22 and keypoints.shape[1] > 2 else 0.0
+    
+    if l_toe_conf > 0.3 and r_toe_conf > 0.3:
+        toe_dist_px = segment_length(keypoints[19, :2], keypoints[22, :2])
     
     return {
-        "heel_to_heel_in": heel_dist_in,
-        "toe_to_toe_in": toe_dist_in,
         "true_heel_dist": heel_dist_px,
+        "true_toe_dist": toe_dist_px,
         "pose_scale": shoulder_pixel_width,
-        "ground_plane_angle": 30.0 # Restored mock angle so rule can evaluate when standing
+        "spine_length": spine_length
     }
 
 async def generate_frames(camera_id: int):
