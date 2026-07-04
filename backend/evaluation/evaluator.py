@@ -13,6 +13,8 @@ from backend.evaluation.rules.knee_distance import KneeDistanceRule
 from backend.evaluation.rules.salute_arm_angle import SaluteRightArmAngleRule, StraightLeftArmAngleRule
 from backend.evaluation.rules.salute_head_direction import HeadDirectionRule
 from backend.evaluation.rules.salute_hand_position import SaluteHandPositionRule
+from backend.evaluation.rules.turning_details import DahineMurhRule, BayenMurhRule, PichheMurhRule
+from backend.evaluation.rules.line_movements import KhuliLineChalRule, NikatLineChalRule
 
 
 class StaticPostureEvaluator:
@@ -67,6 +69,31 @@ class StaticPostureEvaluator:
                 StraightLeftArmAngleRule(),
                 SaluteHandPositionRule(),
                 HeadDirectionRule("right"),
+                *shared
+            ]
+        elif self.mode == "DAHINE_MURH":
+            self.rules = [
+                DahineMurhRule(),
+                *shared
+            ]
+        elif self.mode == "BAYEN_MURH":
+            self.rules = [
+                BayenMurhRule(),
+                *shared
+            ]
+        elif self.mode == "PICHHE_MURH":
+            self.rules = [
+                PichheMurhRule(),
+                *shared
+            ]
+        elif self.mode == "KHULI_LINE_CHAL":
+            self.rules = [
+                KhuliLineChalRule(),
+                *shared
+            ]
+        elif self.mode == "NIKAT_LINE_CHAL":
+            self.rules = [
+                NikatLineChalRule(),
                 *shared
             ]
         else:

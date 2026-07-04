@@ -372,8 +372,25 @@ async def process_voice_command(audio: UploadFile = File(...)):
         baye_keywords = ["baye", "left", "bye", "by a", "baen", "baaye"]
         dahine_keywords = ["dahine", "right", "dining", "diane", "daehne", "dahin", "dhahine"]
         aaram_keywords = ["aaram", "aram", "alarm", "aram se"]
+        
+        # New drill keywords
+        dahine_murh_keywords = ["dahine murh", "right turn", "turn right", "dahine mood", "dahine mud", "diane mud"]
+        bayen_murh_keywords = ["bayen murh", "left turn", "turn left", "bayen mood", "bayen mud", "baye mud", "baye mood"]
+        pichhe_murh_keywords = ["pichhe murh", "about turn", "piche murh", "piche mud", "pichhe mud"]
+        khuli_line_keywords = ["khuli line", "open line"]
+        nikat_line_keywords = ["nikat line", "close line", "near line"]
 
-        if any(kw in text_lower for kw in savdhan_keywords):
+        if any(kw in text_lower for kw in dahine_murh_keywords):
+            ACTIVE_MODE = "DAHINE_MURH"
+        elif any(kw in text_lower for kw in bayen_murh_keywords):
+            ACTIVE_MODE = "BAYEN_MURH"
+        elif any(kw in text_lower for kw in pichhe_murh_keywords):
+            ACTIVE_MODE = "PICHHE_MURH"
+        elif any(kw in text_lower for kw in khuli_line_keywords):
+            ACTIVE_MODE = "KHULI_LINE_CHAL"
+        elif any(kw in text_lower for kw in nikat_line_keywords):
+            ACTIVE_MODE = "NIKAT_LINE_CHAL"
+        elif any(kw in text_lower for kw in savdhan_keywords):
             ACTIVE_MODE = "SAVDHAN"
         elif any(kw in text_lower for kw in vishram_keywords):
             ACTIVE_MODE = "VISHRAM"
@@ -506,6 +523,51 @@ async def fusion_evaluator_loop():
                     "straight_arm_angle": get_payload("Straight Arm Angle"),
                     "head_direction": get_payload("Head Direction"),
                     "salute_hand_position": get_payload("Saluting Hand Position"),
+                    "overall_score": overall_score,
+                    "status": status
+                })
+            elif ACTIVE_MODE == "DAHINE_MURH":
+                LATEST_TELEMETRY.update({
+                    "torso_posture": get_payload("Body Posture"),
+                    "arm_alignment": get_payload("Right Turn (Dahine Murh)"),
+                    "heel_alignment": get_payload("Right Turn (Dahine Murh)"),
+                    "foot_angle": get_payload("Right Turn (Dahine Murh)"),
+                    "overall_score": overall_score,
+                    "status": status
+                })
+            elif ACTIVE_MODE == "BAYEN_MURH":
+                LATEST_TELEMETRY.update({
+                    "torso_posture": get_payload("Body Posture"),
+                    "arm_alignment": get_payload("Left Turn (Bayen Murh)"),
+                    "heel_alignment": get_payload("Left Turn (Bayen Murh)"),
+                    "foot_angle": get_payload("Left Turn (Bayen Murh)"),
+                    "overall_score": overall_score,
+                    "status": status
+                })
+            elif ACTIVE_MODE == "PICHHE_MURH":
+                LATEST_TELEMETRY.update({
+                    "torso_posture": get_payload("Body Posture"),
+                    "arm_alignment": get_payload("About Turn (Pichhe Murh)"),
+                    "heel_alignment": get_payload("About Turn (Pichhe Murh)"),
+                    "foot_angle": get_payload("About Turn (Pichhe Murh)"),
+                    "overall_score": overall_score,
+                    "status": status
+                })
+            elif ACTIVE_MODE == "KHULI_LINE_CHAL":
+                LATEST_TELEMETRY.update({
+                    "torso_posture": get_payload("Body Posture"),
+                    "arm_alignment": get_payload("Open Line Chal (Khuli Line)"),
+                    "heel_distance": get_payload("Open Line Chal (Khuli Line)"),
+                    "toe_distance": get_payload("Open Line Chal (Khuli Line)"),
+                    "overall_score": overall_score,
+                    "status": status
+                })
+            elif ACTIVE_MODE == "NIKAT_LINE_CHAL":
+                LATEST_TELEMETRY.update({
+                    "torso_posture": get_payload("Body Posture"),
+                    "arm_alignment": get_payload("Close Line Chal (Nikat Line)"),
+                    "heel_distance": get_payload("Close Line Chal (Nikat Line)"),
+                    "toe_distance": get_payload("Close Line Chal (Nikat Line)"),
                     "overall_score": overall_score,
                     "status": status
                 })

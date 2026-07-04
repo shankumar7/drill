@@ -324,7 +324,7 @@ function SettingsModal({ isOpen, onClose, mapping, onSave, baseUrl }: {
               <InputRow label="Initial Prompt" desc="Context hint provided to Whisper to improve drill command recognition. Helps reduce misrecognition." value={settings.voice_initial_prompt} placeholder="e.g. Military drill commands: savadhan, vishram..." onChange={v => set("voice_initial_prompt", v)} />
               <Section title="Recognized Commands" />
               <div className="grid grid-cols-2 gap-1.5">
-                {["Savadhan / Attention", "Vishram / At Ease", "Samne Salute", "Baye Salute", "Daine Salute", "Aaram Se"].map(cmd => (
+                {["Savadhan / Attention", "Vishram / At Ease", "Samne Salute", "Baye Salute", "Daine Salute", "Aaram Se", "Dahine Murh", "Bayen Murh", "Pichhe Murh", "Khuli Line", "Nikat Line"].map(cmd => (
                   <div key={cmd} className="text-[10px] text-stone-500 font-mono px-3 py-2 bg-stone-800/40 rounded-lg border border-white/[0.04]">▸ {cmd}</div>
                 ))}
               </div>
@@ -631,7 +631,17 @@ function Dashboard({ onComplete }: { onComplete: (results: any[]) => void }) {
 
   const isPass = ["Excellent", "Good", "PASS"].includes(telemetry.status);
   const isInit = telemetry.status === "Initializing...";
-  const drillModes = [{ label: "Savadhan", val: "SAVDHAN", s: "SVD" }, { label: "Vishram", val: "VISHRAM", s: "VSH" }, { label: "Salute", val: "FRONT_SALUTE", s: "SLT" }, { label: "Aaram Se", val: "AARAM_SE", s: "ARM" }];
+  const drillModes = [
+    { label: "Savadhan", val: "SAVDHAN", s: "SVD" }, 
+    { label: "Vishram", val: "VISHRAM", s: "VSH" }, 
+    { label: "Salute", val: "FRONT_SALUTE", s: "SLT" }, 
+    { label: "Aaram Se", val: "AARAM_SE", s: "ARM" },
+    { label: "Dahine Murh", val: "DAHINE_MURH", s: "DHM" },
+    { label: "Bayen Murh", val: "BAYEN_MURH", s: "BYM" },
+    { label: "Pichhe Murh", val: "PICHHE_MURH", s: "PCM" },
+    { label: "Khuli Line", val: "KHULI_LINE_CHAL", s: "KLC" },
+    { label: "Nikat Line", val: "NIKAT_LINE_CHAL", s: "NLC" }
+  ];
   const camPos = ["front", "side", "back"] as (keyof CameraMapping)[];
 
   return (
