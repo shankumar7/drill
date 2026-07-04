@@ -273,7 +273,7 @@ async def generate_frames(camera_id: int):
                     avg_conf = float(np.mean(det.keypoints[:, 2]))
                     
                     async with DETECTION_LOCK:
-                        MULTI_CAM_DETECTIONS[camera_id] = {"det": det, "ts": time.time(), "ppi": ppi, "conf": avg_conf, "available_ids": available_ids}
+                        MULTI_CAM_DETECTIONS[camera_id] = {"det": det, "ts": time.time(), "ppi": ppi, "conf": avg_conf, "available_ids": available_ids, "all_dets": detections}
                     
                     if SETTINGS.get("show_skeleton", True):
                         _draw_skeleton(frame, det.keypoints)
@@ -476,8 +476,9 @@ async def fusion_evaluator_loop():
                     continue
                 
                 det = entry["det"]
+                all_dets = entry.get("all_dets", [det])
                 conf = entry.get("conf", 1.0)
-                evaluation = evaluator.evaluate(det)
+                evaluation = evaluator.evaluate(det, all_dets)
                 
                 for r in evaluation.rules:
                     if r.score is not None:
@@ -534,6 +535,13 @@ async def fusion_evaluator_loop():
                     "overall_score": overall_score,
                     "status": status
                 })
+            elif ACTIVE_MODE == "AARAM_SE":
+                LATEST_TELEMETRY.update({
+                    "heel_distance": get_payload("Foot spacing"),
+                    "toe_distance": get_payload("Foot spacing"),
+                    "overall_score": overall_score,
+                    "status": status
+                })
             elif ACTIVE_MODE in ["FRONT_SALUTE", "BAYE_SALUTE", "DAINE_SALUTE"]:
                 LATEST_TELEMETRY.update({
                     "torso_posture": get_payload("Body Posture"),
@@ -586,6 +594,13 @@ async def fusion_evaluator_loop():
                     "arm_alignment": get_payload("Close Line Chal (Nikat Line)"),
                     "heel_distance": get_payload("Close Line Chal (Nikat Line)"),
                     "toe_distance": get_payload("Close Line Chal (Nikat Line)"),
+                    "overall_score": overall_score,
+                    "status": status
+                })
+            elif ACTIVE_MODE == "SAJ":
+                LATEST_TELEMETRY.update({
+                    "torso_posture": get_payload("Body Posture"),
+                    "arm_alignment": get_payload("Squad Alignment (Saj)"),
                     "overall_score": overall_score,
                     "status": status
                 })

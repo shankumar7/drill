@@ -15,6 +15,7 @@ from backend.evaluation.rules.salute_head_direction import HeadDirectionRule
 from backend.evaluation.rules.salute_hand_position import SaluteHandPositionRule
 from backend.evaluation.rules.turning_details import DahineMurhRule, BayenMurhRule, PichheMurhRule
 from backend.evaluation.rules.line_movements import KhuliLineChalRule, NikatLineChalRule
+from backend.evaluation.rules.saj_alignment import SajAlignmentRule
 
 
 class StaticPostureEvaluator:
@@ -100,14 +101,27 @@ class StaticPostureEvaluator:
                 NikatLineChalRule(),
                 *shared
             ]
+        elif self.mode == "SAJ":
+            self.rules = [
+                SajAlignmentRule(),
+                *shared
+            ]
         else:
             self.rules = []
             
         self.histories: dict[int, dict[str, list[float]]] = {}
 
-    def evaluate(self, detection: PoseDetection) -> CadetEvaluation:
+    def evaluate(self, detection: PoseDetection, all_detections: list[PoseDetection] = None) -> CadetEvaluation:
         detection.posture_history = self.histories.setdefault(detection.track_id, {})
-        results = [rule.evaluate(detection) for rule in self.rules]
+        
+        results = []
+        for rule in self.rules:
+            # Some rules like SajAlignmentRule can take all_detections
+            if hasattr(rule.evaluate, "__code__") and "all_detections" in rule.evaluate.__code__.co_varnames:
+                results.append(rule.evaluate(detection, all_detections))
+            else:
+                results.append(rule.evaluate(detection))
+                
         scored = [result.score for result in results if result.score is not None]
         overall = round(sum(scored) / len(scored), 1) if scored else None
         

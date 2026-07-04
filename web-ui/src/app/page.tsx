@@ -640,7 +640,8 @@ function Dashboard({ onComplete }: { onComplete: (results: any[]) => void }) {
     { label: "Bayen Murh", val: "BAYEN_MURH", s: "BYM" },
     { label: "Pichhe Murh", val: "PICHHE_MURH", s: "PCM" },
     { label: "Khuli Line", val: "KHULI_LINE_CHAL", s: "KLC" },
-    { label: "Nikat Line", val: "NIKAT_LINE_CHAL", s: "NLC" }
+    { label: "Nikat Line", val: "NIKAT_LINE_CHAL", s: "NLC" },
+    { label: "Saj", val: "SAJ", s: "SAJ" }
   ];
   const camPos = ["front", "side", "back"] as (keyof CameraMapping)[];
 
