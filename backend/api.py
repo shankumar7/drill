@@ -311,11 +311,23 @@ from pydantic import BaseModel
 class LockCadetRequest(BaseModel):
     track_id: int | None
 
+class ModeRequest(BaseModel):
+    mode: str
+
 @app.post("/api/lock_cadet")
 async def lock_cadet(req: LockCadetRequest):
     global LOCKED_CADET_ID
     LOCKED_CADET_ID = req.track_id
     return {"status": "ok", "locked_id": LOCKED_CADET_ID}
+
+@app.post("/api/mode")
+async def update_mode(req: ModeRequest):
+    global ACTIVE_MODE, LATEST_TELEMETRY
+    ACTIVE_MODE = req.mode
+    if LATEST_TELEMETRY:
+        LATEST_TELEMETRY["active_mode"] = ACTIVE_MODE
+    print(f"Manual mode change: {ACTIVE_MODE}")
+    return {"status": "ok", "mode": ACTIVE_MODE}
 
 @app.get("/api/settings")
 async def get_settings():
