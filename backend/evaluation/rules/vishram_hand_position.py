@@ -43,8 +43,12 @@ class VishramHandPositionRule(EvaluationRule):
             # Check if wrists are close together (behind back position)
             import numpy as np
             wrist_dist = np.linalg.norm(k[9, :2] - k[10, :2])
-            shoulder_width = np.linalg.norm(k[5, :2] - k[6, :2])
-            wrists_close = wrist_dist < shoulder_width * 0.5 if shoulder_width > 10 else False
+            
+            geometry = detection.foot_geometry or {}
+            spine_length = geometry.get("spine_length", 100)
+            
+            # Use spine_length. Spine is ~25% longer than shoulders, so adjust ratio from 0.5 to 0.4
+            wrists_close = wrist_dist < spine_length * 0.4 if spine_length >= 20 and spine_length != 100 else False
             
             if wrists_low and wrists_close:
                 score = 75.0

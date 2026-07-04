@@ -10,9 +10,16 @@ class ShoulderLevelRule(EvaluationRule):
         k = detection.keypoints
         if min(k[5, 2], k[6, 2]) < 0.25:
             return RuleResult(self.name, "not_evaluable", None, "Shoulder keypoints are not reliable enough.")
-        width = segment_length(k[5, :2], k[6, :2])
+        geometry = detection.foot_geometry or {}
+        spine_length = geometry.get("spine_length", 100)
+        
+        if spine_length < 20 or spine_length == 100:
+            return RuleResult(self.name, "not_evaluable", None, "Spine length not reliable enough.")
+            
         vertical_delta = abs(float(k[5, 1] - k[6, 1]))
-        score = max(0.0, 100.0 - ((vertical_delta / (width + 1e-6)) * 400.0))
+        # We scale by spine_length, meaning the normalized tilt will be smaller than if we used width.
+        # Adjusted multiplier from 400.0 to 500.0 to maintain similar strictness.
+        score = max(0.0, 100.0 - ((vertical_delta / (spine_length + 1e-6)) * 500.0))
         history = detection.posture_history.setdefault(self.name, []) if detection.posture_history is not None else []
         history.append(score)
         del history[:-10]

@@ -21,29 +21,30 @@ class KneeDistanceRule(EvaluationRule):
             return RuleResult(self.name, "not_evaluable", None, "Knee or shoulder keypoints are not reliable.")
             
         knee_dist = segment_length(k[13, :2], k[14, :2])
-        shoulder_width = segment_length(k[5, :2], k[6, :2])
+        geometry = detection.foot_geometry or {}
+        spine_length = geometry.get("spine_length", 100)
         
-        if shoulder_width < 10:
-            return RuleResult(self.name, "not_evaluable", None, "Shoulder width too small for scaling.")
+        if spine_length < 20 or spine_length == 100:
+            return RuleResult(self.name, "not_evaluable", None, "Spine length too small or unreliable for scaling.")
             
-        # Normalize knee distance relative to shoulder width.
-        norm_dist = knee_dist / shoulder_width
+        # Normalize knee distance relative to spine length.
+        norm_dist = knee_dist / spine_length
         
         score = 0.0
         if self.target == "close":
             # Official: 'donon ghutne kase hue' - both knees locked tight
-            # From a front-facing webcam, knees together means small normalized distance
-            if norm_dist <= 0.9:
+            # Since spine length is larger than shoulder width, we tighten the thresholds (~0.7 instead of 0.9)
+            if norm_dist <= 0.7:
                 score = 100.0
-            elif norm_dist < 1.2:
-                score = max(0.0, 100.0 - ((norm_dist - 0.9) * 333.0))
+            elif norm_dist < 1.0:
+                score = max(0.0, 100.0 - ((norm_dist - 0.7) * 333.0))
             msg = f"Knees should be locked tight (donon ghutne kase hue). Distance: {norm_dist:.2f}"
         else:
             # Salute position - still requires knees to be close per official rules
-            if norm_dist <= 1.0:
+            if norm_dist <= 0.8:
                 score = 100.0
-            elif norm_dist < 1.4:
-                score = max(0.0, 100.0 - ((norm_dist - 1.0) * 250.0))
+            elif norm_dist < 1.1:
+                score = max(0.0, 100.0 - ((norm_dist - 0.8) * 333.0))
             msg = f"Knees should be together during salute. Distance: {norm_dist:.2f}"
             
         smoothed = self.smooth_score(detection, score)
