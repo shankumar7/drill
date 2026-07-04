@@ -16,15 +16,29 @@ class BackPostureRule(EvaluationRule):
     def evaluate(self, detection: PoseDetection) -> RuleResult:
         k = detection.keypoints
         # Ear (3, 4), Shoulder (5, 6), Hip (11, 12)
-        # Lower confidence threshold for better detection
-        if min(k[3, 2], k[4, 2], k[5, 2], k[6, 2], k[11, 2], k[12, 2]) < 0.3:
-            return RuleResult(self.name, "not_evaluable", None, "Posture keypoints not reliable.")
-            
-        ear_center = mid_point(k[3, :2], k[4, :2])
-        shoulder_center = mid_point(k[5, :2], k[6, :2])
-        hip_center = mid_point(k[11, :2], k[12, :2])
+        l_visible = min(k[3, 2], k[5, 2], k[11, 2]) >= 0.25
+        r_visible = min(k[4, 2], k[6, 2], k[12, 2]) >= 0.25
         
-        angle = angle_degrees(ear_center, shoulder_center, hip_center)
+        if not (l_visible or r_visible):
+            # If neither side has all 3 points, fallback to using whatever is available as midpoints
+            if min(max(k[3,2], k[4,2]), max(k[5,2], k[6,2]), max(k[11,2], k[12,2])) < 0.2:
+                return RuleResult(self.name, "not_evaluable", None, "Posture keypoints not reliable.")
+                
+        # Calculate angles for visible sides
+        angles = []
+        if l_visible:
+            angles.append(angle_degrees(k[3, :2], k[5, :2], k[11, :2]))
+        if r_visible:
+            angles.append(angle_degrees(k[4, :2], k[6, :2], k[12, :2]))
+            
+        if not angles:
+            # Fallback to midpoint if neither strict side is fully visible but individual points exist
+            ear_center = k[3, :2] if k[3,2] > k[4,2] else k[4, :2]
+            shoulder_center = k[5, :2] if k[5,2] > k[6,2] else k[6, :2]
+            hip_center = k[11, :2] if k[11,2] > k[12,2] else k[12, :2]
+            angles.append(angle_degrees(ear_center, shoulder_center, hip_center))
+            
+        angle = sum(angles) / len(angles)
         
         # For erect posture (chest up, shoulders back), Ear-Shoulder-Hip should be ~180°
         # Official: chest raised (chhati uthi hui), shoulders pulled back
@@ -56,14 +70,26 @@ class BodyPostureRule(EvaluationRule):
     def evaluate(self, detection: PoseDetection) -> RuleResult:
         k = detection.keypoints
         # Shoulder (5, 6), Hip (11, 12), Knee (13, 14)
-        if min(k[5, 2], k[6, 2], k[11, 2], k[12, 2], k[13, 2], k[14, 2]) < 0.3:
-            return RuleResult(self.name, "not_evaluable", None, "Body posture keypoints not reliable.")
-            
-        shoulder_center = mid_point(k[5, :2], k[6, :2])
-        hip_center = mid_point(k[11, :2], k[12, :2])
-        knee_center = mid_point(k[13, :2], k[14, :2])
+        l_visible = min(k[5, 2], k[11, 2], k[13, 2]) >= 0.25
+        r_visible = min(k[6, 2], k[12, 2], k[14, 2]) >= 0.25
         
-        angle = angle_degrees(shoulder_center, hip_center, knee_center)
+        if not (l_visible or r_visible):
+            if min(max(k[5,2], k[6,2]), max(k[11,2], k[12,2]), max(k[13,2], k[14,2])) < 0.2:
+                return RuleResult(self.name, "not_evaluable", None, "Body posture keypoints not reliable.")
+                
+        angles = []
+        if l_visible:
+            angles.append(angle_degrees(k[5, :2], k[11, :2], k[13, :2]))
+        if r_visible:
+            angles.append(angle_degrees(k[6, :2], k[12, :2], k[14, :2]))
+            
+        if not angles:
+            shoulder_center = k[5, :2] if k[5,2] > k[6,2] else k[6, :2]
+            hip_center = k[11, :2] if k[11,2] > k[12,2] else k[12, :2]
+            knee_center = k[13, :2] if k[13,2] > k[14,2] else k[14, :2]
+            angles.append(angle_degrees(shoulder_center, hip_center, knee_center))
+            
+        angle = sum(angles) / len(angles)
         
         # Official: Stomach pulled in, body straight. Shoulder-Hip-Knee ~180°
         score = 0.0

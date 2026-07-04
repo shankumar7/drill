@@ -8,34 +8,44 @@ class SavdhanArmPositionRule(EvaluationRule):
     def evaluate(self, detection: PoseDetection) -> RuleResult:
         k = detection.keypoints
         # Wrist (9, 10) and Hip (11, 12)
-        if min(k[9, 2], k[10, 2], k[11, 2], k[12, 2]) < 0.25:
-            return RuleResult(self.name, "not_evaluable", None, "Wrist or hip keypoints are not reliable enough.")
-
-        l_wrist_hip_dist = segment_length(k[9, :2], k[11, :2])
-        r_wrist_hip_dist = segment_length(k[10, :2], k[12, :2])
-        shoulder_width = segment_length(k[5, :2], k[6, :2])
-
-        if shoulder_width < 10:
-            return RuleResult(self.name, "not_evaluable", None, "Shoulder width too small for scaling.")
-
-        # In original code, ideal distance was 19 to 55 pixels for 1100x1100 image.
-        # This roughly translates to 0.1 to 0.5 times the shoulder width.
-        # We will normalize by shoulder width.
-        norm_l = l_wrist_hip_dist / shoulder_width
-        norm_r = r_wrist_hip_dist / shoulder_width
+        l_visible = min(k[9, 2], k[11, 2]) >= 0.25
+        r_visible = min(k[10, 2], k[12, 2]) >= 0.25
         
+        if not (l_visible or r_visible):
+            return RuleResult(self.name, "not_evaluable", None, "Wrist or hip keypoints are not reliable on either side.")
+
+        # We must use spine length for scaling, because shoulder width collapses on a side profile
+        geometry = detection.foot_geometry or {}
+        spine_length = geometry.get("spine_length", 100)
+        
+        if spine_length < 20 or spine_length == 100:
+            return RuleResult(self.name, "not_evaluable", None, "Spine length too small or unreliable for scaling.")
+
         def calculate_score(norm):
-            if 0.25 <= norm <= 0.55:
+            # With spine scaling, the distance from wrist to hip is quite small since spine is long
+            if 0.1 <= norm <= 0.35:
                 return 100.0
-            elif 0.55 < norm <= 0.8:
-                return max(0.0, 100.0 - ((norm - 0.55) * 400.0))
-            elif 0.05 <= norm < 0.25:
-                return max(0.0, 100.0 - ((0.25 - norm) * 500.0))
+            elif 0.35 < norm <= 0.6:
+                return max(0.0, 100.0 - ((norm - 0.35) * 400.0))
+            elif norm < 0.1:
+                return max(0.0, 100.0 - ((0.1 - norm) * 800.0))
             return 0.0
+
+        scores = []
+        msg_parts = []
+        if l_visible:
+            l_dist = segment_length(k[9, :2], k[11, :2])
+            norm_l = l_dist / spine_length
+            scores.append(calculate_score(norm_l))
+            msg_parts.append(f"L={norm_l:.2f}")
             
-        score_l = calculate_score(norm_l)
-        score_r = calculate_score(norm_r)
-        score = min(score_l, score_r)
+        if r_visible:
+            r_dist = segment_length(k[10, :2], k[12, :2])
+            norm_r = r_dist / spine_length
+            scores.append(calculate_score(norm_r))
+            msg_parts.append(f"R={norm_r:.2f}")
+            
+        score = min(scores) # Take the worst visible arm
 
         history = detection.posture_history.setdefault(self.name, []) if detection.posture_history is not None else []
         history.append(score)
@@ -45,4 +55,4 @@ class SavdhanArmPositionRule(EvaluationRule):
             
         stable_score = sum(history) / len(history)
         status = "pass" if stable_score >= 80 else "fail"
-        return RuleResult(self.name, status, round(stable_score, 1), f"Arm-Hip Distance (normalized): L={norm_l:.2f}, R={norm_r:.2f}")
+        return RuleResult(self.name, status, round(stable_score, 1), f"Arm-Hip Distance (normalized): {', '.join(msg_parts)}")

@@ -13,22 +13,34 @@ class KneeLockRule(EvaluationRule):
 
     def evaluate(self, detection: PoseDetection) -> RuleResult:
         k = detection.keypoints
-        # Lower confidence threshold
-        if min(k[11, 2], k[13, 2], k[15, 2], k[12, 2], k[14, 2], k[16, 2]) < 0.2:
-            return RuleResult(self.name, "not_evaluable", None, "Lower-limb keypoints are not reliable enough.")
         
-        left = angle_degrees(k[11, :2], k[13, :2], k[15, :2])
-        right = angle_degrees(k[12, :2], k[14, :2], k[16, :2])
+        l_visible = min(k[11, 2], k[13, 2], k[15, 2]) >= 0.2
+        r_visible = min(k[12, 2], k[14, 2], k[16, 2]) >= 0.2
         
-        # Both legs should be straight (~180°). More lenient threshold.
-        left_deviation = abs(180 - left)
-        right_deviation = abs(180 - right)
-        score = max(0.0, 100.0 - ((left_deviation + right_deviation) * 1.5))
+        if not (l_visible or r_visible):
+            return RuleResult(self.name, "not_evaluable", None, "Lower-limb keypoints are not reliable enough on either side.")
+        
+        scores = []
+        msg_parts = []
+        
+        if l_visible:
+            left = angle_degrees(k[11, :2], k[13, :2], k[15, :2])
+            left_dev = abs(180 - left)
+            scores.append(max(0.0, 100.0 - (left_dev * 1.5)))
+            msg_parts.append(f"L: {left:.0f}°")
+            
+        if r_visible:
+            right = angle_degrees(k[12, :2], k[14, :2], k[16, :2])
+            right_dev = abs(180 - right)
+            scores.append(max(0.0, 100.0 - (right_dev * 1.5)))
+            msg_parts.append(f"R: {right:.0f}°")
+            
+        score = min(scores) # Worst visible knee dictates score
         
         history = detection.posture_history.setdefault(self.name, []) if detection.posture_history is not None else []
         history.append(score)
         del history[:-10]
-        if len(history) < 3:  # Reduced from 5 to 3 for faster feedback
+        if len(history) < 3:
             return RuleResult(self.name, "not_evaluable", None, "Collecting stable knee evidence.")
         
         stable_score = sum(history) / len(history)
@@ -37,5 +49,5 @@ class KneeLockRule(EvaluationRule):
             self.name, 
             status, 
             round(stable_score, 1), 
-            f"Knees should be locked (donon ghutne kase hue). L: {left:.0f}°, R: {right:.0f}° (Ideal: 180°)"
+            f"Knees should be locked. {', '.join(msg_parts)} (Ideal: 180°)"
         )
