@@ -99,8 +99,9 @@ class NikatLineChalRule(EvaluationRule):
             
         metrics = get_body_metrics(k)
         
+        # Normalized distance between ankles
         ankle_dist = segment_length(k[15, :2], k[16, :2])
-        norm_ankle_dist = ankle_dist / (metrics["shoulder_width"] + 1e-6)
+        norm_ankle_dist = ankle_dist / (metrics["spine_length"] + 1e-6)
         
         history = detection.posture_history.setdefault(self.name, {"state": 0, "max_step_dist": 0.0, "max_thigh_lift": 0.0, "scores": []})
         state = history.get("state", 0)
@@ -109,14 +110,14 @@ class NikatLineChalRule(EvaluationRule):
         msg = "Cadet standing in Savdhan, waiting to start Close Line."
         
         if state == 0:
-            if norm_ankle_dist > 0.6:
+            if norm_ankle_dist > 0.45:
                 state = 1
                 history["state"] = 1
                 history["max_step_dist"] = norm_ankle_dist
                 history["max_thigh_lift"] = 0.0
-                msg = "First step detected (left foot moving backward)."
+                msg = "First backward step detected (left foot moving)."
             else:
-                msg = "Waiting for first step."
+                msg = "Waiting for first backward step."
                 
         if state == 1:
             history["max_step_dist"] = max(history["max_step_dist"], norm_ankle_dist)
@@ -128,7 +129,7 @@ class NikatLineChalRule(EvaluationRule):
             else:
                 msg = f"Step 1 active. Right thigh lift: {metrics['r_thigh_angle']:.1f}°"
                 
-            if norm_ankle_dist < 0.35:
+            if norm_ankle_dist < 0.25:
                 state = 2
                 history["state"] = 2
                 
@@ -136,7 +137,7 @@ class NikatLineChalRule(EvaluationRule):
             max_step = history["max_step_dist"]
             max_lift = history["max_thigh_lift"]
             
-            if max_step < 0.65:
+            if max_step < 0.5:
                 score -= 25.0
                 msg = f"First step length was too short. Stride distance ratio: {max_step:.2f}"
             elif max_lift < 60.0:
@@ -145,7 +146,7 @@ class NikatLineChalRule(EvaluationRule):
             else:
                 msg = "Close Line Chal completed successfully!"
                 
-            if norm_ankle_dist < 0.3:
+            if norm_ankle_dist < 0.2:
                 history["state"] = 0
 
         history["scores"].append(score)
