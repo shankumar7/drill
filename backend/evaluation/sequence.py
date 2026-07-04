@@ -298,3 +298,91 @@ class MarchingSaluteSequence:
             return RuleResult(self.name, overall, "partial_pass", f"Weak Marching Salute (Stride: {stride_score}%, Salute: {upper_score}%)")
         else:
             return RuleResult(self.name, overall, "fail", f"Poor Marching Salute (Stride: {stride_score}%, Salute: {upper_score}%)")
+
+class MarchingTurnSequence:
+    def __init__(self, turn_type: str):
+        self.turn_type = turn_type
+        self.name = f"Marching Turn ({turn_type.capitalize()})"
+        self.states = {} # track_id -> {"state": str, "last_transition": float, "initial_shoulder_width": float}
+        self.buffers = {}
+        
+    def evaluate(self, detection: PoseDetection, *args, **kwargs) -> RuleResult:
+        now = time.time()
+        track_id = getattr(detection, 'track_id', -1)
+        
+        if track_id not in self.states:
+            self.states[track_id] = {"state": "MARCHING_STRAIGHT", "last_transition": now, "initial_shoulder_width": 0}
+            self.buffers[track_id] = []
+            
+        tracker = self.states[track_id]
+        buf = self.buffers[track_id]
+        
+        # Add current frame
+        buf.append({
+            "time": now,
+            "l_ankle": detection.keypoints[15],
+            "r_ankle": detection.keypoints[16],
+            "l_shoulder": detection.keypoints[5],
+            "r_shoulder": detection.keypoints[6],
+            "l_hip": detection.keypoints[11],
+            "r_hip": detection.keypoints[12]
+        })
+        
+        # Prune old frames (keep last 2.0 seconds)
+        self.buffers[track_id] = [f for f in buf if now - f["time"] <= 2.0]
+        buf = self.buffers[track_id]
+        
+        # Check stride
+        max_ankle_dist = 0
+        spine_length = 100
+        current_shoulder_width = 0
+        
+        for f in buf:
+            sl = abs( ((f["l_hip"][1]+f["r_hip"][1])/2) - ((f["l_shoulder"][1]+f["r_shoulder"][1])/2) )
+            if sl > 10: spine_length = sl
+            if f["l_ankle"][2] > 0.3 and f["r_ankle"][2] > 0.3:
+                a_dist = ((f["l_ankle"][0] - f["r_ankle"][0])**2 + (f["l_ankle"][1] - f["r_ankle"][1])**2)**0.5
+                if a_dist > max_ankle_dist: max_ankle_dist = a_dist
+
+        norm_ankle = max_ankle_dist / spine_length
+        is_marching = norm_ankle > 0.4
+        
+        l_shoulder = detection.keypoints[5]
+        r_shoulder = detection.keypoints[6]
+        if l_shoulder[2] > 0.3 and r_shoulder[2] > 0.3:
+            current_shoulder_width = abs(l_shoulder[0] - r_shoulder[0]) / spine_length
+            
+        # State Machine
+        if tracker["state"] == "MARCHING_STRAIGHT":
+            if not is_marching:
+                return RuleResult(self.name, 0, "fail", "Must be marching before turning")
+                
+            if tracker["initial_shoulder_width"] == 0 and current_shoulder_width > 0:
+                tracker["initial_shoulder_width"] = current_shoulder_width
+                
+            # If shoulder width drops significantly, they are turning (showing profile)
+            # OR if Pichhe (About Turn), shoulders swap sides (but width might briefly drop)
+            if tracker["initial_shoulder_width"] > 0 and current_shoulder_width < (tracker["initial_shoulder_width"] * 0.6):
+                tracker["state"] = "TURNING"
+                tracker["last_transition"] = now
+                return RuleResult(self.name, 50, "partial_pass", "Turn detected. Maintaining stride...")
+                
+            return RuleResult(self.name, 0, "fail", "Marching straight. Waiting for turn.")
+            
+        elif tracker["state"] == "TURNING":
+            if not is_marching:
+                tracker["state"] = "MARCHING_STRAIGHT" # Reset
+                return RuleResult(self.name, 0, "fail", "Cadet stopped marching during the turn!")
+                
+            # Hold turn state for 1 second to ensure they continue marching through it
+            if now - tracker["last_transition"] > 1.0:
+                tracker["state"] = "TURN_COMPLETED"
+                tracker["last_transition"] = now
+                return RuleResult(self.name, 100, "pass", "Marching Turn executed flawlessly without breaking stride.")
+                
+            return RuleResult(self.name, 75, "partial_pass", "Turning... keep marching!")
+            
+        elif tracker["state"] == "TURN_COMPLETED":
+            return RuleResult(self.name, 100, "pass", "Marching Turn completed.")
+            
+        return RuleResult(self.name, 0, "fail", "Unknown state")

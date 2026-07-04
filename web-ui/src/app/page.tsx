@@ -644,7 +644,13 @@ function Dashboard({ onComplete }: { onComplete: (results: any[]) => void }) {
     { label: "Saj", val: "SAJ", s: "SAJ" },
     { label: "Visarjan", val: "VISARJAN", s: "VSJ" },
     { label: "Tej Chal", val: "TEJ_CHAL", s: "TJC" },
-    { label: "Thaam (Halt)", val: "THAAM", s: "THM" }
+    { label: "Thaam (Halt)", val: "THAAM", s: "THM" },
+    { label: "Marching Salute (Front)", val: "MARCHING_FRONT_SALUTE", s: "MSF" },
+    { label: "Marching Salute (Right)", val: "MARCHING_DAINE_SALUTE", s: "MSR" },
+    { label: "Marching Salute (Left)", val: "MARCHING_BAYE_SALUTE", s: "MSL" },
+    { label: "Marching Turn (Dahine)", val: "MARCHING_TURN_DAHINE", s: "MTD" },
+    { label: "Marching Turn (Bayen)", val: "MARCHING_TURN_BAYEN", s: "MTB" },
+    { label: "Marching Turn (Pichhe)", val: "MARCHING_TURN_PICHHE", s: "MTP" }
   ];
   const camPos = ["front", "side", "back"] as (keyof CameraMapping)[];
 

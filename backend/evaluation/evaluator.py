@@ -16,7 +16,7 @@ from backend.evaluation.rules.salute_hand_position import SaluteHandPositionRule
 from backend.evaluation.rules.turning_details import DahineMurhRule, BayenMurhRule, PichheMurhRule
 from backend.evaluation.rules.line_movements import KhuliLineChalRule, NikatLineChalRule
 from backend.evaluation.rules.saj_alignment import SajAlignmentRule
-from backend.evaluation.sequence import VisarjanSequence, TejChalSequence, ThaamSequence
+from backend.evaluation.sequence import VisarjanSequence, TejChalSequence, ThaamSequence, MarchingSaluteSequence, MarchingTurnSequence
 
 
 class StaticPostureEvaluator:
@@ -120,6 +120,36 @@ class StaticPostureEvaluator:
         elif self.mode == "THAAM":
             self.rules = [
                 ThaamSequence(),
+                *shared
+            ]
+        elif self.mode == "MARCHING_FRONT_SALUTE":
+            self.rules = [
+                MarchingSaluteSequence("front"),
+                *shared
+            ]
+        elif self.mode == "MARCHING_BAYE_SALUTE":
+            self.rules = [
+                MarchingSaluteSequence("left"),
+                *shared
+            ]
+        elif self.mode == "MARCHING_DAINE_SALUTE":
+            self.rules = [
+                MarchingSaluteSequence("right"),
+                *shared
+            ]
+        elif self.mode == "MARCHING_TURN_DAHINE":
+            self.rules = [
+                MarchingTurnSequence("dahine"),
+                *shared
+            ]
+        elif self.mode == "MARCHING_TURN_BAYEN":
+            self.rules = [
+                MarchingTurnSequence("bayen"),
+                *shared
+            ]
+        elif self.mode == "MARCHING_TURN_PICHHE":
+            self.rules = [
+                MarchingTurnSequence("pichhe"),
                 *shared
             ]
         else:

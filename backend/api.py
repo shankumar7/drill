@@ -625,6 +625,22 @@ async def fusion_evaluator_loop():
                     "overall_score": overall_score,
                     "status": status
                 })
+            elif ACTIVE_MODE in ["MARCHING_FRONT_SALUTE", "MARCHING_BAYE_SALUTE", "MARCHING_DAINE_SALUTE"]:
+                dir_label = "Front" if "FRONT" in ACTIVE_MODE else "Left" if "BAYE" in ACTIVE_MODE else "Right"
+                LATEST_TELEMETRY.update({
+                    "torso_posture": get_payload("Body Posture"),
+                    "arm_alignment": get_payload(f"Marching Salute ({dir_label})"),
+                    "overall_score": overall_score,
+                    "status": status
+                })
+            elif ACTIVE_MODE in ["MARCHING_TURN_DAHINE", "MARCHING_TURN_BAYEN", "MARCHING_TURN_PICHHE"]:
+                turn_label = "Dahine" if "DAHINE" in ACTIVE_MODE else "Bayen" if "BAYEN" in ACTIVE_MODE else "Pichhe"
+                LATEST_TELEMETRY.update({
+                    "torso_posture": get_payload("Body Posture"),
+                    "arm_alignment": get_payload(f"Marching Turn ({turn_label})"),
+                    "overall_score": overall_score,
+                    "status": status
+                })
         except Exception as e:
             import traceback
             with open("/tmp/fusion_error.txt", "a") as f:
