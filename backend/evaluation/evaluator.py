@@ -44,6 +44,10 @@ class StaticPostureEvaluator:
                 HeadAlignmentRule(),
                 *shared
             ]
+        elif self.mode == "AARAM_SE":
+            self.rules = [
+                VishramSpacingRule() # Feet must stay in Vishram position, upper body is relaxed
+            ]
         elif self.mode == "FRONT_SALUTE":
             self.rules = [
                 KneeDistanceRule("relaxed"),

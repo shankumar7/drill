@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import time
 import tempfile
-
+from backend.visualization.debug_view import _draw_skeleton
 app = FastAPI(title="Military Drill Analysis API")
 
 app.add_middleware(
@@ -275,11 +275,17 @@ async def generate_frames(camera_id: int):
                     async with DETECTION_LOCK:
                         MULTI_CAM_DETECTIONS[camera_id] = {"det": det, "ts": time.time(), "ppi": ppi, "conf": avg_conf, "available_ids": available_ids}
                     
-                    # Skeleton drawing moved to client side to avoid duplicate overlays
-                    # _draw_skeleton(frame, det.keypoints)  # Disabled to prevent multiple line artifacts
+                    if SETTINGS.get("show_skeleton", True):
+                        _draw_skeleton(frame, det.keypoints)
+                        
+                    if SETTINGS.get("show_confidence_score", False):
+                        # Draw some debug confidence next to skeleton
+                        for point in det.keypoints:
+                            if point[2] > 0.3:
+                                cv2.putText(frame, f"{point[2]:.2f}", (int(point[0])+5, int(point[1])-5), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 255, 0), 1)
                     
                     tid = getattr(det, 'track_id', 'Unknown')
-                    if tid is not None:
+                    if tid is not None and SETTINGS.get("show_id_overlay", True):
                         cx, cy = int(det.bbox[0]), int(det.bbox[1])
                         cv2.putText(frame, f"ID: {tid}", (cx, max(0, cy - 10)), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
 
