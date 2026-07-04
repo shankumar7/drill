@@ -113,7 +113,7 @@ class DahineMurhRule(EvaluationRule):
         history["scores"].append(score)
         del history["scores"][:-10]
         stable_score = sum(history["scores"]) / len(history["scores"])
-        status = "pass" if stable_score >= 80 else "fail"
+        status = "pass" if stable_score >= 90 else "fail"
         
         return RuleResult(self.name, status, round(stable_score, 1), msg)
 
@@ -171,7 +171,7 @@ class BayenMurhRule(EvaluationRule):
         history["scores"].append(score)
         del history["scores"][:-10]
         stable_score = sum(history["scores"]) / len(history["scores"])
-        status = "pass" if stable_score >= 80 else "fail"
+        status = "pass" if stable_score >= 90 else "fail"
         
         return RuleResult(self.name, status, round(stable_score, 1), msg)
 
@@ -230,6 +230,6 @@ class PichheMurhRule(EvaluationRule):
         history["scores"].append(score)
         del history["scores"][:-10]
         stable_score = sum(history["scores"]) / len(history["scores"])
-        status = "pass" if stable_score >= 80 else "fail"
+        status = "pass" if stable_score >= 90 else "fail"
         
         return RuleResult(self.name, status, round(stable_score, 1), msg)

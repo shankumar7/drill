@@ -67,5 +67,5 @@ class SavdhanArmPositionRule(EvaluationRule):
             return RuleResult(self.name, "not_evaluable", None, "Collecting stable arm-position evidence.")
             
         stable_score = sum(history) / len(history)
-        status = "pass" if stable_score >= 80 else "fail"
+        status = "pass" if stable_score >= 90 else "fail"
         return RuleResult(self.name, status, round(stable_score, 1), f"Arm straightness: {', '.join(msg_parts)}")

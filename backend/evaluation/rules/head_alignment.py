@@ -24,5 +24,5 @@ class HeadAlignmentRule(EvaluationRule):
         
         # Scaling by spine_length instead of shoulder_width
         score = max(0.0, 100.0 - ((horizontal_delta / (spine_length + 1e-6)) * 350.0))
-        status = "pass" if score >= 80 else "fail"
+        status = "pass" if score >= 90 else "fail"
         return RuleResult(self.name, status, round(score, 1), "Chin and gaze should remain forward.")

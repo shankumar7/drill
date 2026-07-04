@@ -52,7 +52,7 @@ class BackPostureRule(EvaluationRule):
         if isinstance(smoothed, RuleResult):
             return smoothed
             
-        status = "pass" if smoothed >= 80 else "fail"
+        status = "pass" if smoothed >= 90 else "fail"
         return RuleResult(self.name, status, round(smoothed, 1), 
                          f"Ear-Shoulder-Hip angle: {angle:.1f}° (Ideal: 155-180°). "
                          f"Chest should be raised, shoulders pulled back.")
@@ -102,7 +102,7 @@ class BodyPostureRule(EvaluationRule):
         if isinstance(smoothed, RuleResult):
             return smoothed
             
-        status = "pass" if smoothed >= 80 else "fail"
+        status = "pass" if smoothed >= 90 else "fail"
         return RuleResult(self.name, status, round(smoothed, 1), 
                          f"Shoulder-Hip-Knee angle: {angle:.1f}° (Ideal: 155-180°). "
                          f"Stomach should be pulled in, body straight.")

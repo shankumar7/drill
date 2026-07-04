@@ -51,5 +51,5 @@ class KneeDistanceRule(EvaluationRule):
         if isinstance(smoothed, RuleResult):
             return smoothed
             
-        status = "pass" if smoothed >= 80 else "fail"
+        status = "pass" if smoothed >= 90 else "fail"
         return RuleResult(self.name, status, round(smoothed, 1), msg)

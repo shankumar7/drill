@@ -39,6 +39,6 @@ class SavdhanFootAngleRule(EvaluationRule):
             # Fallback when toes aren't explicitly mapped (just ankles)
             score = 100.0
             
-        status = "pass" if score >= 80 else "fail"
+        status = "pass" if score >= 90 else "fail"
         msg = f"V-shape toe-heel difference ratio: {v_diff:.2f}." if toe_gap > heel_gap + 1.0 else "Toe keypoints missing; assuming default 30° alignment."
         return RuleResult(self.name, status, round(score, 1), msg)

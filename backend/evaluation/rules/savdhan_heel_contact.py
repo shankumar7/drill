@@ -22,5 +22,5 @@ class SavdhanHeelContactRule(EvaluationRule):
         else:
             score = max(0.0, 100.0 - (normalized_gap - 0.08) * 800.0)
             
-        status = "pass" if score >= 80 else "fail"
+        status = "pass" if score >= 90 else "fail"
         return RuleResult(self.name, status, round(score, 1), f"Official rule requires both heels together. Gap ratio: {normalized_gap:.2f}")

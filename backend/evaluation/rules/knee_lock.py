@@ -44,7 +44,7 @@ class KneeLockRule(EvaluationRule):
             return RuleResult(self.name, "not_evaluable", None, "Collecting stable knee evidence.")
         
         stable_score = sum(history) / len(history)
-        status = "pass" if stable_score >= 75 else "fail"
+        status = "pass" if stable_score >= 90 else "fail"
         return RuleResult(
             self.name, 
             status, 

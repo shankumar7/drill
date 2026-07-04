@@ -57,7 +57,7 @@ class VishramHandPositionRule(EvaluationRule):
             else:
                 score = 30.0
         
-        status = "pass" if score >= 70 else "fail"
+        status = "pass" if score >= 90 else "fail"
         
         return RuleResult(
             self.name,

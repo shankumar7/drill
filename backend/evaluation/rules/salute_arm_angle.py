@@ -38,7 +38,7 @@ class SaluteRightArmAngleRule(EvaluationRule):
         if isinstance(smoothed, RuleResult):
             return smoothed
             
-        status = "pass" if smoothed >= 80 else "fail"
+        status = "pass" if smoothed >= 90 else "fail"
         return RuleResult(self.name, status, round(smoothed, 1), f"Right Arm Angle: {angle:.1f}° (Ideal: 25-120)")
 
 
@@ -72,5 +72,5 @@ class StraightLeftArmAngleRule(EvaluationRule):
         if isinstance(smoothed, RuleResult):
             return smoothed
             
-        status = "pass" if smoothed >= 80 else "fail"
+        status = "pass" if smoothed >= 90 else "fail"
         return RuleResult(self.name, status, round(smoothed, 1), f"Left Arm Angle: {angle:.1f}° (Ideal: 145-180)")
