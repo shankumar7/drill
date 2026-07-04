@@ -16,6 +16,7 @@ from backend.evaluation.rules.salute_hand_position import SaluteHandPositionRule
 from backend.evaluation.rules.turning_details import DahineMurhRule, BayenMurhRule, PichheMurhRule
 from backend.evaluation.rules.line_movements import KhuliLineChalRule, NikatLineChalRule
 from backend.evaluation.rules.saj_alignment import SajAlignmentRule
+from backend.evaluation.sequence import VisarjanSequence, TejChalSequence, ThaamSequence
 
 
 class StaticPostureEvaluator:
@@ -104,6 +105,21 @@ class StaticPostureEvaluator:
         elif self.mode == "SAJ":
             self.rules = [
                 SajAlignmentRule(),
+                *shared
+            ]
+        elif self.mode == "VISARJAN":
+            self.rules = [
+                VisarjanSequence(),
+                *shared
+            ]
+        elif self.mode == "TEJ_CHAL":
+            self.rules = [
+                TejChalSequence(),
+                *shared
+            ]
+        elif self.mode == "THAAM":
+            self.rules = [
+                ThaamSequence(),
                 *shared
             ]
         else:

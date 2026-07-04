@@ -604,6 +604,27 @@ async def fusion_evaluator_loop():
                     "overall_score": overall_score,
                     "status": status
                 })
+            elif ACTIVE_MODE == "VISARJAN":
+                LATEST_TELEMETRY.update({
+                    "torso_posture": get_payload("Body Posture"),
+                    "arm_alignment": get_payload("Visarjan Sequence"),
+                    "overall_score": overall_score,
+                    "status": status
+                })
+            elif ACTIVE_MODE == "TEJ_CHAL":
+                LATEST_TELEMETRY.update({
+                    "torso_posture": get_payload("Body Posture"),
+                    "arm_alignment": get_payload("Tej Chal (Quick March)"),
+                    "overall_score": overall_score,
+                    "status": status
+                })
+            elif ACTIVE_MODE == "THAAM":
+                LATEST_TELEMETRY.update({
+                    "torso_posture": get_payload("Body Posture"),
+                    "arm_alignment": get_payload("Thaam (Halt from March)"),
+                    "overall_score": overall_score,
+                    "status": status
+                })
         except Exception as e:
             import traceback
             with open("/tmp/fusion_error.txt", "a") as f:
