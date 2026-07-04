@@ -524,10 +524,14 @@ async def fusion_evaluator_loop():
             for entry in detections_snapshot.values():
                 if entry and "available_ids" in entry:
                     all_ids.update(entry["available_ids"])
-            LATEST_TELEMETRY["detected_ids"] = list(all_ids)
+            
+            new_telemetry = {
+                "active_mode": ACTIVE_MODE,
+                "detected_ids": list(all_ids)
+            }
 
             if ACTIVE_MODE == "SAVDHAN":
-                LATEST_TELEMETRY.update({
+                new_telemetry.update({
                     "torso_posture": get_payload("Body Posture"),
                     "heel_alignment": get_payload("Heel contact"),
                     "foot_angle": get_payload("Foot angle"),
@@ -537,7 +541,7 @@ async def fusion_evaluator_loop():
                     "status": status
                 })
             elif ACTIVE_MODE == "VISHRAM":
-                LATEST_TELEMETRY.update({
+                new_telemetry.update({
                     "heel_distance": get_payload("Foot spacing"),
                     "toe_distance": get_payload("Foot spacing"),
                     "knee_tightness": get_payload("Knee lock"),
@@ -547,14 +551,14 @@ async def fusion_evaluator_loop():
                     "status": status
                 })
             elif ACTIVE_MODE == "AARAM_SE":
-                LATEST_TELEMETRY.update({
+                new_telemetry.update({
                     "heel_distance": get_payload("Foot spacing"),
                     "toe_distance": get_payload("Foot spacing"),
                     "overall_score": overall_score,
                     "status": status
                 })
             elif ACTIVE_MODE in ["FRONT_SALUTE", "BAYE_SALUTE", "DAINE_SALUTE"]:
-                LATEST_TELEMETRY.update({
+                new_telemetry.update({
                     "torso_posture": get_payload("Body Posture"),
                     "salute_arm_angle": get_payload("Saluting Arm Angle"),
                     "straight_arm_angle": get_payload("Straight Arm Angle"),
@@ -564,7 +568,7 @@ async def fusion_evaluator_loop():
                     "status": status
                 })
             elif ACTIVE_MODE == "DAHINE_MURH":
-                LATEST_TELEMETRY.update({
+                new_telemetry.update({
                     "torso_posture": get_payload("Body Posture"),
                     "arm_alignment": get_payload("Right Turn (Dahine Murh)"),
                     "heel_alignment": get_payload("Right Turn (Dahine Murh)"),
@@ -573,7 +577,7 @@ async def fusion_evaluator_loop():
                     "status": status
                 })
             elif ACTIVE_MODE == "BAYEN_MURH":
-                LATEST_TELEMETRY.update({
+                new_telemetry.update({
                     "torso_posture": get_payload("Body Posture"),
                     "arm_alignment": get_payload("Left Turn (Bayen Murh)"),
                     "heel_alignment": get_payload("Left Turn (Bayen Murh)"),
@@ -582,7 +586,7 @@ async def fusion_evaluator_loop():
                     "status": status
                 })
             elif ACTIVE_MODE == "PICHHE_MURH":
-                LATEST_TELEMETRY.update({
+                new_telemetry.update({
                     "torso_posture": get_payload("Body Posture"),
                     "arm_alignment": get_payload("About Turn (Pichhe Murh)"),
                     "heel_alignment": get_payload("About Turn (Pichhe Murh)"),
@@ -591,7 +595,7 @@ async def fusion_evaluator_loop():
                     "status": status
                 })
             elif ACTIVE_MODE == "KHULI_LINE_CHAL":
-                LATEST_TELEMETRY.update({
+                new_telemetry.update({
                     "torso_posture": get_payload("Body Posture"),
                     "arm_alignment": get_payload("Open Line Chal (Khuli Line)"),
                     "heel_distance": get_payload("Open Line Chal (Khuli Line)"),
@@ -600,7 +604,7 @@ async def fusion_evaluator_loop():
                     "status": status
                 })
             elif ACTIVE_MODE == "NIKAT_LINE_CHAL":
-                LATEST_TELEMETRY.update({
+                new_telemetry.update({
                     "torso_posture": get_payload("Body Posture"),
                     "arm_alignment": get_payload("Close Line Chal (Nikat Line)"),
                     "heel_distance": get_payload("Close Line Chal (Nikat Line)"),
@@ -609,28 +613,28 @@ async def fusion_evaluator_loop():
                     "status": status
                 })
             elif ACTIVE_MODE == "SAJ":
-                LATEST_TELEMETRY.update({
+                new_telemetry.update({
                     "torso_posture": get_payload("Body Posture"),
                     "arm_alignment": get_payload("Squad Alignment (Saj)"),
                     "overall_score": overall_score,
                     "status": status
                 })
             elif ACTIVE_MODE == "VISARJAN":
-                LATEST_TELEMETRY.update({
+                new_telemetry.update({
                     "torso_posture": get_payload("Body Posture"),
                     "arm_alignment": get_payload("Visarjan Sequence"),
                     "overall_score": overall_score,
                     "status": status
                 })
             elif ACTIVE_MODE == "TEJ_CHAL":
-                LATEST_TELEMETRY.update({
+                new_telemetry.update({
                     "torso_posture": get_payload("Body Posture"),
                     "arm_alignment": get_payload("Tej Chal (Quick March)"),
                     "overall_score": overall_score,
                     "status": status
                 })
             elif ACTIVE_MODE == "THAAM":
-                LATEST_TELEMETRY.update({
+                new_telemetry.update({
                     "torso_posture": get_payload("Body Posture"),
                     "arm_alignment": get_payload("Thaam (Halt from March)"),
                     "overall_score": overall_score,
@@ -638,7 +642,7 @@ async def fusion_evaluator_loop():
                 })
             elif ACTIVE_MODE in ["MARCHING_FRONT_SALUTE", "MARCHING_BAYE_SALUTE", "MARCHING_DAINE_SALUTE"]:
                 dir_label = "Front" if "FRONT" in ACTIVE_MODE else "Left" if "BAYE" in ACTIVE_MODE else "Right"
-                LATEST_TELEMETRY.update({
+                new_telemetry.update({
                     "torso_posture": get_payload("Body Posture"),
                     "arm_alignment": get_payload(f"Marching Salute ({dir_label})"),
                     "overall_score": overall_score,
@@ -646,12 +650,15 @@ async def fusion_evaluator_loop():
                 })
             elif ACTIVE_MODE in ["MARCHING_TURN_DAHINE", "MARCHING_TURN_BAYEN", "MARCHING_TURN_PICHHE"]:
                 turn_label = "Dahine" if "DAHINE" in ACTIVE_MODE else "Bayen" if "BAYEN" in ACTIVE_MODE else "Pichhe"
-                LATEST_TELEMETRY.update({
+                new_telemetry.update({
                     "torso_posture": get_payload("Body Posture"),
                     "arm_alignment": get_payload(f"Marching Turn ({turn_label})"),
                     "overall_score": overall_score,
                     "status": status
                 })
+                
+            # Assign atomically to the global dictionary so the websocket picks it up instantly
+            LATEST_TELEMETRY = new_telemetry
         except Exception as e:
             import traceback
             with open("/tmp/fusion_error.txt", "a") as f:
