@@ -26,13 +26,19 @@ def get_body_metrics(k):
     # Normalized wrist-to-hip distances to check if arms remain locked
     l_wrist_hip = segment_length(k[9, :2], k[11, :2])
     r_wrist_hip = segment_length(k[10, :2], k[12, :2])
-    norm_l = l_wrist_hip / (shoulder_width + 1e-6)
-    norm_r = r_wrist_hip / (shoulder_width + 1e-6)
-    arm_locked = (norm_l < 0.65) and (norm_r < 0.65)
+    
+    # Use spine_length (rotation-invariant) instead of shoulder_width
+    norm_l = l_wrist_hip / (spine_length + 1e-6)
+    norm_r = r_wrist_hip / (spine_length + 1e-6)
+    
+    # Adjusted threshold for spine_length. Spine is usually longer than shoulders,
+    # so the normalized distance will be smaller. Using 0.5 instead of 0.65.
+    arm_locked = (norm_l < 0.5) and (norm_r < 0.5)
     
     return {
         "shoulder_ratio": ratio,
         "shoulder_width": shoulder_width,
+        "spine_length": spine_length,
         "l_thigh_angle": l_thigh_angle,
         "r_thigh_angle": r_thigh_angle,
         "arm_locked": arm_locked,

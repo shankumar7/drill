@@ -22,7 +22,7 @@ class KhuliLineChalRule(EvaluationRule):
         
         # Normalized distance between ankles
         ankle_dist = segment_length(k[15, :2], k[16, :2])
-        norm_ankle_dist = ankle_dist / (metrics["shoulder_width"] + 1e-6)
+        norm_ankle_dist = ankle_dist / (metrics["spine_length"] + 1e-6)
         
         history = detection.posture_history.setdefault(self.name, {"state": 0, "max_step_dist": 0.0, "max_thigh_lift": 0.0, "scores": []})
         state = history.get("state", 0)
@@ -32,7 +32,7 @@ class KhuliLineChalRule(EvaluationRule):
         
         if state == 0:
             # Stand in Savdhan, waiting for a wide forward step
-            if norm_ankle_dist > 0.6:
+            if norm_ankle_dist > 0.45:
                 state = 1
                 history["state"] = 1
                 history["max_step_dist"] = norm_ankle_dist
@@ -54,7 +54,7 @@ class KhuliLineChalRule(EvaluationRule):
                 msg = f"Step 1 active. Right thigh lift: {metrics['r_thigh_angle']:.1f}°"
                 
             # If the ankles are close again, we assume the cadet completed the close
-            if norm_ankle_dist < 0.35:
+            if norm_ankle_dist < 0.25:
                 state = 2
                 history["state"] = 2
                 
@@ -63,7 +63,7 @@ class KhuliLineChalRule(EvaluationRule):
             max_lift = history["max_thigh_lift"]
             
             # Check step distance (must be wide, representing 30 inches)
-            if max_step < 0.65:
+            if max_step < 0.5:
                 score -= 25.0
                 msg = f"First step length was too short. Stride distance ratio: {max_step:.2f}"
             # Check thigh lift of closing leg
@@ -73,7 +73,7 @@ class KhuliLineChalRule(EvaluationRule):
             else:
                 msg = "Open Line Chal completed successfully!"
                 
-            if norm_ankle_dist < 0.3:
+            if norm_ankle_dist < 0.2:
                 history["state"] = 0
 
         history["scores"].append(score)
