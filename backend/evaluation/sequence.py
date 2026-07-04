@@ -221,3 +221,80 @@ class ThaamSequence:
                 return RuleResult(self.name, 50, "partial_pass", "Holding Halt...")
                 
         return RuleResult(self.name, 0, "fail", "Unknown state")
+
+class MarchingSaluteSequence:
+    def __init__(self, direction: str):
+        self.direction = direction
+        self.name = f"Marching Salute ({direction.capitalize()})"
+        self.buffers = {} # track_id -> list of frames
+        
+        from backend.evaluation.rules.salute_arm_angle import SaluteRightArmAngleRule, StraightLeftArmAngleRule
+        from backend.evaluation.rules.salute_hand_position import SaluteHandPositionRule
+        from backend.evaluation.rules.salute_head_direction import HeadDirectionRule
+        
+        self.upper_body_rules = [
+            SaluteRightArmAngleRule(),
+            StraightLeftArmAngleRule(),
+            SaluteHandPositionRule(),
+            HeadDirectionRule(direction)
+        ]
+
+    def evaluate(self, detection: PoseDetection, *args, **kwargs) -> RuleResult:
+        now = time.time()
+        track_id = getattr(detection, 'track_id', -1)
+        
+        if track_id not in self.buffers:
+            self.buffers[track_id] = []
+            
+        buf = self.buffers[track_id]
+        
+        # Add current frame
+        buf.append({
+            "time": now,
+            "l_ankle": detection.keypoints[15],
+            "r_ankle": detection.keypoints[16],
+            "l_shoulder": detection.keypoints[5],
+            "r_shoulder": detection.keypoints[6],
+            "l_hip": detection.keypoints[11],
+            "r_hip": detection.keypoints[12]
+        })
+        
+        # Prune old frames (keep last 2.0 seconds)
+        self.buffers[track_id] = [f for f in buf if now - f["time"] <= 2.0]
+        buf = self.buffers[track_id]
+        
+        if len(buf) < 10:
+            return RuleResult(self.name, None, "not_evaluable", "Gathering marching data...")
+            
+        # Analyze the buffer for stride (Legs must be marching)
+        max_ankle_dist = 0
+        spine_length = 100
+        
+        for f in buf:
+            sl = abs( ((f["l_hip"][1]+f["r_hip"][1])/2) - ((f["l_shoulder"][1]+f["r_shoulder"][1])/2) )
+            if sl > 10: spine_length = sl
+            if f["l_ankle"][2] > 0.3 and f["r_ankle"][2] > 0.3:
+                a_dist = ((f["l_ankle"][0] - f["r_ankle"][0])**2 + (f["l_ankle"][1] - f["r_ankle"][1])**2)**0.5
+                if a_dist > max_ankle_dist: max_ankle_dist = a_dist
+
+        norm_ankle = max_ankle_dist / spine_length
+        stride_score = 100 if norm_ankle > 0.6 else max(0, int(norm_ankle / 0.6 * 100))
+        
+        if stride_score < 40:
+            return RuleResult(self.name, stride_score, "fail", f"Cadet stopped marching (Stride: {stride_score}%)")
+            
+        # Evaluate upper body static salute
+        results = [r.evaluate(detection) for r in self.upper_body_rules]
+        scored = [r.score for r in results if r.score is not None]
+        if not scored:
+            return RuleResult(self.name, None, "not_evaluable", "Marching, but cannot evaluate salute posture")
+            
+        upper_score = int(sum(scored) / len(scored))
+        overall = int((stride_score + upper_score) / 2)
+        
+        if overall > 80:
+            return RuleResult(self.name, overall, "pass", f"Excellent Marching Salute (Stride: {stride_score}%, Salute: {upper_score}%)")
+        elif overall > 50:
+            return RuleResult(self.name, overall, "partial_pass", f"Weak Marching Salute (Stride: {stride_score}%, Salute: {upper_score}%)")
+        else:
+            return RuleResult(self.name, overall, "fail", f"Poor Marching Salute (Stride: {stride_score}%, Salute: {upper_score}%)")
