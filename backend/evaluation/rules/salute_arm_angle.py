@@ -21,6 +21,15 @@ class SaluteRightArmAngleRule(EvaluationRule):
         if wrist[1] > elbow[1]:  # y increases downward, so wrist below elbow means not saluting
             return RuleResult(self.name, "fail", 20.0, "Right arm is not raised for salute.")
             
+        geometry = detection.foot_geometry or {}
+        spine_length = geometry.get("spine_length", 100)
+        
+        # Check if the elbow is properly raised out to the side. 
+        # If elbow is significantly below shoulder, the person is just putting their hand in front of their chest.
+        elbow_drop = (elbow[1] - shoulder[1]) / (spine_length + 1e-6)
+        if elbow_drop > 0.2:
+            return RuleResult(self.name, "fail", 40.0, "Right elbow must be raised out, not tucked down.")
+            
         angle = angle_degrees(wrist, elbow, shoulder)
         
         # Ideal saluting interior angle is roughly 25 to 120 degrees (widened for real-world tolerance)

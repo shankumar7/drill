@@ -27,6 +27,14 @@ class SaluteHandPositionRule(EvaluationRule):
         # Distance from right wrist to right eye, normalized by spine length
         norm_dist = segment_length(r_wrist, r_eye) / spine_length
         
+        nose_y = k[0, 1]
+        # Strict vertical check: Hand MUST be at the forehead level.
+        # If the wrist is significantly below the nose, they are holding it in front of their face/chest.
+        if r_wrist[1] > nose_y:
+            drop = (r_wrist[1] - nose_y) / spine_length
+            if drop > 0.05:
+                return RuleResult(self.name, "fail", 30.0, "Hand must be at forehead level, not in front of face.")
+                
         # When saluting, fingertips touch the eyebrow. The wrist is a full hand-length away.
         # Hand length is approx 1/3 of spine length. So ideal wrist distance is around 0.3 to 0.4.
         score = 0.0
