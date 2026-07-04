@@ -44,21 +44,25 @@ class HeadDirectionRule(EvaluationRule):
         if self.target_direction == "front":
             # Official: 'nigah samne' - eyes straight ahead. Ideal ratio = 0.5
             dist = abs(ratio - 0.5)
-            score = max(0.0, 100 - (dist * 400))
+            # Relaxed penalty: dist up to 0.1 (10% off center) is perfect
+            if dist <= 0.1:
+                score = 100.0
+            else:
+                score = max(0.0, 100 - ((dist - 0.1) * 150))
             msg = "Head should face front (nigah samne)"
         elif self.target_direction == "left":
             # Official: 'nigah puri bayen taraf' - eyes fully left. Ratio > 0.7
             if ratio >= 0.7:
                 score = 100.0
             else:
-                score = max(0.0, 100.0 - ((0.7 - ratio) * 300))
+                score = max(0.0, 100.0 - ((0.7 - ratio) * 150))
             msg = "Head should be turned left - Bayen (nigah puri bayen taraf)"
         elif self.target_direction == "right":
             # Official: 'nigah puri dahine taraf' - eyes fully right. Ratio < 0.3
             if ratio <= 0.3:
                 score = 100.0
             else:
-                score = max(0.0, 100.0 - ((ratio - 0.3) * 300))
+                score = max(0.0, 100.0 - ((ratio - 0.3) * 150))
             msg = "Head should be turned right - Dahine (nigah puri dahine taraf)"
             
         smoothed = self.smooth_score(detection, score)
