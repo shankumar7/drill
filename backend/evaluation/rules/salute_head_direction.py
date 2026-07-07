@@ -21,12 +21,7 @@ class HeadDirectionRule(EvaluationRule):
         nose_conf = k[0, 2]
         l_ear_conf = k[3, 2]
         r_ear_conf = k[4, 2]
-        
-        # We need the nose and BOTH ears to accurately determine head direction.
-        # If an ear is missing, the camera is looking at a profile, meaning it cannot 
-        # accurately judge left/right pan relative to the shoulders.
-        # By returning not_evaluable here, we allow the max-fusion system in api.py 
-        # to organically select the camera that CAN see both ears!
+    
         if nose_conf < 0.25 or l_ear_conf < 0.25 or r_ear_conf < 0.25:
             return RuleResult(self.name, "not_evaluable", None, "Full face not visible from this camera angle.")
             
