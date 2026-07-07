@@ -5,7 +5,7 @@ from .base import EvaluationRule
 class TurnLeftRule(EvaluationRule):
     name = "Turn Left"
 
-    def evaluate(self, detection: PoseDetection) -> RuleResult:
+    def evaluate(self, detection: PoseDetection, camera_type: str = "front", **kwargs) -> RuleResult:
         vel = angular_velocity(detection, axis="y")
         if vel is None:
             return RuleResult(self.name, "partial_pass", None, "Insufficient pose history for turn detection")
@@ -15,7 +15,7 @@ class TurnLeftRule(EvaluationRule):
 class TurnRightRule(EvaluationRule):
     name = "Turn Right"
 
-    def evaluate(self, detection: PoseDetection) -> RuleResult:
+    def evaluate(self, detection: PoseDetection, camera_type: str = "front", **kwargs) -> RuleResult:
         vel = angular_velocity(detection, axis="y")
         if vel is None:
             return RuleResult(self.name, "partial_pass", None, "Insufficient pose history for turn detection")
@@ -25,7 +25,7 @@ class TurnRightRule(EvaluationRule):
 class Pivot180Rule(EvaluationRule):
     name = "Pivot 180"
 
-    def evaluate(self, detection: PoseDetection) -> RuleResult:
+    def evaluate(self, detection: PoseDetection, camera_type: str = "front", **kwargs) -> RuleResult:
         vel = angular_velocity(detection, axis="y")
         if vel is None:
             return RuleResult(self.name, "partial_pass", None, "Insufficient pose history for pivot detection")
