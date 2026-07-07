@@ -88,6 +88,7 @@ SETTINGS = {
     "session_duration_limit": 0,
     # ── Camera
     "camera_mapping": {"front": 0, "side": 1, "back": 2},
+    "side_camera_position": "right",
     "camera_flip_horizontal": False,
     "camera_flip_vertical": False,
     "camera_fps_cap": 30,
@@ -137,6 +138,7 @@ class SettingsUpdate(BaseModel):
     session_duration_limit: int | None = None
     # Camera
     camera_mapping: dict | None = None
+    side_camera_position: str | None = None
     camera_flip_horizontal: bool | None = None
     camera_flip_vertical: bool | None = None
     camera_fps_cap: int | None = None
@@ -356,6 +358,7 @@ async def reset_settings():
     SETTINGS["pass_threshold"] = 85
     SETTINGS["image_size"] = 640
     SETTINGS["voice_language"] = "en"
+    SETTINGS["side_camera_position"] = "right"
     return {"status": "ok", "settings": SETTINGS}
 
 

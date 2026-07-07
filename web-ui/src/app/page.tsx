@@ -23,6 +23,7 @@ type AppSettings = {
   camera_flip_horizontal: boolean; camera_flip_vertical: boolean; camera_fps_cap: number;
   alert_on_pass: boolean; alert_on_fail: boolean; alert_visual_flash: boolean;
   ws_reconnect_interval: number; backend_host: string; backend_port: number;
+  side_camera_position: string;
 };
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -38,6 +39,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   export_format: "json", session_duration_limit: 0,
   camera_flip_horizontal: false, camera_flip_vertical: false, camera_fps_cap: 30,
   alert_on_pass: false, alert_on_fail: true, alert_visual_flash: true,
+  side_camera_position: "right",
   ws_reconnect_interval: 3, backend_host: "localhost", backend_port: 8000,
 };
 
@@ -271,6 +273,7 @@ function SettingsModal({ isOpen, onClose, mapping, onSave, baseUrl }: {
                 </div>
               ))}
               <Section title="Camera Options" />
+              <SelectRow label="Side Camera Position" desc="Whether the side camera is placed on the left or right side of the cadet." value={settings.side_camera_position} options={[{value: "left", label: "Left"}, {value: "right", label: "Right"}]} onChange={v => set("side_camera_position", v)} />
               <SliderRow label="FPS Cap" desc="Maximum frames per second to request from the camera hardware." min={5} max={60} step={5} value={settings.camera_fps_cap} unit=" fps" onChange={v => set("camera_fps_cap", v)} />
               <ToggleRow label="Flip Horizontal" desc="Mirror the camera feed left-to-right before processing." value={settings.camera_flip_horizontal} onChange={v => set("camera_flip_horizontal", v)} />
               <ToggleRow label="Flip Vertical" desc="Flip the camera feed upside-down before processing." value={settings.camera_flip_vertical} onChange={v => set("camera_flip_vertical", v)} />
