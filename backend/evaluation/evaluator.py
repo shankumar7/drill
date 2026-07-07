@@ -162,11 +162,10 @@ class StaticPostureEvaluator:
         
         results = []
         for rule in self.rules:
-            # Some rules like SajAlignmentRule can take all_detections
+            kwargs = {"camera_type": camera_type}
             if hasattr(rule.evaluate, "__code__") and "all_detections" in rule.evaluate.__code__.co_varnames:
-                results.append(rule.evaluate(detection, camera_type=camera_type, all_detections=all_detections))
-            else:
-                results.append(rule.evaluate(detection, camera_type=camera_type))
+                kwargs["all_detections"] = all_detections
+            results.append(rule.evaluate(detection, **kwargs))
                 
         scored = [result.score for result in results if result.score is not None]
         overall = round(sum(scored) / len(scored), 1) if scored else None
