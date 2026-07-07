@@ -99,7 +99,19 @@ class DahineMurhRule(EvaluationRule):
         if state == 2:
             # Completed: Evaluate overall performance
             max_lift = history["max_thigh_lift"]
-            if max_lift < 60.0:
+            
+            from backend.api import SETTINGS
+            side = SETTINGS.get("side_camera_position", "right")
+            
+            # Check turn direction
+            # If facing camera, left shoulder x > right shoulder x
+            is_facing_camera = (k[5, 0] > k[6, 0])
+            correct_direction = is_facing_camera if side == "right" else not is_facing_camera
+            
+            if not correct_direction:
+                score -= 100.0
+                msg = "Turned in the WRONG direction! Expected Dahine Murh (Right turn)."
+            elif max_lift < 60.0:
                 score -= 40.0
                 msg = f"Left thigh lift insufficient ({max_lift:.1f}°). Target is parallel to ground (>=60°)."
             else:
@@ -159,7 +171,18 @@ class BayenMurhRule(EvaluationRule):
                 
         if state == 2:
             max_lift = history["max_thigh_lift"]
-            if max_lift < 60.0:
+            
+            from backend.api import SETTINGS
+            side = SETTINGS.get("side_camera_position", "right")
+            
+            # Check turn direction for Bayen Murh (Left turn)
+            is_facing_camera = (k[5, 0] > k[6, 0])
+            correct_direction = not is_facing_camera if side == "right" else is_facing_camera
+            
+            if not correct_direction:
+                score -= 100.0
+                msg = "Turned in the WRONG direction! Expected Bayen Murh (Left turn)."
+            elif max_lift < 60.0:
                 score -= 40.0
                 msg = f"Right thigh lift insufficient ({max_lift:.1f}°). Target is parallel to ground (>=60°)."
             else:
