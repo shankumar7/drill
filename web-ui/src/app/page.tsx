@@ -679,10 +679,10 @@ function Dashboard({ onComplete }: { onComplete: (results: any[]) => void }) {
             <div className="text-[8px] font-bold tracking-[0.3em] text-stone-700 uppercase mt-0.5">SDD · MCEME · REAL-TIME</div>
           </div>
         </div>
-        <div className="hidden lg:flex flex-1 mx-4 overflow-x-auto no-scrollbar items-center gap-1 bg-stone-900 border border-white/[0.06] rounded-full p-1">
+        <div className="hidden lg:flex flex-1 mx-4 overflow-x-auto no-scrollbar items-center gap-1 bg-stone-900/80 border border-white/[0.04] rounded-full p-1 shadow-inner">
           {drillModes.map(m => (
             <button key={m.val} onClick={() => changeMode(m.val)}
-              className={`shrink-0 px-4 py-1.5 text-[10px] font-black tracking-widest uppercase rounded-full transition-all duration-200 ${telemetry.active_mode === m.val ? "bg-stone-200 text-stone-950 shadow-sm" : "text-stone-600 hover:text-stone-300"}`}>
+              className={`shrink-0 px-4 py-1.5 text-[10px] font-black tracking-[0.1em] uppercase rounded-full transition-all duration-300 ${telemetry.active_mode === m.val ? "bg-emerald-500 text-stone-950 shadow-[0_0_15px_rgba(16,185,129,0.3)]" : "text-stone-500 hover:bg-stone-800/80 hover:text-stone-200"}`}>
               {m.label}
             </button>
           ))}
@@ -739,8 +739,8 @@ function Dashboard({ onComplete }: { onComplete: (results: any[]) => void }) {
                   </motion.div>
                 </div>
 
-                {isSel && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-stone-300/80 to-transparent z-30" />}
-                {!isSel && <div className="absolute inset-0 mt-7 pointer-events-none z-20 bg-[linear-gradient(transparent_50%,rgba(0,0,0,0.5)_50%)] bg-[length:100%_4px] opacity-40 mix-blend-overlay"></div>}
+                {isSel && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-emerald-400/80 to-transparent z-30" />}
+                {!isSel && <div className="absolute inset-0 mt-7 pointer-events-none z-20 bg-[linear-gradient(transparent_50%,rgba(0,0,0,0.5)_50%)] bg-[length:100%_4px] opacity-20 mix-blend-overlay"></div>}
               </motion.div>
             );
           })}
@@ -785,20 +785,22 @@ function Dashboard({ onComplete }: { onComplete: (results: any[]) => void }) {
             </div>
 
             {!selectedCadet && selectedCam === cameraMap.front && (
-              <div className="absolute inset-0 z-30 flex flex-col items-center justify-center pointer-events-none">
-                <div className="relative mb-6">
-                  <motion.div animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0, 0.3] }} transition={{ duration: 2, repeat: Infinity }} className="absolute inset-0 -m-4 rounded-full border border-stone-500/40" />
-                  <div className="w-16 h-16 rounded-full border border-stone-600/60 flex items-center justify-center"><Crosshair className="w-6 h-6 text-stone-600" /></div>
+              <div className="absolute inset-0 z-30 flex flex-col items-center justify-center pointer-events-none bg-stone-950/20 backdrop-blur-[2px]">
+                <div className="relative mb-8">
+                  <motion.div animate={{ scale: [1, 1.4, 1], opacity: [0.4, 0, 0.4] }} transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }} className="absolute inset-0 -m-6 rounded-full border border-emerald-500/40" />
+                  <motion.div animate={{ rotate: 90 }} transition={{ duration: 10, repeat: Infinity, ease: "linear" }} className="w-20 h-20 rounded-full border border-emerald-500/50 flex items-center justify-center border-t-transparent shadow-[0_0_20px_rgba(16,185,129,0.2)]">
+                    <Crosshair className="w-8 h-8 text-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+                  </motion.div>
                 </div>
-                <p className="text-[11px] font-black text-stone-400 uppercase tracking-[0.3em] mb-5">Awaiting Target Acquisition</p>
-                <div className="flex gap-3 pointer-events-auto">
+                <p className="text-[12px] font-black text-emerald-400/80 uppercase tracking-[0.4em] mb-6 drop-shadow-md">Awaiting Target Acquisition</p>
+                <div className="flex flex-wrap gap-4 pointer-events-auto justify-center max-w-lg">
                   {telemetry.detected_ids?.length > 0
                     ? telemetry.detected_ids.map(id => (
-                        <button key={id} onClick={() => lockCadet(id)} className="flex items-center gap-2 px-5 py-2 bg-stone-800/90 border border-stone-600/50 text-stone-200 rounded-full font-black text-[10px] uppercase tracking-widest hover:bg-stone-700/90 transition-all">
-                          <Target className="w-3.5 h-3.5" />Lock ID {id}
+                        <button key={id} onClick={() => lockCadet(id)} className="group flex items-center gap-2 px-6 py-2.5 bg-stone-900/90 border border-emerald-500/30 text-emerald-100 rounded-full font-black text-[11px] uppercase tracking-widest hover:bg-stone-800 hover:border-emerald-400 hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all">
+                          <Target className="w-4 h-4 text-emerald-500 group-hover:animate-spin-slow" />Lock ID {id}
                         </button>
                       ))
-                    : <div className="text-stone-700 font-mono text-[10px] uppercase tracking-widest animate-pulse">Scanning environment...</div>}
+                    : <div className="text-emerald-500/70 font-mono text-[11px] uppercase tracking-widest animate-pulse">Scanning environment...</div>}
                 </div>
               </div>
             )}
@@ -825,12 +827,12 @@ function Dashboard({ onComplete }: { onComplete: (results: any[]) => void }) {
             <div className="flex items-center gap-4 mb-3">
               <ScoreRing score={telemetry.overall_score} isPass={isPass} isInitializing={isInit} />
               <div className="flex-1">
-                <div className="text-[8px] text-stone-600 uppercase tracking-widest mb-1">Verdict</div>
-                <div className={`text-xl font-black uppercase tracking-wide ${isInit ? "text-stone-600" : isPass ? "text-emerald-400" : "text-red-400"}`}>{isInit ? "WAITING" : isPass ? "PASS" : "FAIL"}</div>
-                <div className="text-[8px] text-stone-600 uppercase tracking-widest mt-2 mb-0.5">Target</div>
-                <div className="text-xs font-bold text-stone-300">{selectedCadet ? `ID-${selectedCadet}` : "Unassigned"}</div>
-                <div className="text-[8px] text-stone-600 uppercase tracking-widest mt-1.5 mb-0.5">Mode</div>
-                <div className="text-xs font-bold text-stone-300">{telemetry.active_mode || "—"}</div>
+                <div className="text-[9px] font-black text-stone-500 uppercase tracking-widest mb-1">Verdict</div>
+                <div className={`text-2xl font-black uppercase tracking-wider drop-shadow-md ${isInit ? "text-stone-600" : isPass ? "text-emerald-400" : "text-red-400"}`}>{isInit ? "WAITING" : isPass ? "PASS" : "FAIL"}</div>
+                <div className="text-[9px] font-black text-stone-500 uppercase tracking-widest mt-3 mb-0.5">Target</div>
+                <div className="text-xs font-black text-stone-300 uppercase tracking-wider">{selectedCadet ? `Cadet ${selectedCadet}` : "Unassigned"}</div>
+                <div className="text-[9px] font-black text-stone-500 uppercase tracking-widest mt-3 mb-0.5">Mode</div>
+                <div className="text-xs font-black text-stone-300 uppercase tracking-wider">{telemetry.active_mode?.replace(/_/g, " ") || "UNKNOWN"}</div>
               </div>
             </div>
             {!isInit && (
