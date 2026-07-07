@@ -45,68 +45,71 @@ class VishramHandPositionRule(EvaluationRule):
             if hands_behind:
                 score = 100.0
                 msg = "Hands are properly placed behind the back."
-            else:
-                score = 30.0
-                msg = "Hands are not placed behind the back."
-                
-            smoothed = self.smooth_score(detection, score)
-            if isinstance(smoothed, RuleResult): return smoothed
-            return RuleResult(self.name, "pass" if smoothed >= 75 else "fail", round(smoothed, 1), msg)
-
-        # FRONT / BACK CAMERA LOGIC
-        # Heuristic: If wrists (indices 9 and 10) are hidden/low confidence, assume they are behind the back.
-        # From a front camera, wrists may still be partially visible when hands are behind the back,
-        # so we use a more lenient approach:
-        # 1. Both wrists low confidence (< 0.4) = clearly behind back
-        # 2. One wrist low confidence = likely behind back  
-        # 3. Both wrists visible but below/behind the hips = possibly behind back
-        
         both_hidden = lw_conf < 0.4 and rw_conf < 0.4
         one_hidden = lw_conf < 0.4 or rw_conf < 0.4
         
+        geometry = detection.foot_geometry or {}
+        spine_length = geometry.get("spine_length", 100)
+        if spine_length < 20 or spine_length == 100:
+            spine_length = 100
+            
+        hip_y = (k[11, 1] + k[12, 1]) / 2
+        
+        msg = "Wrists should be clasped behind the back (left below, right above)."
+        
         if both_hidden:
             score = 100.0
+            msg = "Hands correctly placed behind back."
         elif one_hidden:
-            # One wrist hidden, check if the visible one is near/behind the hip
             visible_wrist_y = k[9, 1] if rw_conf < 0.4 else k[10, 1]
-            hip_y = (k[11, 1] + k[12, 1]) / 2  # Average hip y position
+            hanging = visible_wrist_y > hip_y + 0.25 * spine_length
+            too_high = visible_wrist_y < hip_y - 0.2 * spine_length
             
-            # If wrist is near hip level or below (within tolerance), likely behind back
-            if visible_wrist_y >= hip_y - 20:  # Allow some tolerance above hips
-                score = 85.0
+            if hanging:
+                score = -100.0
+                msg = "Hand is hanging by the side! Clasp behind back."
+            elif too_high:
+                score = -100.0
+                msg = "Hand is too high. Clasp behind back."
             else:
-                score = 50.0
+                score = 100.0
+                msg = "Hands correctly placed behind back."
         else:
-            # Both wrists visible — check if they're positioned behind or closely in front of the torso
-            # If both wrists are near/below hip level and close together, assume behind back.
             l_wrist_y, r_wrist_y = k[9, 1], k[10, 1]
-            hip_y = (k[11, 1] + k[12, 1]) / 2
             
-            wrists_low = l_wrist_y >= hip_y - 30 and r_wrist_y >= hip_y - 30
+            hanging_l = l_wrist_y > hip_y + 0.25 * spine_length
+            hanging_r = r_wrist_y > hip_y + 0.25 * spine_length
+            too_high_l = l_wrist_y < hip_y - 0.2 * spine_length
+            too_high_r = r_wrist_y < hip_y - 0.2 * spine_length
             
-            # Check if wrists are close together (behind back position)
-            import numpy as np
-            wrist_dist = np.linalg.norm(k[9, :2] - k[10, :2])
-            
-            geometry = detection.foot_geometry or {}
-            spine_length = geometry.get("spine_length", 100)
-            
-            # Use spine_length. Wrists shouldn't be much wider than the body if behind the back
-            wrists_close = wrist_dist < spine_length * 0.5 if spine_length >= 20 and spine_length != 100 else False
-            
-            if wrists_low and wrists_close:
-                score = 100.0  # Changed from 75 to 100 because YOLO often hallucinated wrists here
-            elif wrists_low:
-                score = 80.0
+            if hanging_l or hanging_r:
+                score = -100.0
+                msg = "Hands are hanging by the sides! Clasp behind back."
+            elif too_high_l or too_high_r:
+                score = -100.0
+                msg = "Hands are too high. Clasp behind back."
             else:
-                score = 30.0
+                import numpy as np
+                wrist_dist = np.linalg.norm(k[9, :2] - k[10, :2])
+                
+                # If they are near the hips (vertically) and not wider than the shoulders,
+                # they are clasped behind the back (even if YOLO draws them at the hip edges).
+                if wrist_dist < 0.8 * spine_length:
+                    score = 100.0
+                    msg = "Hands correctly placed behind back."
+                else:
+                    score = -100.0
+                    msg = "Hands are too far apart."
 
+        # Smooth the score
+        history = detection.posture_history.setdefault(self.name, []) if detection.posture_history is not None else []
+        history.append(score)
+        del history[:-10]
         
-        status = "pass" if score >= 90 else "fail"
+        if len(history) < 5:
+            return RuleResult(self.name, "not_evaluable", None, "Collecting hand position data.")
+            
+        stable_score = sum(history) / len(history)
+        status = "pass" if stable_score >= 90 else "fail"
         
-        return RuleResult(
-            self.name,
-            status,
-            round(score, 1),
-            "Wrists should be clasped behind the back (left below, right above).",
-        )
+        return RuleResult(self.name, status, round(stable_score, 1), msg)
