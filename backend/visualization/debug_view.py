@@ -8,15 +8,31 @@ SKELETON = [
 ]
 
 
-def _draw_skeleton(frame, keypoints):
+def _draw_skeleton(frame, keypoints, color_name="green", opacity=0.8):
+    color_map = {
+        "green": (0, 255, 0),
+        "red": (0, 0, 255),
+        "blue": (255, 0, 0),
+        "yellow": (0, 255, 255),
+        "cyan": (255, 255, 0),
+        "orange": (0, 140, 255),
+        "white": (255, 255, 255)
+    }
+    color = color_map.get(color_name.lower(), (0, 255, 0))
+    
+    overlay = frame.copy() if opacity < 1.0 else frame
+    
     for start, end in SKELETON:
         if start < len(keypoints) and end < len(keypoints):
             p1, p2 = keypoints[start], keypoints[end]
             if p1[2] > 0.25 and p2[2] > 0.25:
-                cv2.line(frame, tuple(p1[:2].astype(int)), tuple(p2[:2].astype(int)), (255, 180, 0), 2)
+                cv2.line(overlay, tuple(p1[:2].astype(int)), tuple(p2[:2].astype(int)), color, 2)
     for point in keypoints:
         if point[2] > 0.25:
-            cv2.circle(frame, tuple(point[:2].astype(int)), 3, (0, 0, 255), -1)
+            cv2.circle(overlay, tuple(point[:2].astype(int)), 3, color, -1)
+            
+    if opacity < 1.0:
+        cv2.addWeighted(overlay, opacity, frame, 1 - opacity, 0, frame)
 
 def render_debug_view(result: PipelineResult, show_foot_debug: bool = False):
     frame = result.packet.image.copy()

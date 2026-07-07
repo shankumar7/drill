@@ -71,6 +71,9 @@ class BodyPostureRule(EvaluationRule):
         self.max_angle = max_angle
 
     def evaluate(self, detection: PoseDetection, camera_type: str = "front", **kwargs) -> RuleResult:
+        if camera_type != "side":
+            return RuleResult(self.name, "not_evaluable", None, "Requires side camera view.")
+            
         k = detection.keypoints
         # Shoulder (5, 6), Hip (11, 12), Knee (13, 14)
         l_visible = min(k[5, 2], k[11, 2], k[13, 2]) >= 0.25

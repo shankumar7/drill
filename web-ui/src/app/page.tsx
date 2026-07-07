@@ -629,7 +629,7 @@ function Dashboard({ onComplete }: { onComplete: (results: any[]) => void }) {
   useEffect(() => { connectWS(); return () => { reconnectTimeout.current && clearTimeout(reconnectTimeout.current); wsRef.current?.close(); }; }, [connectWS]);
 
   const changeMode = (mode: string) => { wsRef.current?.readyState === WebSocket.OPEN && wsRef.current.send(JSON.stringify({ mode })); };
-  const lockCadet = async (id: number) => { setSelectedCadet(id.toString()); try { await fetch(`${BASE_URL}/api/lock_cadet`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ track_id: id }) }); } catch {} };
+  const lockCadet = async (id: number) => { setSelectedCadet(id.toString()); try { await fetch(`${BASE_URL}/api/lock_cadet`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ track_id: id, source_camera: selectedCam }) }); } catch {} };
   const saveSession = () => { const p = telemetry.overall_score >= 80; const r = [...sessionResults, { drill: telemetry.active_mode || "SAVDHAN", pass: p, score: telemetry.overall_score }]; setSessionResults(r); onComplete(r); };
 
   const isPass = ["Excellent", "Good", "PASS"].includes(telemetry.status);
@@ -728,14 +728,15 @@ function Dashboard({ onComplete }: { onComplete: (results: any[]) => void }) {
                     const sibling = e.currentTarget.nextElementSibling as HTMLElement;
                     if (sibling) sibling.style.display = "flex";
                   }} />
-                <div className="absolute inset-0 mt-7 flex flex-col items-center justify-center pointer-events-none z-0">
-                  <Activity className="w-4 h-4 text-stone-800 mb-1" /><span className="text-[7px] font-bold tracking-widest uppercase text-stone-800">No Signal</span>
+                <div className="absolute inset-0 mt-7 flex flex-col items-center justify-center pointer-events-none z-0 bg-stone-900/60">
+                  <motion.div animate={{ opacity: [0.4, 0.9, 0.4] }} transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }} className="flex flex-col items-center">
+                    <WifiOff className="w-4 h-4 text-red-500/60 mb-1.5" />
+                    <span className="text-[7px] font-black tracking-[0.2em] uppercase text-red-500/80">No Signal</span>
+                  </motion.div>
                 </div>
-                <div className="absolute top-7 left-1.5 w-3 h-3 border-t border-l border-stone-600/50" />
-                <div className="absolute top-7 right-1.5 w-3 h-3 border-t border-r border-stone-600/50" />
-                <div className="absolute bottom-1.5 left-1.5 w-3 h-3 border-b border-l border-stone-600/50" />
-                <div className="absolute bottom-1.5 right-1.5 w-3 h-3 border-b border-r border-stone-600/50" />
-                {isSel && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-stone-300/80 to-transparent" />}
+
+                {isSel && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-stone-300/80 to-transparent z-30" />}
+                {!isSel && <div className="absolute inset-0 mt-7 pointer-events-none z-20 bg-[linear-gradient(transparent_50%,rgba(0,0,0,0.5)_50%)] bg-[length:100%_4px] opacity-40 mix-blend-overlay"></div>}
               </motion.div>
             );
           })}
@@ -744,7 +745,11 @@ function Dashboard({ onComplete }: { onComplete: (results: any[]) => void }) {
         {/* Main Camera View */}
         <div className="flex-1 relative rounded-2xl overflow-hidden bg-stone-900/50 backdrop-blur-sm border border-white/[0.06] flex flex-col min-w-0">
           <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-stone-400/40 to-transparent z-20" />
-          <div className="absolute top-3 left-3 z-20 flex items-center gap-2">
+          <div className={`absolute z-20 flex items-center gap-2 
+            ${settings.camera_label_position === "top-right" ? "top-3 right-3 flex-row-reverse" : 
+              settings.camera_label_position === "bottom-left" ? "bottom-3 left-3" : 
+              settings.camera_label_position === "bottom-right" ? "bottom-3 right-3 flex-row-reverse" : 
+              "top-3 left-3"}`}>
             <div className="flex items-center gap-2 px-3 py-1.5 bg-stone-950/80 backdrop-blur border border-white/[0.08] rounded-full">
               <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
               <span className="text-[9px] font-black tracking-widest text-stone-200 uppercase">CAM {selectedCam} · {selectedCam === cameraMap.front ? "FRONT" : selectedCam === cameraMap.side ? "SIDE" : "BACK"}</span>
@@ -757,13 +762,24 @@ function Dashboard({ onComplete }: { onComplete: (results: any[]) => void }) {
             ))}
           </div>
           <div className="w-full h-full relative flex items-center justify-center bg-stone-950/20">
-            <img src={`http://localhost:8000/api/video_feed/${selectedCam}`} alt="Feed" className="w-full h-full object-contain" onError={e => { e.currentTarget.style.display = "none"; }} />
-            <div className="absolute inset-6 pointer-events-none">
-              <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-stone-500/40" />
-              <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-stone-500/40" />
-              <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-stone-500/40" />
-              <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-stone-500/40" />
+            <img src={`http://localhost:8000/api/video_feed/${selectedCam}`} alt="Feed" className="w-full h-full object-cover relative z-10" 
+              onLoad={e => {
+                const sibling = e.currentTarget.nextElementSibling as HTMLElement;
+                if (sibling && sibling.id === "main-no-signal") sibling.style.display = "none";
+              }}
+              onError={e => { 
+                e.currentTarget.style.display = "none";
+                const sibling = e.currentTarget.nextElementSibling as HTMLElement;
+                if (sibling && sibling.id === "main-no-signal") sibling.style.display = "flex";
+              }} />
+            <div id="main-no-signal" className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-0">
+              <motion.div animate={{ opacity: [0.3, 0.7, 0.3], scale: [0.98, 1, 0.98] }} transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }} className="flex flex-col items-center">
+                <WifiOff className="w-10 h-10 text-red-500/50 mb-3" />
+                <span className="text-[14px] font-black tracking-[0.3em] uppercase text-red-500/80">Camera Offline</span>
+                <span className="text-[10px] font-mono tracking-widest text-stone-600 mt-2 uppercase">Awaiting Feed Stream...</span>
+              </motion.div>
             </div>
+
             {!selectedCadet && selectedCam === cameraMap.front && (
               <div className="absolute inset-0 z-30 flex flex-col items-center justify-center pointer-events-none">
                 <div className="relative mb-6">

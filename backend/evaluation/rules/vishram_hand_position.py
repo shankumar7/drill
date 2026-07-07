@@ -6,19 +6,60 @@ class VishramHandPositionRule(EvaluationRule):
     name = "Hands behind back"
 
     def evaluate(self, detection: PoseDetection, camera_type: str = "front", **kwargs) -> RuleResult:
-        if camera_type not in ["front", "back"]:
-            return RuleResult(self.name, "not_evaluable", None, "Requires front or back camera view.")
+        if camera_type not in ["front", "back", "side"]:
+            return RuleResult(self.name, "not_evaluable", None, "Requires front, back, or side camera view.")
             
         k = detection.keypoints
+        lw_conf = k[9, 2]
+        rw_conf = k[10, 2]
+        
+        if camera_type == "side":
+            # For side camera, check if wrists are spatially behind the hips based on facing direction
+            # Nose = 0, L Ear = 3, R Ear = 4
+            nose_x = k[0, 0]
+            ear_x = k[3, 0] if k[3, 2] > k[4, 2] else k[4, 0]
+            
+            if k[0, 2] < 0.25 or (k[3, 2] < 0.25 and k[4, 2] < 0.25):
+                return RuleResult(self.name, "not_evaluable", None, "Head orientation not clear.")
+                
+            facing_right = nose_x > ear_x  # If nose X > ear X, looking right
+            
+            hip_x = (k[11, 0] + k[12, 0]) / 2
+            
+            # Identify the most reliable wrist
+            if lw_conf < 0.3 and rw_conf < 0.3:
+                return RuleResult(self.name, "not_evaluable", None, "Wrists not visible.")
+                
+            wrist_x = k[9, 0] if lw_conf > rw_conf else k[10, 0]
+            
+            # Tolerance in pixels
+            tolerance = 15
+            
+            if facing_right:
+                # Body is looking right. Back is to the left (smaller X). Wrists should be left of hips.
+                hands_behind = wrist_x < (hip_x - tolerance)
+            else:
+                # Body is looking left. Back is to the right (larger X). Wrists should be right of hips.
+                hands_behind = wrist_x > (hip_x + tolerance)
+                
+            if hands_behind:
+                score = 100.0
+                msg = "Hands are properly placed behind the back."
+            else:
+                score = 30.0
+                msg = "Hands are not placed behind the back."
+                
+            smoothed = self.smooth_score(detection, score)
+            if isinstance(smoothed, RuleResult): return smoothed
+            return RuleResult(self.name, "pass" if smoothed >= 75 else "fail", round(smoothed, 1), msg)
+
+        # FRONT / BACK CAMERA LOGIC
         # Heuristic: If wrists (indices 9 and 10) are hidden/low confidence, assume they are behind the back.
         # From a front camera, wrists may still be partially visible when hands are behind the back,
         # so we use a more lenient approach:
         # 1. Both wrists low confidence (< 0.4) = clearly behind back
         # 2. One wrist low confidence = likely behind back  
         # 3. Both wrists visible but below/behind the hips = possibly behind back
-        
-        lw_conf = k[9, 2]
-        rw_conf = k[10, 2]
         
         both_hidden = lw_conf < 0.4 and rw_conf < 0.4
         one_hidden = lw_conf < 0.4 or rw_conf < 0.4
@@ -58,7 +99,8 @@ class VishramHandPositionRule(EvaluationRule):
             elif wrists_low:
                 score = 55.0
             else:
-                score = 30.0
+                score = 20.0
+
         
         status = "pass" if score >= 90 else "fail"
         

@@ -43,7 +43,7 @@ LATEST_TELEMETRY = {
     "last_command": ""
 }
 ACTIVE_MODE = "SAVDHAN"
-LOCKED_CADET_ID = None
+LOCKED_CADET_IDS: dict[int, int] = {}
 MULTI_CAM_DETECTIONS = {}
 DETECTION_LOCK = asyncio.Lock()
 
@@ -259,9 +259,10 @@ async def generate_frames(camera_id: int):
                 if detections:
                     det = None
                     available_ids = [getattr(d, 'track_id', -1) for d in detections]
-                    if LOCKED_CADET_ID is not None:
+                    target_id = LOCKED_CADET_IDS.get(camera_id)
+                    if target_id is not None:
                         for d in detections:
-                            if getattr(d, 'track_id', None) == LOCKED_CADET_ID:
+                            if getattr(d, 'track_id', None) == target_id:
                                 det = d
                                 break
                     if not det:
@@ -278,7 +279,9 @@ async def generate_frames(camera_id: int):
                         MULTI_CAM_DETECTIONS[camera_id] = {"det": det, "ts": time.time(), "ppi": ppi, "conf": avg_conf, "available_ids": available_ids, "all_dets": detections}
                     
                     if SETTINGS.get("show_skeleton", True):
-                        _draw_skeleton(frame, det.keypoints)
+                        _draw_skeleton(frame, det.keypoints, 
+                                       color_name=SETTINGS.get("skeleton_color", "green"),
+                                       opacity=SETTINGS.get("overlay_opacity", 0.8))
                         
                     if SETTINGS.get("show_confidence_score", False):
                         # Draw some debug confidence next to skeleton
@@ -312,15 +315,36 @@ async def generate_frames(camera_id: int):
 from pydantic import BaseModel
 class LockCadetRequest(BaseModel):
     track_id: int | None
+    source_camera: int | None = None
 
 class ModeRequest(BaseModel):
     mode: str
 
 @app.post("/api/lock_cadet")
 async def lock_cadet(req: LockCadetRequest):
-    global LOCKED_CADET_ID
-    LOCKED_CADET_ID = req.track_id
-    return {"status": "ok", "locked_id": LOCKED_CADET_ID}
+    global LOCKED_CADET_IDS
+    if req.track_id is None:
+        LOCKED_CADET_IDS = {}
+        return {"status": "ok", "locked_ids": {}}
+        
+    src_cam = req.source_camera if req.source_camera is not None else 0
+    LOCKED_CADET_IDS = {src_cam: req.track_id}
+    
+    async with DETECTION_LOCK:
+        for cam_id, data in MULTI_CAM_DETECTIONS.items():
+            if cam_id == src_cam:
+                continue
+            best_det = None
+            best_score = -1
+            for d in data.get("all_dets", []):
+                shoulder_px = np.linalg.norm(d.keypoints[5, :2] - d.keypoints[6, :2])
+                if shoulder_px > best_score:
+                    best_score = shoulder_px
+                    best_det = d
+            if best_det and getattr(best_det, 'track_id', None) is not None:
+                LOCKED_CADET_IDS[cam_id] = best_det.track_id
+
+    return {"status": "ok", "locked_ids": LOCKED_CADET_IDS}
 
 @app.post("/api/mode")
 async def update_mode(req: ModeRequest):

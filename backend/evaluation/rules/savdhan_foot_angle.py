@@ -6,8 +6,8 @@ class SavdhanFootAngleRule(EvaluationRule):
     name = "Foot angle"
 
     def evaluate(self, detection: PoseDetection, camera_type: str = "front", **kwargs) -> RuleResult:
-        if camera_type != "front":
-            return RuleResult(self.name, "not_evaluable", None, "Requires front camera view.")
+        if camera_type not in ["front", "back"]:
+            return RuleResult(self.name, "not_evaluable", None, "Requires front or back camera view.")
 
         geometry = detection.foot_geometry
         if not geometry:

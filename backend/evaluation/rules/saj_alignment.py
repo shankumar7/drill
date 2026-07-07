@@ -5,8 +5,8 @@ class SajAlignmentRule:
         self.name = "Squad Alignment (Saj)"
 
     def evaluate(self, detection: PoseDetection, camera_type: str = "front", all_detections: list[PoseDetection] = None, **kwargs) -> RuleResult:
-        if camera_type != "side":
-            return RuleResult(self.name, "not_evaluable", None, "Requires side camera view.")
+        if camera_type not in ["front", "back"]:
+            return RuleResult(self.name, "not_evaluable", None, "Requires front or back camera view.")
 
         if not all_detections or len(all_detections) < 2:
             return RuleResult(self.name, "not_evaluable", None, "Need at least 2 cadets")
