@@ -12,3 +12,5 @@ customtkinter
 Pillow
 openai-whisper
 python-multipart
+fastapi
+uvicorn

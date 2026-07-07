@@ -25,6 +25,7 @@ class HeadAlignmentRule(EvaluationRule):
         horizontal_delta = abs(float(nose[0] - shoulder_mid[0]))
         
         # Scaling by spine_length instead of shoulder_width
-        score = max(0.0, 100.0 - ((horizontal_delta / (spine_length + 1e-6)) * 350.0))
+        # Reduced multiplier from 350.0 to 125.0 to accommodate natural head movement and YOLO noise
+        score = max(0.0, 100.0 - ((horizontal_delta / (spine_length + 1e-6)) * 125.0))
         status = "pass" if score >= 90 else "fail"
         return RuleResult(self.name, status, round(score, 1), "Chin and gaze should remain forward.")

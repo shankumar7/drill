@@ -21,8 +21,8 @@ class ShoulderLevelRule(EvaluationRule):
             
         vertical_delta = abs(float(k[5, 1] - k[6, 1]))
         # We scale by spine_length, meaning the normalized tilt will be smaller than if we used width.
-        # Adjusted multiplier from 400.0 to 500.0 to maintain similar strictness.
-        score = max(0.0, 100.0 - ((vertical_delta / (spine_length + 1e-6)) * 500.0))
+        # Adjusted multiplier from 500.0 to 150.0 to account for normal human posture and YOLO noise.
+        score = max(0.0, 100.0 - ((vertical_delta / (spine_length + 1e-6)) * 150.0))
         history = detection.posture_history.setdefault(self.name, []) if detection.posture_history is not None else []
         history.append(score)
         del history[:-10]

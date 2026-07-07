@@ -197,7 +197,12 @@ def estimate_foot_geometry(keypoints):
     r_ankle_conf = keypoints[16, 2] if keypoints.shape[1] > 2 else 1.0
     
     if l_ankle_conf < 0.3 or r_ankle_conf < 0.3:
-        return None
+        return {
+            "true_heel_dist": None,
+            "true_toe_dist": None,
+            "pose_scale": shoulder_pixel_width,
+            "spine_length": spine_length
+        }
         
     l_ankle, r_ankle = keypoints[15, :2], keypoints[16, :2]
     heel_dist_px = segment_length(l_ankle, r_ankle)
@@ -539,9 +544,7 @@ async def fusion_evaluator_loop():
 
             overall_score = round(sum(fused_scores.values()) / len(fused_scores)) if fused_scores else 0
             
-            any_missing = any(res.status == "not_evaluable" for res in fused_results.values())
-            
-            if any_missing or not fused_scores:
+            if not fused_scores:
                 status = "Initializing..."
             else:
                 status = "PASS" if overall_score >= SETTINGS["pass_threshold"] else "FAIL"
@@ -693,7 +696,7 @@ async def fusion_evaluator_loop():
             LATEST_TELEMETRY = new_telemetry
         except Exception as e:
             import traceback
-            with open("/tmp/fusion_error.txt", "a") as f:
+            with open("fusion_error.txt", "a") as f:
                 f.write(traceback.format_exc() + "\n")
             print(f"Fusion error: {e}")
 

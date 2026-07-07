@@ -24,25 +24,24 @@ class SavdhanArmPositionRule(EvaluationRule):
             # 1. Arm must be straight (elbow angle near 180)
             elbow_angle = angle_degrees(shoulder[:2], elbow[:2], wrist[:2])
             
-            # 2. Wrist must be strictly below the hip (Y axis increases downwards)
-            # In Vishram (hands behind back), the wrist is lifted up to hip level.
-            # In Savdhan, hands hang straight down by the seams.
+            # 2. Wrist should be below the hip (Y axis increases downwards)
+            # In Savdhan, hands hang straight down. Wrists are naturally below the hip.
             y_drop = (wrist[1] - hip[1]) / spine_length
             
             score = 100.0
             
-            # Penalize bent elbows (in Vishram, arms are bent behind back)
+            # Penalize bent elbows
             if elbow_angle < 150:
                 score -= (150 - elbow_angle) * 2.0
                 
-            # Penalize if wrists are lifted too high (not hanging down)
-            if y_drop < 0.15:
-                score -= (0.15 - y_drop) * 500.0
+            # Penalize if wrists are lifted above the hips (e.g. hands on hips, or crossed)
+            if y_drop < -0.1:
+                score -= (-0.1 - y_drop) * 500.0
                 
             # Penalize if wrists are too far horizontally from hips (not pinned to side)
             x_dist = abs(wrist[0] - hip[0]) / spine_length
-            if x_dist > 0.35:
-                score -= (x_dist - 0.35) * 200.0
+            if x_dist > 0.45:  # Relaxed from 0.35
+                score -= (x_dist - 0.45) * 200.0
                 
             return max(0.0, min(100.0, score)), elbow_angle, y_drop
 

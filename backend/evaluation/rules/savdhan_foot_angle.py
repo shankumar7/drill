@@ -23,23 +23,15 @@ class SavdhanFootAngleRule(EvaluationRule):
                 return RuleResult(self.name, "not_evaluable", None, "Spine length not reliable for scaling.")
             return RuleResult(self.name, "not_evaluable", None, "Heel/Toe geometry not reliable.")
             
-        # V-shape check: Toes should be wider apart than heels.
-        # Normalize the difference by spine length.
         v_diff = (toe_gap - heel_gap) / spine
         
-        # In COCO-17, we usually only have ankles (which serve as both heel/toe). 
-        # So v_diff is often 0. If we truly had 23+ points, we'd expect v_diff ~ 0.15 for a 30-degree V.
-        # Since we might not have toes, if v_diff == 0, we can't definitively fail them for angle, 
-        # so we pass them conditionally, but if we do have toes and they are parallel (v_diff < 0.05), we penalize.
-        
         score = 100.0
-        if toe_gap > heel_gap + 1.0: # True toes detected
-            if v_diff < 0.05: # Too narrow
+        if toe_gap > heel_gap + 1.0: 
+            if v_diff < 0.05: 
                 score = max(0.0, 100.0 - (0.05 - v_diff) * 1000.0)
-            elif v_diff > 0.3: # Too wide (e.g. 60+ degrees)
+            elif v_diff > 0.3: 
                 score = max(0.0, 100.0 - (v_diff - 0.3) * 300.0)
         else:
-            # Fallback when toes aren't explicitly mapped (just ankles)
             score = 100.0
             
         status = "pass" if score >= 90 else "fail"

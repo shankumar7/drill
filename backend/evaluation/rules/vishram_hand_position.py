@@ -77,12 +77,12 @@ class VishramHandPositionRule(EvaluationRule):
             else:
                 score = 50.0
         else:
-            # Both wrists visible — check if they're positioned behind the torso
-            # If both wrists are near/below hip level and close together, possibly behind back
+            # Both wrists visible — check if they're positioned behind or closely in front of the torso
+            # If both wrists are near/below hip level and close together, assume behind back.
             l_wrist_y, r_wrist_y = k[9, 1], k[10, 1]
             hip_y = (k[11, 1] + k[12, 1]) / 2
             
-            wrists_low = l_wrist_y >= hip_y - 20 and r_wrist_y >= hip_y - 20
+            wrists_low = l_wrist_y >= hip_y - 30 and r_wrist_y >= hip_y - 30
             
             # Check if wrists are close together (behind back position)
             import numpy as np
@@ -91,15 +91,15 @@ class VishramHandPositionRule(EvaluationRule):
             geometry = detection.foot_geometry or {}
             spine_length = geometry.get("spine_length", 100)
             
-            # Use spine_length. Spine is ~25% longer than shoulders, so adjust ratio from 0.5 to 0.4
-            wrists_close = wrist_dist < spine_length * 0.4 if spine_length >= 20 and spine_length != 100 else False
+            # Use spine_length. Wrists shouldn't be much wider than the body if behind the back
+            wrists_close = wrist_dist < spine_length * 0.5 if spine_length >= 20 and spine_length != 100 else False
             
             if wrists_low and wrists_close:
-                score = 75.0
+                score = 100.0  # Changed from 75 to 100 because YOLO often hallucinated wrists here
             elif wrists_low:
-                score = 55.0
+                score = 80.0
             else:
-                score = 20.0
+                score = 30.0
 
         
         status = "pass" if score >= 90 else "fail"
