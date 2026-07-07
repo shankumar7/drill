@@ -596,10 +596,14 @@ function Dashboard({ onComplete }: { onComplete: (results: any[]) => void }) {
   const [telemetry, setTelemetry] = useState<{ metrics: Record<string, any>; overall_score: number; status: string; detected_ids: number[]; active_mode?: string; last_command?: string; }>({
     metrics: {}, overall_score: 0, status: "Initializing...", detected_ids: [], active_mode: "SAVDHAN", last_command: ""
   });
+  const [settings, setSettings] = useState<any>({ camera_label_position: "top-left" });
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeout = useRef<NodeJS.Timeout | null>(null);
 
+  const fetchSettings = () => fetch(`${BASE_URL}/api/settings`).then(r => r.json()).then(setSettings).catch(() => {});
+
   useEffect(() => {
+    fetchSettings();
     try { const s = localStorage.getItem("cameraMapping"); if (s) { const p = JSON.parse(s); setCameraMap(p); setSelectedCam(p.front); } } catch {}
   }, []);
 
@@ -659,7 +663,7 @@ function Dashboard({ onComplete }: { onComplete: (results: any[]) => void }) {
 
   return (
     <motion.div className="h-screen w-full flex flex-col font-sans bg-stone-950 text-stone-100 overflow-hidden relative" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6 }}>
-      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} mapping={cameraMap} onSave={persistMapping} baseUrl={BASE_URL} />
+      <SettingsModal isOpen={isSettingsOpen} onClose={() => { setIsSettingsOpen(false); fetchSettings(); }} mapping={cameraMap} onSave={persistMapping} baseUrl={BASE_URL} />
       <div className="absolute inset-0 z-0 pointer-events-none">
         <img src="/hello2.jpg" alt="bg" className="w-full h-full object-cover blur-2xl scale-110 opacity-10" />
         <div className="absolute inset-0 bg-stone-950/95" />
