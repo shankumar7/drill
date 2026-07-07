@@ -14,7 +14,9 @@ class KneeDistanceRule(EvaluationRule):
         # target can be "close" (savdhan/vishram) or "relaxed" (salute)
         self.target = target
 
-    def evaluate(self, detection: PoseDetection) -> RuleResult:
+    def evaluate(self, detection: PoseDetection, camera_type: str = "front", **kwargs) -> RuleResult:
+        if camera_type == "side":
+            return RuleResult(self.name, "not_evaluable", None, "Requires front or back camera view.")
         k = detection.keypoints
         # Lower confidence threshold from 0.5 to 0.3
         if min(k[13, 2], k[14, 2], k[5, 2], k[6, 2]) < 0.3:

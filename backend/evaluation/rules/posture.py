@@ -13,7 +13,10 @@ class BackPostureRule(EvaluationRule):
         self.min_angle = min_angle
         self.max_angle = max_angle
 
-    def evaluate(self, detection: PoseDetection) -> RuleResult:
+    def evaluate(self, detection: PoseDetection, camera_type: str = "front", **kwargs) -> RuleResult:
+        if camera_type != "side":
+            return RuleResult(self.name, "not_evaluable", None, "Requires side camera view.")
+            
         k = detection.keypoints
         # Ear (3, 4), Shoulder (5, 6), Hip (11, 12)
         l_visible = min(k[3, 2], k[5, 2], k[11, 2]) >= 0.25

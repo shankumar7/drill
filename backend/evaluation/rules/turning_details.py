@@ -53,7 +53,7 @@ class DahineMurhRule(EvaluationRule):
     """
     name = "Right Turn (Dahine Murh)"
 
-    def evaluate(self, detection: PoseDetection) -> RuleResult:
+    def evaluate(self, detection: PoseDetection, camera_type: str = "front", **kwargs) -> RuleResult:
         k = detection.keypoints
         # Check keypoint reliability
         if min(k[5, 2], k[6, 2], k[11, 2], k[12, 2], k[13, 2], k[14, 2]) < 0.3:
@@ -136,7 +136,7 @@ class BayenMurhRule(EvaluationRule):
     """
     name = "Left Turn (Bayen Murh)"
 
-    def evaluate(self, detection: PoseDetection) -> RuleResult:
+    def evaluate(self, detection: PoseDetection, camera_type: str = "front", **kwargs) -> RuleResult:
         k = detection.keypoints
         if min(k[5, 2], k[6, 2], k[11, 2], k[12, 2], k[13, 2], k[14, 2]) < 0.3:
             return RuleResult(self.name, "not_evaluable", None, "Pose keypoints not reliable enough.")
@@ -205,7 +205,7 @@ class PichheMurhRule(EvaluationRule):
     """
     name = "About Turn (Pichhe Murh)"
 
-    def evaluate(self, detection: PoseDetection) -> RuleResult:
+    def evaluate(self, detection: PoseDetection, camera_type: str = "front", **kwargs) -> RuleResult:
         k = detection.keypoints
         if min(k[5, 2], k[6, 2], k[11, 2], k[12, 2], k[13, 2], k[14, 2]) < 0.3:
             return RuleResult(self.name, "not_evaluable", None, "Pose keypoints not reliable enough.")

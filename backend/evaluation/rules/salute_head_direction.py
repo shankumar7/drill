@@ -13,7 +13,9 @@ class HeadDirectionRule(EvaluationRule):
         # 'front', 'left' (baye), 'right' (dahine)
         self.target_direction = target_direction.lower()
 
-    def evaluate(self, detection: PoseDetection) -> RuleResult:
+    def evaluate(self, detection: PoseDetection, camera_type: str = "front", **kwargs) -> RuleResult:
+        if camera_type == "back":
+            return RuleResult(self.name, "not_evaluable", None, "Back camera cannot evaluate head direction.")
         k = detection.keypoints
         # Nose (0), L Ear (3), R Ear (4)
         nose_conf = k[0, 2]

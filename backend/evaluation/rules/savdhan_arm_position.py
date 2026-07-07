@@ -5,7 +5,7 @@ from backend.evaluation.rules.base import EvaluationRule
 class SavdhanArmPositionRule(EvaluationRule):
     name = "Arms at sides"
 
-    def evaluate(self, detection: PoseDetection) -> RuleResult:
+    def evaluate(self, detection: PoseDetection, camera_type: str = "front", **kwargs) -> RuleResult:
         k = detection.keypoints
         # Shoulders (5, 6), Elbows (7, 8), Wrists (9, 10), Hips (11, 12)
         l_visible = min(k[5, 2], k[7, 2], k[9, 2], k[11, 2]) >= 0.25

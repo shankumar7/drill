@@ -11,7 +11,10 @@ class KneeLockRule(EvaluationRule):
     """
     name = "Knee lock"
 
-    def evaluate(self, detection: PoseDetection) -> RuleResult:
+    def evaluate(self, detection: PoseDetection, camera_type: str = "front", **kwargs) -> RuleResult:
+        if camera_type != "side":
+            return RuleResult(self.name, "not_evaluable", None, "Requires side camera view.")
+            
         k = detection.keypoints
         
         l_visible = min(k[11, 2], k[13, 2], k[15, 2]) >= 0.2

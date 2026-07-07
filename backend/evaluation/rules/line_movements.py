@@ -13,7 +13,9 @@ class KhuliLineChalRule(EvaluationRule):
     """
     name = "Open Line Chal (Khuli Line)"
 
-    def evaluate(self, detection: PoseDetection) -> RuleResult:
+    def evaluate(self, detection: PoseDetection, camera_type: str = "front", **kwargs) -> RuleResult:
+        if camera_type != "side":
+            return RuleResult(self.name, "not_evaluable", None, "Requires side camera view to measure step distances accurately.")
         k = detection.keypoints
         if min(k[5, 2], k[6, 2], k[11, 2], k[12, 2], k[13, 2], k[14, 2], k[15, 2], k[16, 2]) < 0.3:
             return RuleResult(self.name, "not_evaluable", None, "Pose keypoints not reliable enough.")
@@ -92,7 +94,9 @@ class NikatLineChalRule(EvaluationRule):
     """
     name = "Close Line Chal (Nikat Line)"
 
-    def evaluate(self, detection: PoseDetection) -> RuleResult:
+    def evaluate(self, detection: PoseDetection, camera_type: str = "front", **kwargs) -> RuleResult:
+        if camera_type != "side":
+            return RuleResult(self.name, "not_evaluable", None, "Requires side camera view to measure step distances accurately.")
         k = detection.keypoints
         if min(k[5, 2], k[6, 2], k[11, 2], k[12, 2], k[13, 2], k[14, 2], k[15, 2], k[16, 2]) < 0.3:
             return RuleResult(self.name, "not_evaluable", None, "Pose keypoints not reliable enough.")

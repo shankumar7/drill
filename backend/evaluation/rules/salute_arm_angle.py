@@ -5,7 +5,9 @@ from backend.evaluation.rules.base import EvaluationRule
 class SaluteRightArmAngleRule(EvaluationRule):
     name = "Saluting Arm Angle"
 
-    def evaluate(self, detection: PoseDetection) -> RuleResult:
+    def evaluate(self, detection: PoseDetection, camera_type: str = "front", **kwargs) -> RuleResult:
+        if camera_type == "back":
+            return RuleResult(self.name, "not_evaluable", None, "Back camera cannot evaluate salute properly.")
         k = detection.keypoints
         # Strict NCC rule: Right arm MUST be the saluting arm.
         # Right: Wrist (10), Elbow (8), Shoulder (6)

@@ -5,7 +5,9 @@ from backend.evaluation.rules.base import EvaluationRule
 class SaluteHandPositionRule(EvaluationRule):
     name = "Saluting Hand Position"
 
-    def evaluate(self, detection: PoseDetection) -> RuleResult:
+    def evaluate(self, detection: PoseDetection, camera_type: str = "front", **kwargs) -> RuleResult:
+        if camera_type == "back":
+            return RuleResult(self.name, "not_evaluable", None, "Back camera cannot evaluate salute hand position.")
         k = detection.keypoints
         # Strict NCC rule: Right hand salutes to the right eye/forehead
         # Right: Wrist (10), Eye (2)

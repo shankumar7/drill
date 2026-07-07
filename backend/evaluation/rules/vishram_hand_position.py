@@ -5,7 +5,10 @@ from backend.evaluation.rules.base import EvaluationRule
 class VishramHandPositionRule(EvaluationRule):
     name = "Hands behind back"
 
-    def evaluate(self, detection: PoseDetection) -> RuleResult:
+    def evaluate(self, detection: PoseDetection, camera_type: str = "front", **kwargs) -> RuleResult:
+        if camera_type not in ["front", "back"]:
+            return RuleResult(self.name, "not_evaluable", None, "Requires front or back camera view.")
+            
         k = detection.keypoints
         # Heuristic: If wrists (indices 9 and 10) are hidden/low confidence, assume they are behind the back.
         # From a front camera, wrists may still be partially visible when hands are behind the back,

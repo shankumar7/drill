@@ -8,7 +8,9 @@ from backend.evaluation.rules.base import EvaluationRule
 class HeadAlignmentRule(EvaluationRule):
     name = "Head alignment"
 
-    def evaluate(self, detection: PoseDetection) -> RuleResult:
+    def evaluate(self, detection: PoseDetection, camera_type: str = "front", **kwargs) -> RuleResult:
+        if camera_type == "side":
+            return RuleResult(self.name, "not_evaluable", None, "Requires front or back camera view.")
         k = detection.keypoints
         if min(k[0, 2], k[5, 2], k[6, 2]) < 0.25:
             return RuleResult(self.name, "not_evaluable", None, "Head/shoulder keypoints are not reliable enough.")

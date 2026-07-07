@@ -6,7 +6,10 @@ from backend.evaluation.rules.base import EvaluationRule
 class ShoulderLevelRule(EvaluationRule):
     name = "Shoulder level"
 
-    def evaluate(self, detection: PoseDetection) -> RuleResult:
+    def evaluate(self, detection: PoseDetection, camera_type: str = "front", **kwargs) -> RuleResult:
+        if camera_type not in ["front", "back"]:
+            return RuleResult(self.name, "not_evaluable", None, "Requires front or back camera view.")
+            
         k = detection.keypoints
         if min(k[5, 2], k[6, 2]) < 0.25:
             return RuleResult(self.name, "not_evaluable", None, "Shoulder keypoints are not reliable enough.")

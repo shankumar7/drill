@@ -6,10 +6,10 @@ class SajAlignmentRule:
 
     def evaluate(self, detection: PoseDetection, camera_type: str = "front", all_detections: list[PoseDetection] = None, **kwargs) -> RuleResult:
         if camera_type != "side":
-            return RuleResult(self.name, None, "not_evaluable", "Requires side camera view.")
+            return RuleResult(self.name, "not_evaluable", None, "Requires side camera view.")
 
         if not all_detections or len(all_detections) < 2:
-            return RuleResult(self.name, None, "not_evaluable", "Need at least 2 cadets")
+            return RuleResult(self.name, "not_evaluable", None, "Need at least 2 cadets")
 
         # Get the y-coordinates of the shoulders or feet of all cadets
         # We'll use the mid-point of the shoulders for alignment checking

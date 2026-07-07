@@ -10,7 +10,9 @@ class VishramSpacingRule(EvaluationRule):
     """
     name = "Foot spacing"
 
-    def evaluate(self, detection: PoseDetection) -> RuleResult:
+    def evaluate(self, detection: PoseDetection, camera_type: str = "front", **kwargs) -> RuleResult:
+        if camera_type not in ["front", "back"]:
+            return RuleResult(self.name, "not_evaluable", None, "Requires front or back camera view to measure spacing.")
         k = detection.keypoints
         geometry = detection.foot_geometry or {}
         heel_spacing = geometry.get("heel_to_heel_in")
