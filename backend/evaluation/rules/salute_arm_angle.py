@@ -56,7 +56,7 @@ class SaluteRightArmAngleRule(EvaluationRule):
 class StraightLeftArmAngleRule(EvaluationRule):
     name = "Straight Arm Angle"
 
-    def evaluate(self, detection: PoseDetection) -> RuleResult:
+    def evaluate(self, detection: PoseDetection, camera_type: str = "front", **kwargs) -> RuleResult:
         k = detection.keypoints
         # Strict NCC rule: Left arm MUST be straight at the side during salute.
         # Left: Wrist (9), Elbow (7), Shoulder (5)
