@@ -485,14 +485,19 @@ async def fusion_evaluator_loop():
             fused_scores = {}
             fused_weights = {}
             fused_results = {}
+            
+            camera_mapping = SETTINGS.get("camera_mapping", {"front": 0, "side": 1, "back": 2})
+            id_to_type = {v: k for k, v in camera_mapping.items()}
+            
             for cam_id, entry in detections_snapshot.items():
                 if not entry:
                     continue
                 
+                camera_type = id_to_type.get(cam_id, "front")
                 det = entry["det"]
                 all_dets = entry.get("all_dets", [det])
                 conf = entry.get("conf", 1.0)
-                evaluation = evaluator.evaluate(det, all_dets)
+                evaluation = evaluator.evaluate(det, all_dets, camera_type=camera_type)
                 
                 for r in evaluation.rules:
                     if r.score is not None:

@@ -7,7 +7,7 @@ class EvaluationRule(ABC):
     name: str
 
     @abstractmethod
-    def evaluate(self, detection: PoseDetection) -> RuleResult:
+    def evaluate(self, detection: PoseDetection, camera_type: str = "front", **kwargs) -> RuleResult:
         raise NotImplementedError
 
     def smooth_score(

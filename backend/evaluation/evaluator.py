@@ -157,16 +157,16 @@ class StaticPostureEvaluator:
             
         self.histories: dict[int, dict[str, list[float]]] = {}
 
-    def evaluate(self, detection: PoseDetection, all_detections: list[PoseDetection] = None) -> CadetEvaluation:
+    def evaluate(self, detection: PoseDetection, all_detections: list[PoseDetection] = None, camera_type: str = "front") -> CadetEvaluation:
         detection.posture_history = self.histories.setdefault(detection.track_id, {})
         
         results = []
         for rule in self.rules:
             # Some rules like SajAlignmentRule can take all_detections
             if hasattr(rule.evaluate, "__code__") and "all_detections" in rule.evaluate.__code__.co_varnames:
-                results.append(rule.evaluate(detection, all_detections))
+                results.append(rule.evaluate(detection, camera_type=camera_type, all_detections=all_detections))
             else:
-                results.append(rule.evaluate(detection))
+                results.append(rule.evaluate(detection, camera_type=camera_type))
                 
         scored = [result.score for result in results if result.score is not None]
         overall = round(sum(scored) / len(scored), 1) if scored else None

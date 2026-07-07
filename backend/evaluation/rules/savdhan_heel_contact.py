@@ -5,7 +5,10 @@ from backend.evaluation.rules.base import EvaluationRule
 class SavdhanHeelContactRule(EvaluationRule):
     name = "Heel contact"
 
-    def evaluate(self, detection: PoseDetection) -> RuleResult:
+    def evaluate(self, detection: PoseDetection, camera_type: str = "front", **kwargs) -> RuleResult:
+        if camera_type != "front":
+            return RuleResult(self.name, "not_evaluable", None, "Requires front camera view.")
+            
         geometry = detection.foot_geometry
         if not geometry:
             return RuleResult(self.name, "not_evaluable", None, "Foot geometry is unavailable.")
