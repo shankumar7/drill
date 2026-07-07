@@ -718,9 +718,17 @@ function Dashboard({ onComplete }: { onComplete: (results: any[]) => void }) {
                   </div>
                 </div>
                 <img src={`http://localhost:8000/api/video_feed/${camId}`} alt={pos}
-                  className={`w-full h-full object-cover mt-7 transition-all ${isSel ? "opacity-100" : "opacity-40 group-hover:opacity-70"}`}
-                  onError={e => { e.currentTarget.style.display = "none"; }} />
-                <div className="absolute inset-0 mt-7 flex flex-col items-center justify-center pointer-events-none">
+                  className={`w-full h-full object-cover mt-7 transition-all relative z-10 ${isSel ? "opacity-100" : "opacity-40 group-hover:opacity-70"}`}
+                  onLoad={e => {
+                    const sibling = e.currentTarget.nextElementSibling as HTMLElement;
+                    if (sibling) sibling.style.display = "none";
+                  }}
+                  onError={e => { 
+                    e.currentTarget.style.display = "none";
+                    const sibling = e.currentTarget.nextElementSibling as HTMLElement;
+                    if (sibling) sibling.style.display = "flex";
+                  }} />
+                <div className="absolute inset-0 mt-7 flex flex-col items-center justify-center pointer-events-none z-0">
                   <Activity className="w-4 h-4 text-stone-800 mb-1" /><span className="text-[7px] font-bold tracking-widest uppercase text-stone-800">No Signal</span>
                 </div>
                 <div className="absolute top-7 left-1.5 w-3 h-3 border-t border-l border-stone-600/50" />
