@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import time
 import tempfile
-from backend.db.database import init_db, register_cadet, login_cadet
+from backend.db.database import init_db, register_cadet, login_cadet, get_cadets
 from backend.visualization.debug_view import _draw_skeleton
 app = FastAPI(title="Military Drill Analysis API")
 
@@ -326,6 +326,12 @@ class RegisterRequest(BaseModel):
 class LoginRequest(BaseModel):
     pin: str
 
+class SessionRequest(BaseModel):
+    cadet_id: int
+    drill_type: str
+    score: float
+    is_pass: bool
+
 @app.post("/api/register")
 async def api_register_cadet(req: RegisterRequest):
     try:
@@ -340,6 +346,20 @@ async def api_login_cadet(req: LoginRequest):
     if user:
         return {"status": "ok", "user": user}
     return {"status": "error", "message": "Invalid PIN"}
+
+@app.get("/api/cadets")
+async def api_get_cadets():
+    cadets = get_cadets()
+    return {"status": "ok", "cadets": cadets}
+
+@app.post("/api/sessions")
+async def api_save_session(req: SessionRequest):
+    try:
+        from backend.db.database import save_session
+        session_id = save_session(req.cadet_id, req.drill_type, req.score, req.is_pass)
+        return {"status": "ok", "session_id": session_id}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 @app.post("/api/lock_cadet")
 async def lock_cadet(req: LockCadetRequest):
@@ -634,6 +654,7 @@ async def fusion_evaluator_loop():
                 new_telemetry.update({
                     "calibration_step": CALIBRATION_STATE["step"],
                     "calibration_completed": CALIBRATION_STATE["completed"],
+                    "locked_track_id": CALIBRATION_STATE.get("locked_track_id"),
                     "overall_score": 100 if CALIBRATION_STATE["completed"] else 0,
                     "status": "PASS" if CALIBRATION_STATE["completed"] else "Initializing..."
                 })

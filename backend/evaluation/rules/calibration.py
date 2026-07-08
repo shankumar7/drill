@@ -17,11 +17,11 @@ class AutoCalibrationRule(EvaluationRule):
 
     def evaluate(self, detection: PoseDetection, camera_type: str = "front", **kwargs) -> RuleResult:
         if CALIBRATION_STATE["completed"]:
-            return RuleResult(self.name, 100, "pass", "Calibration complete")
+            return RuleResult(self.name, "pass", 100, "Calibration complete")
 
         # Allow 2 seconds between steps so the user doesn't accidentally trigger the next step with an old pose
         if time.time() - CALIBRATION_STATE["last_success_time"] < 2.0:
-            return RuleResult(self.name, 50, "partial_pass", "Preparing next step...")
+            return RuleResult(self.name, "partial_pass", 50, "Preparing next step...")
 
         k = detection.keypoints
         # 5: L Shoulder, 6: R Shoulder, 7: L Elbow, 8: R Elbow, 9: L Wrist, 10: R Wrist
@@ -35,15 +35,15 @@ class AutoCalibrationRule(EvaluationRule):
             if k[10, 2] > 0.4 and k[6, 2] > 0.4:
                 if k[10, 1] < k[6, 1] - 30: # significantly above
                     # Only lock if we haven't yet, or if it's the strongest signal
-                    return RuleResult(self.name, 100, "pass", "Right hand detected!")
-            return RuleResult(self.name, 0, "fail", msg)
+                    return RuleResult(self.name, "pass", 100, "Right hand detected!")
+            return RuleResult(self.name, "fail", 0, msg)
 
         elif CALIBRATION_STATE["step"] == 2:
             msg += "Raise your LEFT hand"
             if k[9, 2] > 0.4 and k[5, 2] > 0.4:
                 if k[9, 1] < k[5, 1] - 30:
-                    return RuleResult(self.name, 100, "pass", "Left hand detected!")
-            return RuleResult(self.name, 0, "fail", msg)
+                    return RuleResult(self.name, "pass", 100, "Left hand detected!")
+            return RuleResult(self.name, "fail", 0, msg)
             
         elif CALIBRATION_STATE["step"] == 3:
             msg += "Turn to your RIGHT side"
@@ -52,7 +52,7 @@ class AutoCalibrationRule(EvaluationRule):
             # Also, from the "front" camera, the width between shoulders drops significantly.
             shoulder_dist = abs(k[5, 0] - k[6, 0])
             if shoulder_dist < 40 and k[6, 2] > 0.5: # Shoulders overlap, right shoulder visible
-                return RuleResult(self.name, 100, "pass", "Turn detected!")
-            return RuleResult(self.name, 0, "fail", msg)
+                return RuleResult(self.name, "pass", 100, "Turn detected!")
+            return RuleResult(self.name, "fail", 0, msg)
 
-        return RuleResult(self.name, 0, "fail", "Unknown calibration state")
+        return RuleResult(self.name, "fail", 0, "Unknown calibration state")

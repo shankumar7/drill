@@ -27,15 +27,18 @@ class YoloSegmentationEstimator:
         self.model = YOLO(model_path).to(self.device)
 
     def infer(self, frame: np.ndarray) -> list[SegmentationDetection]:
-        results = self.model.predict(
+        common_args = dict(
             source=frame,
             conf=self.confidence,
             classes=[0],
             imgsz=self.image_size,
             device=self.device,
-            half=self.use_half,
             verbose=False,
         )
+        if self.use_half:
+            common_args["half"] = True
+            
+        results = self.model.predict(**common_args)
         detections: list[SegmentationDetection] = []
         for result in results:
             if result.masks is None:

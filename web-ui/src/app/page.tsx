@@ -586,7 +586,7 @@ function ScoreRing({ score, isPass, isInitializing }: { score: number; isPass: b
 // ─── Dashboard ────────────────────────────────────────────────
 import { globalCadetTracker } from "@/utils/CadetTracker";
 
-function Dashboard({ onComplete }: { onComplete: (results: any[]) => void }) {
+function Dashboard({ activeCadet, onComplete }: { activeCadet: any; onComplete: (results: any[]) => void }) {
   const BASE_URL = "http://localhost:8000";
   const [cameraMap, setCameraMap] = useState<CameraMapping>({ front: 0, side: 1, back: 2 });
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -594,8 +594,8 @@ function Dashboard({ onComplete }: { onComplete: (results: any[]) => void }) {
   const [selectedCadet, setSelectedCadet] = useState<string | null>(null);
   const [sessionResults, setSessionResults] = useState<{ drill: string; pass: boolean; score: number }[]>([]);
   const [wsStatus, setWsStatus] = useState<"connecting" | "connected" | "disconnected">("connecting");
-  const [telemetry, setTelemetry] = useState<{ metrics: Record<string, any>; overall_score: number; status: string; detected_ids: number[]; active_mode?: string; last_command?: string; calibration_step?: number; calibration_completed?: boolean; }>({
-    metrics: {}, overall_score: 0, status: "Initializing...", detected_ids: [], active_mode: "SAVDHAN", last_command: "", calibration_step: 1, calibration_completed: false
+  const [telemetry, setTelemetry] = useState<{ metrics: Record<string, any>; overall_score: number; status: string; detected_ids: number[]; active_mode?: string; last_command?: string; calibration_step?: number; calibration_completed?: boolean; locked_track_id?: number | null; }>({
+    metrics: {}, overall_score: 0, status: "Initializing...", detected_ids: [], active_mode: "SAVDHAN", last_command: "", calibration_step: 1, calibration_completed: false, locked_track_id: null
   });
   const [settings, setSettings] = useState<any>({ camera_label_position: "top-left" });
   const wsRef = useRef<WebSocket | null>(null);
@@ -617,14 +617,14 @@ function Dashboard({ onComplete }: { onComplete: (results: any[]) => void }) {
     ws.onmessage = (e) => {
       try {
         const data = JSON.parse(e.data);
-        const { overall_score, status, detected_ids, active_mode, last_command, ...metrics } = data;
+        const { overall_score, status, detected_ids, active_mode, last_command, calibration_step, calibration_completed, locked_track_id, ...metrics } = data;
         const clean: Record<string, any> = {};
         for (const k in metrics) {
           if (metrics[k] && metrics[k].status !== "not_evaluable") {
             clean[k.split("_").map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")] = metrics[k];
           }
         }
-        setTelemetry({ metrics: clean, overall_score: overall_score || 0, status: status || "Initializing...", detected_ids: detected_ids || [], active_mode: active_mode || "SAVDHAN", last_command: last_command || "" });
+        setTelemetry({ metrics: clean, overall_score: overall_score || 0, status: status || "Initializing...", detected_ids: detected_ids || [], active_mode: active_mode || "SAVDHAN", last_command: last_command || "", calibration_step: calibration_step || 1, calibration_completed: !!calibration_completed, locked_track_id: locked_track_id });
       } catch {}
     };
     ws.onclose = () => { setWsStatus("disconnected"); reconnectTimeout.current = setTimeout(connectWS, 3000); };
@@ -635,13 +635,40 @@ function Dashboard({ onComplete }: { onComplete: (results: any[]) => void }) {
 
   useEffect(() => {
     if (telemetry.active_mode === "CALIBRATION" && telemetry.calibration_completed) {
+      if (telemetry.locked_track_id !== undefined && telemetry.locked_track_id !== null) {
+        setSelectedCadet(telemetry.locked_track_id.toString());
+      }
       setTimeout(() => changeMode("SAVDHAN"), 3000);
     }
-  }, [telemetry.active_mode, telemetry.calibration_completed]);
+  }, [telemetry.active_mode, telemetry.calibration_completed, telemetry.locked_track_id]);
 
   const changeMode = (mode: string) => { wsRef.current?.readyState === WebSocket.OPEN && wsRef.current.send(JSON.stringify({ mode })); };
   const lockCadet = async (id: number) => { setSelectedCadet(id.toString()); try { await fetch(`${BASE_URL}/api/lock_cadet`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ track_id: id, source_camera: selectedCam }) }); } catch {} };
-  const saveSession = () => { const p = telemetry.overall_score >= 80; const r = [...sessionResults, { drill: telemetry.active_mode || "SAVDHAN", pass: p, score: telemetry.overall_score }]; setSessionResults(r); onComplete(r); };
+  const saveSession = async () => {
+    const p = telemetry.overall_score >= 80;
+    const drill = telemetry.active_mode || "SAVDHAN";
+    const r = [...sessionResults, { drill, pass: p, score: telemetry.overall_score }];
+    setSessionResults(r);
+    
+    if (activeCadet && activeCadet.id) {
+      try {
+        await fetch(`${BASE_URL}/api/sessions`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            cadet_id: activeCadet.id,
+            drill_type: drill,
+            score: telemetry.overall_score,
+            is_pass: p
+          })
+        });
+      } catch (e) {
+        console.error("Failed to save session", e);
+      }
+    }
+    
+    onComplete(r);
+  };
 
   const isPass = ["Excellent", "Good", "PASS"].includes(telemetry.status);
   const isInit = telemetry.status === "Initializing...";
@@ -980,7 +1007,7 @@ export default function App() {
           }} 
         />
       )}
-      {appState === "dashboard" && <Dashboard key="dashboard" onComplete={r => { setFinalResults(r); setAppState("results"); }} />}
+      {appState === "dashboard" && <Dashboard key="dashboard" activeCadet={activeCadet} onComplete={r => { setFinalResults(r); setAppState("results"); }} />}
       {appState === "results" && <ResultsScreen key="results" results={finalResults} onRestart={() => setAppState("launch")} />}
     </AnimatePresence>
   );

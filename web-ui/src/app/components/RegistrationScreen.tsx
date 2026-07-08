@@ -10,8 +10,15 @@ export function RegistrationScreen({ onComplete }: { onComplete: (cadet: any) =>
   const [image, setImage] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [cadets, setCadets] = useState<any[]>([]);
   const videoRef = useRef<HTMLVideoElement>(null);
   
+  useEffect(() => {
+    fetch("http://localhost:8000/api/cadets")
+      .then(res => res.json())
+      .then(data => { if (data.status === "ok") setCadets(data.cadets); })
+      .catch(err => console.error(err));
+  }, []);
   useEffect(() => {
     if (mode === "register") {
       navigator.mediaDevices.getUserMedia({ video: true })
@@ -100,7 +107,7 @@ export function RegistrationScreen({ onComplete }: { onComplete: (cadet: any) =>
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950 p-6">
-      <div className="bg-stone-900 border border-white/10 rounded-3xl p-8 max-w-lg w-full flex flex-col items-center">
+      <div className={`bg-stone-900 border border-white/10 p-8 flex flex-col items-center transition-all ${mode === "choose" ? "max-w-4xl rounded-[40px] w-full" : "max-w-lg rounded-3xl w-full"}`}>
         <h2 className="text-3xl font-black text-stone-100 uppercase tracking-widest mb-8">
           {mode === "choose" ? "Cadet Access" : mode === "register" ? "New Cadet" : "Cadet Login"}
         </h2>
@@ -108,9 +115,46 @@ export function RegistrationScreen({ onComplete }: { onComplete: (cadet: any) =>
         {error && <div className="bg-red-900/50 text-red-400 p-3 rounded-lg mb-6 w-full text-center text-sm font-bold">{error}</div>}
 
         {mode === "choose" && (
-          <div className="flex flex-col gap-4 w-full">
-            <button onClick={() => setMode("register")} className="p-4 bg-stone-800 hover:bg-stone-700 text-stone-200 rounded-xl font-bold uppercase tracking-wider transition-colors">Register New Cadet</button>
-            <button onClick={() => setMode("login")} className="p-4 bg-stone-800 hover:bg-stone-700 text-stone-200 rounded-xl font-bold uppercase tracking-wider transition-colors">Login with PIN</button>
+          <div className="flex flex-col w-full h-full">
+            <div className="flex justify-between items-center mb-8">
+              <h3 className="text-stone-400 text-sm font-bold uppercase tracking-widest">Select Profile</h3>
+              <div className="flex gap-4">
+                <button onClick={() => setMode("login")} className="px-6 py-3 bg-stone-800 text-stone-300 hover:bg-stone-700 rounded-full font-bold uppercase tracking-wider transition-colors text-xs flex items-center gap-2 border border-white/5">
+                  Manual Login
+                </button>
+                <button onClick={() => setMode("register")} className="px-6 py-3 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 rounded-full font-bold uppercase tracking-wider transition-colors text-xs flex items-center gap-2 border border-emerald-500/30">
+                  + New Cadet
+                </button>
+              </div>
+            </div>
+             
+            {cadets.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 overflow-y-auto pb-4 max-h-[60vh]">
+                {cadets.map(c => (
+                  <div key={c.id} onClick={() => setMode("login")} className="flex flex-col items-center bg-stone-950/50 p-6 rounded-2xl border border-white/5 cursor-pointer group hover:bg-stone-900 transition-all hover:border-emerald-500/50 hover:shadow-[0_0_30px_rgba(16,185,129,0.1)]">
+                    <img src={c.image_base64} alt={c.name} className="w-24 h-24 rounded-full object-cover border-2 border-white/10 group-hover:border-emerald-500 transition-colors mb-4" />
+                    <span className="text-stone-200 text-lg font-black uppercase tracking-widest group-hover:text-emerald-400 mb-4 text-center">{c.name}</span>
+                    
+                    <div className="flex gap-4 w-full">
+                      <div className="flex-1 bg-stone-900/80 rounded-xl p-3 flex flex-col items-center border border-white/5">
+                        <span className="text-[10px] text-stone-500 uppercase font-black tracking-widest mb-1 text-center leading-tight">Avg Score</span>
+                        <span className="text-lg font-black text-stone-300">{c.avg_score != null ? Math.round(c.avg_score) : 0}%</span>
+                      </div>
+                      <div className="flex-1 bg-stone-900/80 rounded-xl p-3 flex flex-col items-center border border-white/5">
+                        <span className="text-[10px] text-stone-500 uppercase font-black tracking-widest mb-1 text-center leading-tight">Accuracy</span>
+                        <span className="text-lg font-black text-stone-300">{c.accuracy != null ? Math.round(c.accuracy) : 0}%</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-20 text-stone-500 bg-stone-950/30 rounded-3xl border border-white/5">
+                <Camera className="w-16 h-16 mb-6 opacity-20" />
+                <p className="uppercase tracking-widest font-black text-sm text-stone-600">No Cadets Registered</p>
+                <p className="text-xs mt-2 opacity-50">Register a new cadet to begin evaluation</p>
+              </div>
+            )}
           </div>
         )}
 

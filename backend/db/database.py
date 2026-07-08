@@ -14,6 +14,17 @@ def init_db():
             image_base64 TEXT
         )
     ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS sessions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            cadet_id INTEGER,
+            drill_type TEXT NOT NULL,
+            score REAL NOT NULL,
+            is_pass BOOLEAN NOT NULL,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (cadet_id) REFERENCES cadets (id)
+        )
+    ''')
     conn.commit()
     conn.close()
 
@@ -43,3 +54,33 @@ def login_cadet(pin: str) -> dict | None:
     if row:
         return dict(row)
     return None
+
+def save_session(cadet_id: int, drill_type: str, score: float, is_pass: bool) -> int:
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO sessions (cadet_id, drill_type, score, is_pass)
+        VALUES (?, ?, ?, ?)
+    ''', (cadet_id, drill_type, score, is_pass))
+    session_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    return session_id
+
+def get_cadets() -> list[dict]:
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT 
+            c.id, c.name, c.image_base64,
+            COALESCE(AVG(s.score), 0) as avg_score,
+            CASE WHEN COUNT(s.id) > 0 THEN (SUM(CASE WHEN s.is_pass THEN 1 ELSE 0 END) * 100.0 / COUNT(s.id)) ELSE 0 END as accuracy
+        FROM cadets c
+        LEFT JOIN sessions s ON c.id = s.cadet_id
+        GROUP BY c.id
+    ''')
+    rows = cursor.fetchall()
+    conn.close()
+    
+    return [dict(row) for row in rows]

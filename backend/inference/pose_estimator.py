@@ -37,9 +37,11 @@ class YoloPoseEstimator(PoseEstimator):
             conf=self.confidence,
             imgsz=self.image_size,
             device=self.device,
-            half=self.use_half,
             verbose=False,
         )
+        if self.use_half:
+            common_args["half"] = True
+            
         results = (
             self.model.track(**common_args, persist=True, tracker=self.tracker_config)
             if self.tracking_enabled
