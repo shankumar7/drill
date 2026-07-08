@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ChevronRightCircle, Camera, Check, Download } from "lucide-react";
+import { ChevronRightCircle, Camera, Check, Download, RefreshCw } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -14,6 +14,8 @@ export function RegistrationScreen({ onComplete }: { onComplete: (cadet: any) =>
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [cadets, setCadets] = useState<any[]>([]);
+  const [cameras, setCameras] = useState<MediaDeviceInfo[]>([]);
+  const [currentCameraIndex, setCurrentCameraIndex] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
   
   useEffect(() => {
@@ -24,7 +26,25 @@ export function RegistrationScreen({ onComplete }: { onComplete: (cadet: any) =>
   }, []);
   useEffect(() => {
     if (mode === "register") {
-      navigator.mediaDevices.getUserMedia({ video: true })
+      navigator.mediaDevices.enumerateDevices().then(devices => {
+        setCameras(devices.filter(d => d.kind === "videoinput"));
+      });
+    }
+  }, [mode]);
+
+  useEffect(() => {
+    if (mode === "register") {
+      const constraints: MediaStreamConstraints = { video: true };
+      if (cameras.length > 0 && cameras[currentCameraIndex]) {
+        constraints.video = { deviceId: { exact: cameras[currentCameraIndex].deviceId } };
+      }
+      
+      if (videoRef.current && videoRef.current.srcObject) {
+        const stream = videoRef.current.srcObject as MediaStream;
+        stream.getTracks().forEach(t => t.stop());
+      }
+
+      navigator.mediaDevices.getUserMedia(constraints)
         .then(stream => {
           if (videoRef.current) {
             videoRef.current.srcObject = stream;
@@ -43,7 +63,7 @@ export function RegistrationScreen({ onComplete }: { onComplete: (cadet: any) =>
         stream.getTracks().forEach(t => t.stop());
       }
     };
-  }, [mode]);
+  }, [mode, currentCameraIndex, cameras]);
 
   const capturePhoto = () => {
     if (videoRef.current) {
@@ -235,10 +255,7 @@ export function RegistrationScreen({ onComplete }: { onComplete: (cadet: any) =>
 
         {mode === "register" && (
           <div className="flex flex-col gap-5 w-full max-w-sm mx-auto">
-            <div className="text-center mb-2">
-              <h3 className="text-stone-200 text-xl font-black uppercase tracking-widest mb-2">New Enlistment</h3>
-              <p className="text-stone-500 text-xs font-bold uppercase tracking-widest">Register a new cadet profile</p>
-            </div>
+
             <input type="text" placeholder="Cadet Name" value={name} onChange={(e) => setName(e.target.value)} className="bg-stone-950/50 border border-white/10 rounded-2xl p-4 text-white text-center font-bold tracking-widest uppercase focus:outline-none focus:border-emerald-500/50 transition-all placeholder:text-stone-700 shadow-inner" />
             <input type="password" placeholder="Create 4-digit PIN" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} maxLength={4} className="bg-stone-950/50 border border-white/10 rounded-2xl p-4 text-center text-2xl tracking-[1em] text-emerald-400 font-black focus:outline-none focus:border-emerald-500/50 transition-all placeholder:text-stone-800 shadow-inner" />
             
@@ -250,6 +267,11 @@ export function RegistrationScreen({ onComplete }: { onComplete: (cadet: any) =>
                     <Camera className="w-8 h-8 text-stone-300 group-hover:text-emerald-400 transition-colors" />
                     <span className="text-[10px] font-black uppercase tracking-widest text-stone-400 group-hover:text-emerald-400">Capture Photo</span>
                   </button>
+                  {cameras.length > 1 && (
+                    <button onClick={() => setCurrentCameraIndex((currentCameraIndex + 1) % cameras.length)} className="absolute top-3 right-3 z-20 p-2 bg-stone-900/80 backdrop-blur-md rounded-full hover:bg-emerald-600 border border-white/10 transition-colors shadow-lg">
+                      <RefreshCw className="w-4 h-4 text-white" />
+                    </button>
+                  )}
                 </>
               ) : (
                 <>
