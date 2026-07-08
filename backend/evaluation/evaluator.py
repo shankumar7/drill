@@ -1,15 +1,16 @@
+
+from backend.evaluation.rules.savdhan_shared import SavdhanBackPostureRule, SavdhanBodyPostureRule, SavdhanShoulderLevelRule, SavdhanHeadAlignmentRule
+from backend.evaluation.rules.vishram_shared import VishramBackPostureRule, VishramBodyPostureRule, VishramShoulderLevelRule, VishramHeadAlignmentRule
+from backend.evaluation.rules.generic_shared import GenericBackPostureRule, GenericBodyPostureRule, GenericShoulderLevelRule, GenericHeadAlignmentRule
 from backend.core.types import CadetEvaluation, PoseDetection
-from backend.evaluation.rules.head_alignment import HeadAlignmentRule
 from backend.evaluation.rules.knee_lock import KneeLockRule
 from backend.evaluation.rules.savdhan_arm_position import SavdhanArmPositionRule
 from backend.evaluation.rules.savdhan_foot_angle import SavdhanFootAngleRule
 from backend.evaluation.rules.savdhan_heel_contact import SavdhanHeelContactRule
-from backend.evaluation.rules.shoulder_level import ShoulderLevelRule
 from backend.evaluation.rules.vishram_hand_position import VishramHandPositionRule
 from backend.evaluation.rules.vishram_spacing import VishramSpacingRule
 from backend.evaluation.rules.calibration import AutoCalibrationRule
 
-from backend.evaluation.rules.posture import BackPostureRule, BodyPostureRule
 from backend.evaluation.rules.knee_distance import KneeDistanceRule
 from backend.evaluation.rules.salute_arm_angle import SaluteRightArmAngleRule, StraightLeftArmAngleRule
 from backend.evaluation.rules.salute_head_direction import HeadDirectionRule
@@ -24,12 +25,6 @@ class StaticPostureEvaluator:
     def __init__(self, mode: str) -> None:
         self.mode = mode.upper()
         
-        shared = [
-            BackPostureRule(160, 210), 
-            BodyPostureRule(160, 200),
-            ShoulderLevelRule()
-        ]
-        
         if self.mode == "CALIBRATION":
             self.rules = [AutoCalibrationRule()]
         elif self.mode == "SAVDHAN":
@@ -38,8 +33,10 @@ class StaticPostureEvaluator:
                 SavdhanFootAngleRule(),
                 SavdhanArmPositionRule(),
                 KneeDistanceRule("close"),
-                HeadAlignmentRule(),
-                *shared
+                SavdhanVishramHeadAlignmentRule(),
+                SavdhanBackPostureRule(160, 210),
+                SavdhanBodyPostureRule(160, 200),
+                SavdhanShoulderLevelRule()
             ]
         elif self.mode == "VISHRAM":
             self.rules = [
@@ -47,7 +44,9 @@ class StaticPostureEvaluator:
                 VishramHandPositionRule(),
                 KneeLockRule(),
                 HeadAlignmentRule(),
-                *shared
+                VishramBackPostureRule(160, 210),
+                VishramBodyPostureRule(160, 200),
+                VishramShoulderLevelRule()
             ]
         elif self.mode == "AARAM_SE":
             self.rules = [
@@ -60,7 +59,9 @@ class StaticPostureEvaluator:
                 StraightLeftArmAngleRule(),
                 SaluteHandPositionRule(),
                 HeadDirectionRule("front"),
-                *shared
+                GenericBackPostureRule(160, 210),
+                GenericBodyPostureRule(160, 200),
+                GenericShoulderLevelRule()
             ]
         elif self.mode == "BAYE_SALUTE":
             self.rules = [
@@ -69,7 +70,9 @@ class StaticPostureEvaluator:
                 StraightLeftArmAngleRule(),
                 SaluteHandPositionRule(),
                 HeadDirectionRule("left"),
-                *shared
+                GenericBackPostureRule(160, 210),
+                GenericBodyPostureRule(160, 200),
+                GenericShoulderLevelRule()
             ]
         elif self.mode == "DAINE_SALUTE":
             self.rules = [
@@ -78,82 +81,114 @@ class StaticPostureEvaluator:
                 StraightLeftArmAngleRule(),
                 SaluteHandPositionRule(),
                 HeadDirectionRule("right"),
-                *shared
+                GenericBackPostureRule(160, 210),
+                GenericBodyPostureRule(160, 200),
+                GenericShoulderLevelRule()
             ]
         elif self.mode == "DAHINE_MURH":
             self.rules = [
                 DahineMurhRule(),
-                *shared
+                GenericBackPostureRule(160, 210),
+                GenericBodyPostureRule(160, 200),
+                GenericShoulderLevelRule()
             ]
         elif self.mode == "BAYEN_MURH":
             self.rules = [
                 BayenMurhRule(),
-                *shared
+                GenericBackPostureRule(160, 210),
+                GenericBodyPostureRule(160, 200),
+                GenericShoulderLevelRule()
             ]
         elif self.mode == "PICHHE_MURH":
             self.rules = [
                 PichheMurhRule(),
-                *shared
+                GenericBackPostureRule(160, 210),
+                GenericBodyPostureRule(160, 200),
+                GenericShoulderLevelRule()
             ]
         elif self.mode == "KHULI_LINE_CHAL":
             self.rules = [
                 KhuliLineChalRule(),
-                *shared
+                GenericBackPostureRule(160, 210),
+                GenericBodyPostureRule(160, 200),
+                GenericShoulderLevelRule()
             ]
         elif self.mode == "NIKAT_LINE_CHAL":
             self.rules = [
                 NikatLineChalRule(),
-                *shared
+                GenericBackPostureRule(160, 210),
+                GenericBodyPostureRule(160, 200),
+                GenericShoulderLevelRule()
             ]
         elif self.mode == "SAJ":
             self.rules = [
                 SajAlignmentRule(),
-                *shared
+                GenericBackPostureRule(160, 210),
+                GenericBodyPostureRule(160, 200),
+                GenericShoulderLevelRule()
             ]
         elif self.mode == "VISARJAN":
             self.rules = [
                 VisarjanSequence(),
-                *shared
+                GenericBackPostureRule(160, 210),
+                GenericBodyPostureRule(160, 200),
+                GenericShoulderLevelRule()
             ]
         elif self.mode == "TEJ_CHAL":
             self.rules = [
                 TejChalSequence(),
-                *shared
+                GenericBackPostureRule(160, 210),
+                GenericBodyPostureRule(160, 200),
+                GenericShoulderLevelRule()
             ]
         elif self.mode == "THAAM":
             self.rules = [
                 ThaamSequence(),
-                *shared
+                GenericBackPostureRule(160, 210),
+                GenericBodyPostureRule(160, 200),
+                GenericShoulderLevelRule()
             ]
         elif self.mode == "MARCHING_FRONT_SALUTE":
             self.rules = [
                 MarchingSaluteSequence("front"),
-                *shared
+                GenericBackPostureRule(160, 210),
+                GenericBodyPostureRule(160, 200),
+                GenericShoulderLevelRule()
             ]
         elif self.mode == "MARCHING_BAYE_SALUTE":
             self.rules = [
                 MarchingSaluteSequence("left"),
-                *shared
+                GenericBackPostureRule(160, 210),
+                GenericBodyPostureRule(160, 200),
+                GenericShoulderLevelRule()
             ]
         elif self.mode == "MARCHING_DAINE_SALUTE":
             self.rules = [
                 MarchingSaluteSequence("right"),
-                *shared
+                GenericBackPostureRule(160, 210),
+                GenericBodyPostureRule(160, 200),
+                GenericShoulderLevelRule()
             ]
         elif self.mode == "MARCHING_TURN_DAHINE":
             self.rules = [
                 MarchingTurnSequence("dahine"),
-                *shared
+                GenericBackPostureRule(160, 210),
+                GenericBodyPostureRule(160, 200),
+                GenericShoulderLevelRule()
             ]
         elif self.mode == "MARCHING_TURN_BAYEN":
             self.rules = [
                 MarchingTurnSequence("bayen"),
-                *shared
+                GenericBackPostureRule(160, 210),
+                GenericBodyPostureRule(160, 200),
+                GenericShoulderLevelRule()
             ]
         elif self.mode == "MARCHING_TURN_PICHHE":
             self.rules = [
                 MarchingTurnSequence("pichhe"),
-                *shared
+                GenericBackPostureRule(160, 210),
+                GenericBodyPostureRule(160, 200),
+                GenericShoulderLevelRule()
             ]
         else:
             self.rules = []

@@ -38,12 +38,11 @@ class SaluteHandPositionRule(EvaluationRule):
                 return RuleResult(self.name, "fail", 30.0, "Hand must be at forehead level, not in front of face.")
                 
         # When saluting, fingertips touch the eyebrow. The wrist is a full hand-length away.
-        # Hand length is approx 1/3 of spine length. So ideal wrist distance is around 0.3 to 0.4.
         score = 0.0
-        if norm_dist <= 0.45:
+        if norm_dist <= 0.55:
             score = 100.0
-        elif norm_dist < 0.65:
-            score = 100.0 - ((norm_dist - 0.45) * 500)
+        elif norm_dist < 0.75:
+            score = 100.0 - ((norm_dist - 0.55) * 500)
             
         score = max(0.0, score)
         
@@ -52,4 +51,4 @@ class SaluteHandPositionRule(EvaluationRule):
             return smoothed
             
         status = "pass" if smoothed >= 90 else "fail"
-        return RuleResult(self.name, status, round(smoothed, 1), f"Right Wrist-Eye Distance: {norm_dist:.2f} (Ideal: <= 0.45)")
+        return RuleResult(self.name, status, round(smoothed, 1), f"Right Wrist-Eye Distance: {norm_dist:.2f} (Ideal: <= 0.55)")
