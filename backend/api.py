@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import time
 import tempfile
+from backend.db.database import init_db, register_cadet, login_cadet
 from backend.visualization.debug_view import _draw_skeleton
 app = FastAPI(title="Military Drill Analysis API")
 
@@ -223,107 +224,122 @@ def estimate_foot_geometry(keypoints):
         "spine_length": spine_length
     }
 
-async def generate_frames(camera_id: int):
-    global LATEST_TELEMETRY, ACTIVE_MODE
-    import os
-    
-    cap = cv2.VideoCapture(camera_id)
-    is_webcam = True
-    
-    if not cap.isOpened() or camera_id not in [0, 1, 2]:
-        while True:
-            frame = np.ones((480, 640, 3), dtype=np.uint8) * 150
-            cv2.putText(frame, f"CAM {camera_id} - MISSING VIDEO", (150, 240), 
-                        cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
-            ret, buffer = cv2.imencode('.jpg', frame)
-            yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
-            await asyncio.sleep(0.1)
+from backend.io.camera import CameraReader
+from queue import Queue, Empty
 
-    fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
-            
+CAMERA_QUEUES = {0: Queue(maxsize=3), 1: Queue(maxsize=3), 2: Queue(maxsize=3)}
+CAMERA_READERS = {}
+ANNOTATED_FRAMES = {0: None, 1: None, 2: None}
+
+async def synchronized_inference_loop():
+    import time
     while True:
-        success, frame = cap.read()
-        if not success:
-            cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
-            success, frame = cap.read()
-            if not success:
-                break
-                
-        # Slice the 804x480 frame into 3 sections (268px wide each)
-        if not is_webcam:
-            if camera_id == 0:
-                frame = frame[:, :268]
-            elif camera_id == 1:
-                frame = frame[:, 268:536]
-            elif camera_id == 2:
-                frame = frame[:, 536:]
+        await asyncio.sleep(1/30)
         
-        if pose_estimator:
-            try:
-                detections = pose_estimator.infer(frame)
-                if detections:
-                    det = None
-                    available_ids = [getattr(d, 'track_id', -1) for d in detections]
-                    target_id = LOCKED_CADET_IDS.get(camera_id)
-                    if target_id is not None:
-                        for d in detections:
-                            if getattr(d, 'track_id', None) == target_id:
-                                det = d
-                                break
-                    if not det:
-                        det = detections[0]
-                        
-                    det.foot_geometry = estimate_foot_geometry(det.keypoints)
-                    shoulder_px = np.linalg.norm(det.keypoints[5, :2] - det.keypoints[6, :2])
-                    if shoulder_px < 10:
-                        shoulder_px = 100
-                    ppi = shoulder_px / 16.0
-                    avg_conf = float(np.mean(det.keypoints[:, 2]))
-                    
-                    async with DETECTION_LOCK:
-                        MULTI_CAM_DETECTIONS[camera_id] = {"det": det, "ts": time.time(), "ppi": ppi, "conf": avg_conf, "available_ids": available_ids, "all_dets": detections}
-                    
-                    if SETTINGS.get("show_skeleton", True):
-                        _draw_skeleton(frame, det.keypoints, 
-                                       color_name=SETTINGS.get("skeleton_color", "green"),
-                                       opacity=SETTINGS.get("overlay_opacity", 0.8))
-                        
-                    if SETTINGS.get("show_confidence_score", False):
-                        # Draw some debug confidence next to skeleton
-                        for point in det.keypoints:
-                            if point[2] > 0.3:
-                                cv2.putText(frame, f"{point[2]:.2f}", (int(point[0])+5, int(point[1])-5), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 255, 0), 1)
-                    
-                    tid = getattr(det, 'track_id', 'Unknown')
-                    if tid is not None and SETTINGS.get("show_id_overlay", True):
-                        cx, cy = int(det.bbox[0]), int(det.bbox[1])
-                        cv2.putText(frame, f"ID: {tid}", (cx, max(0, cy - 10)), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
+        frames = {}
+        for cam_id in [0, 1, 2]:
+            q = CAMERA_QUEUES.get(cam_id)
+            packet = None
+            if q:
+                try:
+                    while not q.empty():
+                        packet = q.get_nowait()
+                except Empty:
+                    pass
+            if packet is not None:
+                frames[cam_id] = packet.image
 
-                else:
-                    async with DETECTION_LOCK:
-                        MULTI_CAM_DETECTIONS[camera_id] = None
-            except Exception as e:
-                import traceback
-                traceback.print_exc()
-                print(f"Error in ML pipeline: {e}")
+        if not frames:
+            continue
 
-        # The Next.js frontend already overlays the camera name and mode cleanly in a UI pill,
-        # so we don't need to draw ugly green OpenCV text on the raw frames anymore.
-        
+        def _infer():
+            for cam_id, frame in frames.items():
+                if frame is None or pose_estimator is None:
+                    continue
+                try:
+                    detections = pose_estimator.infer(frame)
+                    if detections:
+                        det = None
+                        available_ids = [getattr(d, 'track_id', -1) for d in detections]
+                        target_id = LOCKED_CADET_IDS.get(cam_id)
+                        if target_id is not None:
+                            for d in detections:
+                                if getattr(d, 'track_id', None) == target_id:
+                                    det = d
+                                    break
+                        if not det:
+                            det = detections[0]
+                            
+                        det.foot_geometry = estimate_foot_geometry(det.keypoints)
+                        shoulder_px = np.linalg.norm(det.keypoints[5, :2] - det.keypoints[6, :2])
+                        if shoulder_px < 10: shoulder_px = 100
+                        ppi = shoulder_px / 16.0
+                        avg_conf = float(np.mean(det.keypoints[:, 2]))
+                        
+                        MULTI_CAM_DETECTIONS[cam_id] = {"det": det, "ts": time.time(), "ppi": ppi, "conf": avg_conf, "available_ids": available_ids, "all_dets": detections}
+                        
+                        annotated = frame.copy()
+                        if SETTINGS.get("show_skeleton", True):
+                            _draw_skeleton(annotated, det.keypoints, color_name=SETTINGS.get("skeleton_color", "green"), opacity=SETTINGS.get("overlay_opacity", 0.8))
+                        
+                        tid = getattr(det, 'track_id', 'Unknown')
+                        if tid is not None and SETTINGS.get("show_id_overlay", True):
+                            cx, cy = int(det.bbox[0]), int(det.bbox[1])
+                            cv2.putText(annotated, f"ID: {tid}", (cx, max(0, cy - 10)), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
+                            
+                        ANNOTATED_FRAMES[cam_id] = annotated
+                    else:
+                        MULTI_CAM_DETECTIONS[cam_id] = None
+                        ANNOTATED_FRAMES[cam_id] = frame.copy()
+                except Exception as e:
+                    import traceback
+                    traceback.print_exc()
+                    print(f"Error in ML pipeline: {e}")
+                    
+        await asyncio.to_thread(_infer)
+
+async def generate_frames(camera_id: int):
+    while True:
+        frame = ANNOTATED_FRAMES.get(camera_id)
+        if frame is None:
+            frame = np.ones((480, 640, 3), dtype=np.uint8) * 150
+            cv2.putText(frame, f"CAM {camera_id} - WAITING", (150, 240), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+            
         ret, buffer = cv2.imencode('.jpg', frame)
         yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
-        # Maintain roughly 30 FPS playback simulation
-        await asyncio.sleep(1/fps)
+        await asyncio.sleep(1/30)
 
 
 
-from pydantic import BaseModel
 class LockCadetRequest(BaseModel):
     track_id: int | None
     source_camera: int | None = None
 
 class ModeRequest(BaseModel):
     mode: str
+
+class RegisterRequest(BaseModel):
+    name: str
+    pin: str
+    image: str
+
+class LoginRequest(BaseModel):
+    pin: str
+
+@app.post("/api/register")
+async def api_register_cadet(req: RegisterRequest):
+    try:
+        cadet_id = register_cadet(req.name, req.pin, req.image)
+        return {"status": "ok", "cadet_id": cadet_id, "name": req.name}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.post("/api/login")
+async def api_login_cadet(req: LoginRequest):
+    user = login_cadet(req.pin)
+    if user:
+        return {"status": "ok", "user": user}
+    return {"status": "error", "message": "Invalid PIN"}
 
 @app.post("/api/lock_cadet")
 async def lock_cadet(req: LockCadetRequest):
@@ -484,8 +500,17 @@ async def video_feed(camera_id: int):
 
 @app.on_event("startup")
 async def startup_event():
+    init_db()
+    for cam_id in [0, 1, 2]:
+        try:
+            CAMERA_READERS[cam_id] = CameraReader(cam_id, CAMERA_QUEUES[cam_id])
+            CAMERA_READERS[cam_id].start()
+        except Exception as e:
+            print(f"Failed to start camera {cam_id}: {e}")
+            
     asyncio.create_task(fusion_evaluator_loop())
     asyncio.create_task(prune_stale_detections())
+    asyncio.create_task(synchronized_inference_loop())
 
 async def fusion_evaluator_loop():
     global LATEST_TELEMETRY
@@ -547,7 +572,8 @@ async def fusion_evaluator_loop():
             if not fused_scores:
                 status = "Initializing..."
             else:
-                status = "PASS" if overall_score >= SETTINGS["pass_threshold"] else "FAIL"
+                any_fail = any(r.status == "fail" for r in fused_results.values())
+                status = "PASS" if (overall_score >= SETTINGS["pass_threshold"] and not any_fail) else "FAIL"
 
             def get_payload(rule_name):
                 res = fused_results.get(rule_name)

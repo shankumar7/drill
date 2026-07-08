@@ -2,7 +2,8 @@
 
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { Gauge } from "../components/Gauge";
-import { Activity, Settings, LogOut, ChevronRightCircle, CheckCircle, XCircle, Crosshair, Wifi, WifiOff, Target, BarChart3 } from "lucide-react";
+import { Mic, CheckCircle2, AlertCircle, HelpCircle, ChevronRightCircle, Activity, Camera, Maximize, PlayCircle, Settings, X, LogOut, Check } from "lucide-react";
+import { RegistrationScreen } from "./components/RegistrationScreen";
 import { motion, AnimatePresence } from "framer-motion";
 
 // ─── Types ───────────────────────────────────────────────────
@@ -446,7 +447,7 @@ function LaunchScreen({ onComplete }: { onComplete: () => void }) {
   }, [onComplete]);
   return (
     <>
-      <div className="fixed top-8 left-8 z-[100] pointer-events-none"><img src="/top_right_logo.png" alt="SDD" className="w-16 lg:w-20 h-auto object-contain drop-shadow-md" /></div>
+      <div className="fixed top-8 left-8 z-[100] pointer-events-none"><img src="/top_right_logo.png" alt="SDD" className="w-6 sm:w-8 md:w-12 lg:w-16 xl:w-20 2xl:w-24 h-auto object-contain drop-shadow-md" /></div>
       <motion.div className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden"
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, scale: 1.05 }} transition={{ duration: 0.8 }}>
         <div className="absolute inset-0 z-0 pointer-events-none">
@@ -492,7 +493,7 @@ function LaunchScreen({ onComplete }: { onComplete: () => void }) {
 function OnboardingScreen({ onNext }: { onNext: () => void }) {
   return (
     <>
-      <div className="fixed top-8 left-8 z-[100] pointer-events-none"><img src="/top_right_logo.png" alt="SDD" className="w-16 lg:w-20 h-auto object-contain drop-shadow-md" /></div>
+      <div className="fixed top-8 left-8 z-[100] pointer-events-none"><img src="/top_right_logo.png" alt="SDD" className="w-6 sm:w-8 md:w-12 lg:w-16 xl:w-20 2xl:w-24 h-auto object-contain drop-shadow-md" /></div>
       <motion.div className="fixed inset-0 z-40 flex items-center justify-center overflow-hidden"
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, x: -50, filter: "blur(10px)" }} transition={{ duration: 0.8, ease: "easeOut" }}>
         <div className="absolute inset-0 z-0 pointer-events-none">
@@ -889,7 +890,7 @@ function ResultsScreen({ results, onRestart }: { results: any[]; onRestart: () =
         <div className="absolute inset-0 bg-stone-950/92" />
         <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: `linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)`, backgroundSize: "40px 40px" }} />
       </div>
-      <div className="fixed top-8 left-8 z-[100]"><img src="/top_right_logo.png" alt="SDD" className="w-16 h-auto object-contain" /></div>
+      <div className="fixed top-8 left-8 z-[100]"><img src="/top_right_logo.png" alt="SDD" className="w-6 sm:w-8 md:w-12 lg:w-16 xl:w-20 2xl:w-24 h-auto object-contain" /></div>
       <div className="relative z-10 w-full max-w-3xl mx-6 p-8 bg-stone-900/80 backdrop-blur-3xl border border-white/10 rounded-3xl shadow-2xl">
         <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-stone-400/50 to-transparent rounded-t-3xl" />
         <div className="text-center mb-8">
@@ -928,12 +929,22 @@ function ResultsScreen({ results, onRestart }: { results: any[]; onRestart: () =
 
 // ─── App Entry ────────────────────────────────────────────────
 export default function App() {
-  const [appState, setAppState] = useState<"launch" | "onboarding" | "dashboard" | "results">("launch");
+  const [appState, setAppState] = useState<"launch" | "onboarding" | "registration" | "dashboard" | "results">("launch");
+  const [activeCadet, setActiveCadet] = useState<any>(null);
   const [finalResults, setFinalResults] = useState<any[]>([]);
   return (
     <AnimatePresence mode="wait">
       {appState === "launch" && <LaunchScreen key="launch" onComplete={() => setAppState("onboarding")} />}
-      {appState === "onboarding" && <OnboardingScreen key="onboard" onNext={() => setAppState("dashboard")} />}
+      {appState === "onboarding" && <OnboardingScreen key="onboard" onNext={() => setAppState("registration")} />}
+      {appState === "registration" && (
+        <RegistrationScreen 
+          key="registration" 
+          onComplete={(cadet) => {
+            setActiveCadet(cadet);
+            setAppState("dashboard");
+          }} 
+        />
+      )}
       {appState === "dashboard" && <Dashboard key="dashboard" onComplete={r => { setFinalResults(r); setAppState("results"); }} />}
       {appState === "results" && <ResultsScreen key="results" results={finalResults} onRestart={() => setAppState("launch")} />}
     </AnimatePresence>

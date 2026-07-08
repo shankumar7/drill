@@ -7,6 +7,7 @@ from backend.evaluation.rules.savdhan_heel_contact import SavdhanHeelContactRule
 from backend.evaluation.rules.shoulder_level import ShoulderLevelRule
 from backend.evaluation.rules.vishram_hand_position import VishramHandPositionRule
 from backend.evaluation.rules.vishram_spacing import VishramSpacingRule
+from backend.evaluation.rules.calibration import AutoCalibrationRule
 
 from backend.evaluation.rules.posture import BackPostureRule, BodyPostureRule
 from backend.evaluation.rules.knee_distance import KneeDistanceRule
@@ -29,7 +30,9 @@ class StaticPostureEvaluator:
             ShoulderLevelRule()
         ]
         
-        if self.mode == "SAVDHAN":
+        if self.mode == "CALIBRATION":
+            self.rules = [AutoCalibrationRule()]
+        elif self.mode == "SAVDHAN":
             self.rules = [
                 SavdhanHeelContactRule(),
                 SavdhanFootAngleRule(),
