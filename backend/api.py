@@ -40,10 +40,10 @@ LATEST_TELEMETRY = {
     "overall_score": 0,
     "status": "Initializing...",
     "detected_ids": [],
-    "active_mode": "SAVDHAN",
+    "active_mode": "CALIBRATION",
     "last_command": ""
 }
-ACTIVE_MODE = "SAVDHAN"
+ACTIVE_MODE = "CALIBRATION"
 LOCKED_CADET_IDS: dict[int, int] = {}
 MULTI_CAM_DETECTIONS = {}
 DETECTION_LOCK = asyncio.Lock()
@@ -590,8 +590,55 @@ async def fusion_evaluator_loop():
                 "active_mode": ACTIVE_MODE,
                 "detected_ids": list(all_ids)
             }
+            
+            if ACTIVE_MODE == "CALIBRATION":
+                from backend.evaluation.rules.calibration import CALIBRATION_STATE
+                import time
+                if not CALIBRATION_STATE["completed"]:
+                    passed_cams = []
+                    for cam_id, entry in detections_snapshot.items():
+                        if not entry: continue
+                        det = entry["det"]
+                        evaluation = evaluator.evaluate(det, camera_type="front")
+                        if evaluation.rules and evaluation.rules[0].status == "pass":
+                            passed_cams.append((cam_id, getattr(det, 'track_id', None)))
+                    
+                    if passed_cams:
+                        step = CALIBRATION_STATE["step"]
+                        if step == 1:
+                            front_cam, track_id = passed_cams[0]
+                            CALIBRATION_STATE["front_cam_id"] = front_cam
+                            CALIBRATION_STATE["locked_track_id"] = track_id
+                            CALIBRATION_STATE["step"] = 2
+                            CALIBRATION_STATE["last_success_time"] = time.time()
+                            global LOCKED_CADET_IDS
+                            LOCKED_CADET_IDS = {front_cam: track_id}
+                        elif step == 2:
+                            for c, t in passed_cams:
+                                if c == CALIBRATION_STATE["front_cam_id"] and t == CALIBRATION_STATE["locked_track_id"]:
+                                    CALIBRATION_STATE["step"] = 3
+                                    CALIBRATION_STATE["last_success_time"] = time.time()
+                                    break
+                        elif step == 3:
+                            for c, t in passed_cams:
+                                if c == CALIBRATION_STATE["front_cam_id"]:
+                                    CALIBRATION_STATE["completed"] = True
+                                    CALIBRATION_STATE["last_success_time"] = time.time()
+                                    remaining = [cam for cam in [0,1,2] if cam != c]
+                                    if len(remaining) >= 2:
+                                        SETTINGS["camera_mapping"] = {"front": c, "side": remaining[0], "back": remaining[1]}
+                                    for all_c in [0, 1, 2]:
+                                        LOCKED_CADET_IDS[all_c] = CALIBRATION_STATE["locked_track_id"]
+                                    break
 
-            if ACTIVE_MODE == "SAVDHAN":
+                new_telemetry.update({
+                    "calibration_step": CALIBRATION_STATE["step"],
+                    "calibration_completed": CALIBRATION_STATE["completed"],
+                    "overall_score": 100 if CALIBRATION_STATE["completed"] else 0,
+                    "status": "PASS" if CALIBRATION_STATE["completed"] else "Initializing..."
+                })
+
+            elif ACTIVE_MODE == "SAVDHAN":
                 new_telemetry.update({
                     "torso_posture": get_payload("Body Posture"),
                     "heel_alignment": get_payload("Heel contact"),

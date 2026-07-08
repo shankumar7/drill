@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { Gauge } from "../components/Gauge";
-import { Mic, CheckCircle2, AlertCircle, HelpCircle, ChevronRightCircle, Activity, Camera, Maximize, PlayCircle, Settings, X, LogOut, Check } from "lucide-react";
+import { Mic, CheckCircle2, AlertCircle, HelpCircle, ChevronRightCircle, Activity, Camera, Maximize, PlayCircle, Settings, X, LogOut, Check, Wifi, WifiOff, Crosshair, Target, BarChart3 } from "lucide-react";
 import { RegistrationScreen } from "./components/RegistrationScreen";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -594,8 +594,8 @@ function Dashboard({ onComplete }: { onComplete: (results: any[]) => void }) {
   const [selectedCadet, setSelectedCadet] = useState<string | null>(null);
   const [sessionResults, setSessionResults] = useState<{ drill: string; pass: boolean; score: number }[]>([]);
   const [wsStatus, setWsStatus] = useState<"connecting" | "connected" | "disconnected">("connecting");
-  const [telemetry, setTelemetry] = useState<{ metrics: Record<string, any>; overall_score: number; status: string; detected_ids: number[]; active_mode?: string; last_command?: string; }>({
-    metrics: {}, overall_score: 0, status: "Initializing...", detected_ids: [], active_mode: "SAVDHAN", last_command: ""
+  const [telemetry, setTelemetry] = useState<{ metrics: Record<string, any>; overall_score: number; status: string; detected_ids: number[]; active_mode?: string; last_command?: string; calibration_step?: number; calibration_completed?: boolean; }>({
+    metrics: {}, overall_score: 0, status: "Initializing...", detected_ids: [], active_mode: "SAVDHAN", last_command: "", calibration_step: 1, calibration_completed: false
   });
   const [settings, setSettings] = useState<any>({ camera_label_position: "top-left" });
   const wsRef = useRef<WebSocket | null>(null);
@@ -632,6 +632,12 @@ function Dashboard({ onComplete }: { onComplete: (results: any[]) => void }) {
   }, []);
 
   useEffect(() => { connectWS(); return () => { reconnectTimeout.current && clearTimeout(reconnectTimeout.current); wsRef.current?.close(); }; }, [connectWS]);
+
+  useEffect(() => {
+    if (telemetry.active_mode === "CALIBRATION" && telemetry.calibration_completed) {
+      setTimeout(() => changeMode("SAVDHAN"), 3000);
+    }
+  }, [telemetry.active_mode, telemetry.calibration_completed]);
 
   const changeMode = (mode: string) => { wsRef.current?.readyState === WebSocket.OPEN && wsRef.current.send(JSON.stringify({ mode })); };
   const lockCadet = async (id: number) => { setSelectedCadet(id.toString()); try { await fetch(`${BASE_URL}/api/lock_cadet`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ track_id: id, source_camera: selectedCam }) }); } catch {} };
@@ -865,6 +871,35 @@ function Dashboard({ onComplete }: { onComplete: (results: any[]) => void }) {
           </motion.div>
         </div>
       </main>
+
+      <AnimatePresence>
+        {telemetry.active_mode === "CALIBRATION" && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-stone-950/85 backdrop-blur-md">
+            {telemetry.calibration_completed ? (
+              <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="flex flex-col items-center text-emerald-400">
+                <CheckCircle2 className="w-24 h-24 mb-6" />
+                <h2 className="text-4xl font-black uppercase tracking-[0.2em] mb-2">Calibration Complete</h2>
+                <p className="text-emerald-500/80 tracking-widest font-mono text-sm">Cameras Mapped. ID Locked. Initiating Drill Evaluation...</p>
+              </motion.div>
+            ) : (
+              <div className="flex flex-col items-center">
+                <Activity className="w-16 h-16 text-emerald-500 mb-6 animate-pulse" />
+                <h2 className="text-stone-400 text-sm font-black uppercase tracking-[0.3em] mb-4">Auto-Calibration Sequence</h2>
+                <h1 className="text-5xl font-black text-white uppercase tracking-wider mb-8 text-center max-w-2xl leading-tight">
+                  {telemetry.calibration_step === 1 && "Raise your RIGHT hand"}
+                  {telemetry.calibration_step === 2 && "Raise your LEFT hand"}
+                  {telemetry.calibration_step === 3 && "Turn to your RIGHT side"}
+                </h1>
+                <div className="flex gap-4">
+                  {[1, 2, 3].map(step => (
+                    <div key={step} className={`w-16 h-2 rounded-full ${telemetry.calibration_step! > step ? "bg-emerald-500" : telemetry.calibration_step === step ? "bg-emerald-400 animate-pulse" : "bg-stone-800"}`} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Status Bar */}
       <div className="h-7 shrink-0 border-t border-white/[0.04] bg-stone-900/60 backdrop-blur flex items-center justify-between px-5 relative z-20">
