@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import time
 import tempfile
-from backend.db.database import init_db, register_cadet, login_cadet, get_cadets
+from backend.db.database import init_db, register_cadet, login_cadet, get_cadets, get_cadet_sessions
 from backend.visualization.debug_view import _draw_skeleton
 app = FastAPI(title="Military Drill Analysis API")
 
@@ -163,15 +163,6 @@ try:
 except Exception as e:
     print(f"Failed to load Pose Estimator: {e}")
 
-whisper_model = None
-try:
-    import whisper
-    import torch
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    whisper_model = whisper.load_model("base", device=device)
-    print(f"Whisper Model loaded in API on {device}.")
-except Exception as e:
-    print(f"Failed to load Whisper Model: {e}")
 
 # Helper to map pixel distance to inches based on a heuristic (shoulder width ~16 inches)
 def estimate_foot_geometry(keypoints):
@@ -331,6 +322,7 @@ class SessionRequest(BaseModel):
     drill_type: str
     score: float
     is_pass: bool
+    cycle_count: int = 0
 
 @app.post("/api/register")
 async def api_register_cadet(req: RegisterRequest):
@@ -352,11 +344,19 @@ async def api_get_cadets():
     cadets = get_cadets()
     return {"status": "ok", "cadets": cadets}
 
+@app.get("/api/cadets/{cadet_id}/sessions")
+async def api_get_cadet_sessions(cadet_id: int):
+    try:
+        sessions = get_cadet_sessions(cadet_id)
+        return {"status": "ok", "sessions": sessions}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
 @app.post("/api/sessions")
 async def api_save_session(req: SessionRequest):
     try:
         from backend.db.database import save_session
-        session_id = save_session(req.cadet_id, req.drill_type, req.score, req.is_pass)
+        session_id = save_session(req.cadet_id, req.drill_type, req.score, req.is_pass, req.cycle_count)
         return {"status": "ok", "session_id": session_id}
     except Exception as e:
         return {"status": "error", "message": str(e)}
@@ -431,88 +431,7 @@ from fastapi import UploadFile, File
 
 @app.post("/api/voice_command")
 async def process_voice_command(audio: UploadFile = File(...)):
-    global ACTIVE_MODE, LATEST_TELEMETRY
-    if not whisper_model:
-        return {"error": "Whisper model not loaded"}
-    
-    content = await audio.read()
-    # WebM headers are small. If file is < 1KB, it contains no actual audio frames
-    if len(content) < 1000:
-        return {"error": "Recording too short. Please hold the button longer while speaking."}
-    
-    filename = audio.filename if audio.filename else "command.webm"
-    ext = os.path.splitext(filename)[1]
-    if not ext:
-        ext = ".webm"
-        
-    with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as temp_audio:
-        temp_audio.write(content)
-        temp_audio_path = temp_audio.name
-        
-    try:
-        # Whisper automatically handles various audio formats including webm
-        # Note: This requires ffmpeg to be installed on the system
-        import torch
-        result = whisper_model.transcribe(
-            temp_audio_path,
-            language="en",
-            fp16=torch.cuda.is_available(),
-            initial_prompt="Military drill commands: savadhan, attention, vishram, ease, salute, samne, baye, dahine, aaram."
-        )
-        text = result.get("text", "").strip()
-        text_lower = text.lower()
-        
-        # Enhanced keyword matching for Indian accents and common whisper mis-transcriptions
-        savdhan_keywords = ["savadhan", "attention", "savdhan", "south on", "sawan", "some down", "savage on", "sound on", "sab dhan", "sabdan"]
-        vishram_keywords = ["vishram", "ease", "vish", "mushroom", "wish ram", "visram", "rest", "base ram", "besram", "bharam"]
-        salute_keywords = ["salute", "samne", "someday", "sam ne"]
-        baye_keywords = ["baye", "left", "bye", "by a", "baen", "baaye"]
-        dahine_keywords = ["dahine", "right", "dining", "diane", "daehne", "dahin", "dhahine"]
-        aaram_keywords = ["aaram", "aram", "alarm", "aram se"]
-        
-        # New drill keywords
-        dahine_murh_keywords = ["dahine murh", "right turn", "turn right", "dahine mood", "dahine mud", "diane mud"]
-        bayen_murh_keywords = ["bayen murh", "left turn", "turn left", "bayen mood", "bayen mud", "baye mud", "baye mood"]
-        pichhe_murh_keywords = ["pichhe murh", "about turn", "piche murh", "piche mud", "pichhe mud"]
-        khuli_line_keywords = ["khuli line", "open line"]
-        nikat_line_keywords = ["nikat line", "close line", "near line"]
-
-        if any(kw in text_lower for kw in dahine_murh_keywords):
-            ACTIVE_MODE = "DAHINE_MURH"
-        elif any(kw in text_lower for kw in bayen_murh_keywords):
-            ACTIVE_MODE = "BAYEN_MURH"
-        elif any(kw in text_lower for kw in pichhe_murh_keywords):
-            ACTIVE_MODE = "PICHHE_MURH"
-        elif any(kw in text_lower for kw in khuli_line_keywords):
-            ACTIVE_MODE = "KHULI_LINE_CHAL"
-        elif any(kw in text_lower for kw in nikat_line_keywords):
-            ACTIVE_MODE = "NIKAT_LINE_CHAL"
-        elif any(kw in text_lower for kw in savdhan_keywords):
-            ACTIVE_MODE = "SAVDHAN"
-        elif any(kw in text_lower for kw in vishram_keywords):
-            ACTIVE_MODE = "VISHRAM"
-        elif any(kw in text_lower for kw in salute_keywords) or any(kw in text_lower for kw in baye_keywords) or any(kw in text_lower for kw in dahine_keywords):
-            if any(kw in text_lower for kw in baye_keywords):
-                ACTIVE_MODE = "BAYE_SALUTE"
-            elif any(kw in text_lower for kw in dahine_keywords):
-                ACTIVE_MODE = "DAINE_SALUTE"
-            else:
-                ACTIVE_MODE = "FRONT_SALUTE"
-        elif any(kw in text_lower for kw in aaram_keywords):
-            ACTIVE_MODE = "AARAM_SE"
-            
-        print(f"Voice Command Received: '{text}', Mode updated to: {ACTIVE_MODE}")
-        LATEST_TELEMETRY["active_mode"] = ACTIVE_MODE
-        LATEST_TELEMETRY["last_command"] = text
-        
-        return {"text": text, "active_mode": ACTIVE_MODE}
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        print(f"Whisper Transcription Error: {e}")
-        return {"error": str(e)}
-    finally:
-        os.remove(temp_audio_path)
+    return {"error": "Voice commands disabled (Whisper removed)"}
 
 @app.get("/api/video_feed/{camera_id}")
 async def video_feed(camera_id: int):

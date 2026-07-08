@@ -21,10 +21,15 @@ def init_db():
             drill_type TEXT NOT NULL,
             score REAL NOT NULL,
             is_pass BOOLEAN NOT NULL,
+            cycle_count INTEGER DEFAULT 0,
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (cadet_id) REFERENCES cadets (id)
         )
     ''')
+    try:
+        cursor.execute("ALTER TABLE sessions ADD COLUMN cycle_count INTEGER DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass
     conn.commit()
     conn.close()
 
@@ -55,13 +60,13 @@ def login_cadet(pin: str) -> dict | None:
         return dict(row)
     return None
 
-def save_session(cadet_id: int, drill_type: str, score: float, is_pass: bool) -> int:
+def save_session(cadet_id: int, drill_type: str, score: float, is_pass: bool, cycle_count: int = 0) -> int:
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute('''
-        INSERT INTO sessions (cadet_id, drill_type, score, is_pass)
-        VALUES (?, ?, ?, ?)
-    ''', (cadet_id, drill_type, score, is_pass))
+        INSERT INTO sessions (cadet_id, drill_type, score, is_pass, cycle_count)
+        VALUES (?, ?, ?, ?, ?)
+    ''', (cadet_id, drill_type, score, is_pass, cycle_count))
     session_id = cursor.lastrowid
     conn.commit()
     conn.close()
@@ -80,6 +85,21 @@ def get_cadets() -> list[dict]:
         LEFT JOIN sessions s ON c.id = s.cadet_id
         GROUP BY c.id
     ''')
+    rows = cursor.fetchall()
+    conn.close()
+    
+    return [dict(row) for row in rows]
+
+def get_cadet_sessions(cadet_id: int) -> list[dict]:
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT id, drill_type, score, is_pass, cycle_count, timestamp
+        FROM sessions
+        WHERE cadet_id = ?
+        ORDER BY timestamp DESC
+    ''', (cadet_id,))
     rows = cursor.fetchall()
     conn.close()
     

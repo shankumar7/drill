@@ -598,6 +598,8 @@ function Dashboard({ activeCadet, onComplete }: { activeCadet: any; onComplete: 
     metrics: {}, overall_score: 0, status: "Initializing...", detected_ids: [], active_mode: "SAVDHAN", last_command: "", calibration_step: 1, calibration_completed: false, locked_track_id: null
   });
   const [settings, setSettings] = useState<any>({ camera_label_position: "top-left" });
+  const [cycleCount, setCycleCount] = useState(0);
+  const failStartTime = useRef<number | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeout = useRef<NodeJS.Timeout | null>(null);
 
@@ -642,6 +644,27 @@ function Dashboard({ activeCadet, onComplete }: { activeCadet: any; onComplete: 
     }
   }, [telemetry.active_mode, telemetry.calibration_completed, telemetry.locked_track_id]);
 
+  const isPass = ["Excellent", "Good", "PASS"].includes(telemetry.status);
+  const isInit = telemetry.status === "Initializing...";
+
+  useEffect(() => {
+    if (!isInit && telemetry.active_mode && telemetry.active_mode !== "CALIBRATION") {
+      if (!isPass) {
+        if (!failStartTime.current) failStartTime.current = Date.now();
+      } else {
+        if (failStartTime.current && (Date.now() - failStartTime.current > 2000)) {
+          setCycleCount(c => c + 1);
+        }
+        failStartTime.current = null;
+      }
+    }
+  }, [isPass, isInit, telemetry.active_mode]);
+
+  useEffect(() => {
+    setCycleCount(0);
+    failStartTime.current = null;
+  }, [telemetry.active_mode]);
+
   const changeMode = (mode: string) => { wsRef.current?.readyState === WebSocket.OPEN && wsRef.current.send(JSON.stringify({ mode })); };
   const lockCadet = async (id: number) => { setSelectedCadet(id.toString()); try { await fetch(`${BASE_URL}/api/lock_cadet`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ track_id: id, source_camera: selectedCam }) }); } catch {} };
   const saveSession = async () => {
@@ -659,7 +682,8 @@ function Dashboard({ activeCadet, onComplete }: { activeCadet: any; onComplete: 
             cadet_id: activeCadet.id,
             drill_type: drill,
             score: telemetry.overall_score,
-            is_pass: p
+            is_pass: p,
+            cycle_count: cycleCount
           })
         });
       } catch (e) {
@@ -670,8 +694,6 @@ function Dashboard({ activeCadet, onComplete }: { activeCadet: any; onComplete: 
     onComplete(r);
   };
 
-  const isPass = ["Excellent", "Good", "PASS"].includes(telemetry.status);
-  const isInit = telemetry.status === "Initializing...";
   const drillModes = [
     { label: "Savadhan", val: "SAVDHAN", s: "SVD" }, 
     { label: "Vishram", val: "VISHRAM", s: "VSH" }, 
@@ -867,6 +889,8 @@ function Dashboard({ activeCadet, onComplete }: { activeCadet: any; onComplete: 
                 <div className="text-xs font-black text-stone-300 uppercase tracking-wider">{selectedCadet ? `Cadet ${selectedCadet}` : "Unassigned"}</div>
                 <div className="text-[9px] font-black text-stone-500 uppercase tracking-widest mt-3 mb-0.5">Mode</div>
                 <div className="text-xs font-black text-stone-300 uppercase tracking-wider">{telemetry.active_mode?.replace(/_/g, " ") || "UNKNOWN"}</div>
+                <div className="text-[9px] font-black text-stone-500 uppercase tracking-widest mt-3 mb-0.5">Cycles</div>
+                <div className="text-xs font-black text-emerald-400 uppercase tracking-wider">{cycleCount}</div>
               </div>
             </div>
             {!isInit && (
