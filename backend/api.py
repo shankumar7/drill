@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import time
 import tempfile
-from backend.db.database import init_db, register_cadet, login_cadet, get_cadets, get_cadet_sessions
+from backend.db.database import init_db, register_cadet, login_cadet, get_cadets, get_cadet_sessions, delete_cadet
 from backend.visualization.debug_view import _draw_skeleton
 app = FastAPI(title="Military Drill Analysis API")
 
@@ -349,6 +349,14 @@ async def api_get_cadet_sessions(cadet_id: int):
     try:
         sessions = get_cadet_sessions(cadet_id)
         return {"status": "ok", "sessions": sessions}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.delete("/api/cadets/{cadet_id}")
+async def api_delete_cadet(cadet_id: int):
+    try:
+        delete_cadet(cadet_id)
+        return {"status": "ok", "message": "Cadet deleted successfully"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
 

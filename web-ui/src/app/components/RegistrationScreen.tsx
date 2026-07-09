@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ChevronRightCircle, Camera, Check, Download, RefreshCw } from "lucide-react";
+import { ChevronRightCircle, Camera, Check, Download, RefreshCw, Trash2 } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -158,6 +158,27 @@ export function RegistrationScreen({ onComplete }: { onComplete: (cadet: any) =>
     }
   };
 
+  const handleDelete = async (cadetId: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!window.confirm("Are you sure you want to delete this cadet and all their sessions?")) {
+      return;
+    }
+    try {
+      const res = await fetch(`http://localhost:8000/api/cadets/${cadetId}`, {
+        method: "DELETE"
+      });
+      const data = await res.json();
+      if (data.status === "ok") {
+        setCadets(prev => prev.filter(c => c.id !== cadetId));
+      } else {
+        alert(data.message || "Failed to delete cadet");
+      }
+    } catch (err) {
+      console.error("Delete error:", err);
+      alert("Failed to delete cadet");
+    }
+  };
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-hidden">
       {/* Animated Background */}
@@ -193,35 +214,59 @@ export function RegistrationScreen({ onComplete }: { onComplete: (cadet: any) =>
             </div>
              
             {cadets.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-8 overflow-y-auto pb-4 flex-1 custom-scrollbar pr-2">
+              <div className="flex flex-col gap-4 overflow-y-auto pb-4 flex-1 custom-scrollbar pr-2">
                 {cadets.map(c => (
-                  <div key={c.id} onClick={() => setMode("login")} className="relative flex flex-col items-center bg-stone-900/40 backdrop-blur-xl p-8 rounded-[2rem] border border-white/5 cursor-pointer group hover:bg-stone-800/60 transition-all duration-300 hover:border-emerald-500/50 hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)] overflow-hidden">
+                  <div 
+                    key={c.id} 
+                    onClick={() => setMode("login")} 
+                    className="relative flex flex-col sm:flex-row items-center justify-between bg-stone-900/40 backdrop-blur-xl p-6 rounded-[2rem] border border-white/5 cursor-pointer group hover:bg-stone-800/60 transition-all duration-300 hover:border-emerald-500/50 hover:shadow-[0_10px_30px_rgba(0,0,0,0.3)] overflow-hidden gap-6"
+                  >
                     {/* Glow effect on hover */}
-                    <div className="absolute inset-0 bg-gradient-to-b from-emerald-500/0 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/0 via-emerald-500/0 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
                     
-                    <div className="relative mb-6">
-                      <div className="absolute inset-0 bg-emerald-500 rounded-full blur-xl opacity-0 group-hover:opacity-30 transition-opacity duration-300" />
-                      <img src={c.image_base64} alt={c.name} className="relative w-32 h-32 rounded-full object-cover border-4 border-stone-800 group-hover:border-emerald-500 transition-colors duration-300 shadow-xl" />
+                    {/* Profile Section */}
+                    <div className="flex items-center gap-6 min-w-[200px]">
+                      <div className="relative shrink-0">
+                        <div className="absolute inset-0 bg-emerald-500 rounded-full blur-xl opacity-0 group-hover:opacity-30 transition-opacity duration-300" />
+                        <img src={c.image_base64} alt={c.name} className="relative w-16 h-16 rounded-full object-cover border-2 border-stone-800 group-hover:border-emerald-500 transition-colors duration-300 shadow-lg" />
+                      </div>
+                      <span className="relative text-stone-200 text-lg font-black uppercase tracking-[0.2em] group-hover:text-emerald-400 transition-colors">{c.name}</span>
                     </div>
                     
-                    <span className="relative text-stone-200 text-xl font-black uppercase tracking-[0.2em] group-hover:text-emerald-400 mb-6 text-center transition-colors">{c.name}</span>
-                    
-                    <div className="relative flex gap-3 w-full mb-6">
-                      <div className="flex-1 bg-stone-950/50 rounded-2xl p-4 flex flex-col items-center border border-white/5 group-hover:border-white/10 transition-colors">
-                        <span className="text-[8px] text-stone-500 uppercase font-black tracking-[0.2em] mb-2 text-center leading-tight">Avg Score</span>
-                        <span className="text-2xl font-black text-stone-200 group-hover:text-white transition-colors tracking-tighter">{c.avg_score != null ? Math.round(c.avg_score) : 0}<span className="text-sm text-stone-500 ml-0.5 tracking-normal">%</span></span>
+                    {/* Metrics Section */}
+                    <div className="flex gap-12 items-center flex-1 justify-center sm:justify-start">
+                      <div className="flex flex-col items-center sm:items-start min-w-[100px]">
+                        <span className="text-[8px] text-stone-500 uppercase font-black tracking-[0.2em] mb-1 leading-tight">Avg Score</span>
+                        <span className="text-2xl font-black text-stone-200 group-hover:text-white transition-colors tracking-tighter">
+                          {c.avg_score != null ? Math.round(c.avg_score) : 0}
+                          <span className="text-sm text-stone-500 ml-0.5">%</span>
+                        </span>
                       </div>
-                      <div className="flex-1 bg-stone-950/50 rounded-2xl p-4 flex flex-col items-center border border-white/5 group-hover:border-white/10 transition-colors">
-                        <span className="text-[8px] text-stone-500 uppercase font-black tracking-[0.2em] mb-2 text-center leading-tight">Accuracy</span>
-                        <span className="text-2xl font-black text-stone-200 group-hover:text-white transition-colors tracking-tighter">{c.accuracy != null ? Math.round(c.accuracy) : 0}<span className="text-sm text-stone-500 ml-0.5 tracking-normal">%</span></span>
+                      <div className="flex flex-col items-center sm:items-start min-w-[100px]">
+                        <span className="text-[8px] text-stone-500 uppercase font-black tracking-[0.2em] mb-1 leading-tight">Accuracy</span>
+                        <span className="text-2xl font-black text-stone-200 group-hover:text-white transition-colors tracking-tighter">
+                          {c.accuracy != null ? Math.round(c.accuracy) : 0}
+                          <span className="text-sm text-stone-500 ml-0.5">%</span>
+                        </span>
                       </div>
                     </div>
-                    <button 
-                      onClick={(e) => downloadReport(c, e)}
-                      className="relative w-full py-4 bg-stone-950/80 hover:bg-emerald-500 text-stone-400 hover:text-stone-950 border border-white/5 hover:border-transparent rounded-xl flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all duration-300 z-10 shadow-lg"
-                    >
-                      <Download className="w-4 h-4" /> Download Report
-                    </button>
+                    
+                    {/* Actions Section */}
+                    <div className="flex items-center gap-4 w-full sm:w-auto justify-end z-10 shrink-0">
+                      <button 
+                        onClick={(e) => downloadReport(c, e)}
+                        className="py-3 px-6 bg-stone-950/80 hover:bg-emerald-500 text-stone-400 hover:text-stone-950 border border-white/5 hover:border-transparent rounded-xl flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all duration-300 shadow-md hover:scale-105"
+                      >
+                        <Download className="w-3.5 h-3.5" /> Download Report
+                      </button>
+                      <button 
+                        onClick={(e) => handleDelete(c.id, e)}
+                        className="p-3 bg-stone-950/80 hover:bg-red-500 text-stone-500 hover:text-white border border-white/5 hover:border-transparent rounded-xl flex items-center justify-center transition-all duration-300 shadow-md hover:scale-105"
+                        title="Delete Cadet"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

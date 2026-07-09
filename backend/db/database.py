@@ -104,3 +104,13 @@ def get_cadet_sessions(cadet_id: int) -> list[dict]:
     conn.close()
     
     return [dict(row) for row in rows]
+
+def delete_cadet(cadet_id: int) -> bool:
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM sessions WHERE cadet_id = ?', (cadet_id,))
+    cursor.execute('DELETE FROM cadets WHERE id = ?', (cadet_id,))
+    conn.commit()
+    conn.close()
+    return True
+
