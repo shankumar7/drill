@@ -29,30 +29,43 @@ class AutoCalibrationRule(EvaluationRule):
         
         msg = f"Step {CALIBRATION_STATE['step']}: "
         
-        if CALIBRATION_STATE["step"] == 1:
+        # We use a step-specific history key to avoid carryover between steps.
+        step = CALIBRATION_STATE["step"]
+        history_key = f"{self.name}_step_{step}"
+        history = detection.posture_history.setdefault(history_key, []) if detection.posture_history is not None else []
+        
+        is_passing = False
+        
+        if step == 1:
             msg += "Raise your RIGHT hand"
             # Right wrist (10) should be above right shoulder (6). (y goes down, so y should be smaller)
             if k[10, 2] > 0.4 and k[6, 2] > 0.4:
                 if k[10, 1] < k[6, 1] - 30: # significantly above
-                    # Only lock if we haven't yet, or if it's the strongest signal
-                    return RuleResult(self.name, "pass", 100, "Right hand detected!")
-            return RuleResult(self.name, "fail", 0, msg)
+                    is_passing = True
 
-        elif CALIBRATION_STATE["step"] == 2:
+        elif step == 2:
             msg += "Raise your LEFT hand"
             if k[9, 2] > 0.4 and k[5, 2] > 0.4:
                 if k[9, 1] < k[5, 1] - 30:
-                    return RuleResult(self.name, "pass", 100, "Left hand detected!")
-            return RuleResult(self.name, "fail", 0, msg)
+                    is_passing = True
             
-        elif CALIBRATION_STATE["step"] == 3:
+        elif step == 3:
             msg += "Turn to your RIGHT side"
             # When a person turns to their right side, they face the left of the image (from front camera's perspective).
             # So the right shoulder (6) is closer to the camera, and left shoulder (5) is hidden or behind.
             # Also, from the "front" camera, the width between shoulders drops significantly.
             shoulder_dist = abs(k[5, 0] - k[6, 0])
             if shoulder_dist < 40 and k[6, 2] > 0.5: # Shoulders overlap, right shoulder visible
-                return RuleResult(self.name, "pass", 100, "Turn detected!")
-            return RuleResult(self.name, "fail", 0, msg)
+                is_passing = True
 
-        return RuleResult(self.name, "fail", 0, "Unknown calibration state")
+        history.append(100 if is_passing else 0)
+        del history[:-10]  # Keep last 10 frames (~0.5s at 20fps)
+        
+        stable_score = sum(history) / len(history) if history else 0
+        
+        if stable_score >= 80 and len(history) >= 5:
+            # Clear this history list on success so it doesn't linger if evaluated again
+            history.clear()
+            return RuleResult(self.name, "pass", 100, f"Step {step} conditions met!")
+        else:
+            return RuleResult(self.name, "fail", 0, msg)

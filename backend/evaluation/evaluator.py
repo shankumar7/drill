@@ -33,7 +33,7 @@ class StaticPostureEvaluator:
                 SavdhanFootAngleRule(),
                 SavdhanArmPositionRule(),
                 KneeDistanceRule("close"),
-                SavdhanVishramHeadAlignmentRule(),
+                SavdhanHeadAlignmentRule(),
                 SavdhanBackPostureRule(160, 210),
                 SavdhanBodyPostureRule(160, 200),
                 SavdhanShoulderLevelRule()
@@ -43,7 +43,7 @@ class StaticPostureEvaluator:
                 VishramSpacingRule(),
                 VishramHandPositionRule(),
                 KneeLockRule(),
-                HeadAlignmentRule(),
+                VishramHeadAlignmentRule(),
                 VishramBackPostureRule(160, 210),
                 VishramBodyPostureRule(160, 200),
                 VishramShoulderLevelRule()

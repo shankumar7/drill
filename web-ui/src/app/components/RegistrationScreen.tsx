@@ -283,7 +283,7 @@ export function RegistrationScreen({ onComplete }: { onComplete: (cadet: any) =>
         )}
 
         {mode === "login" && (
-          <div className="flex flex-col gap-6 w-full max-w-sm mx-auto">
+          <form onSubmit={handleLogin} className="flex flex-col gap-6 w-full max-w-sm mx-auto">
             <div className="text-center mb-4">
               <h3 className="text-stone-200 text-xl font-black uppercase tracking-widest mb-2">Authentication</h3>
               <p className="text-stone-500 text-xs font-bold uppercase tracking-widest">Enter your 4-digit security PIN</p>
@@ -291,11 +291,11 @@ export function RegistrationScreen({ onComplete }: { onComplete: (cadet: any) =>
             <div className="relative">
               <input type="password" placeholder="****" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} maxLength={4} className="w-full bg-stone-950/50 border border-white/10 rounded-2xl p-6 text-center text-4xl tracking-[1em] text-emerald-400 font-black shadow-inner focus:outline-none focus:border-emerald-500/50 focus:shadow-[0_0_30px_rgba(16,185,129,0.1)] transition-all placeholder:text-stone-800" />
             </div>
-            <button onClick={handleLogin} disabled={loading || pin.length !== 4} className="p-4 bg-stone-800 hover:bg-emerald-900/50 text-stone-300 hover:text-emerald-400 border border-white/5 hover:border-emerald-500/30 rounded-2xl font-black uppercase tracking-widest transition-all disabled:opacity-50 disabled:pointer-events-none mt-2 shadow-lg">
+            <button type="submit" disabled={loading || pin.length !== 4} className="p-4 bg-stone-800 hover:bg-emerald-900/50 text-stone-300 hover:text-emerald-400 border border-white/5 hover:border-emerald-500/30 rounded-2xl font-black uppercase tracking-widest transition-all disabled:opacity-50 disabled:pointer-events-none mt-2 shadow-lg">
               {loading ? "Authenticating..." : "Login"}
             </button>
-            <button onClick={() => { setMode("choose"); setError(""); setPin(""); }} className="text-stone-500 hover:text-stone-300 text-[10px] font-black uppercase tracking-widest mt-2 hover:underline underline-offset-4">Cancel</button>
-          </div>
+            <button type="button" onClick={() => { setMode("choose"); setError(""); setPin(""); }} className="text-stone-500 hover:text-stone-300 text-[10px] font-black uppercase tracking-widest mt-2 hover:underline underline-offset-4">Cancel</button>
+          </form>
         )}
 
         {mode === "register" && (

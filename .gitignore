@@ -56,3 +56,10 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+
+# Local/distribution folders
+node-dist/
+python-dist/
+
+# Local error logs
+fusion_error.txt

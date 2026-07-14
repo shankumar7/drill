@@ -14,3 +14,4 @@ openai-whisper
 python-multipart
 fastapi
 uvicorn
+websockets

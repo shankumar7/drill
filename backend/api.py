@@ -399,6 +399,18 @@ async def lock_cadet(req: LockCadetRequest):
 async def update_mode(req: ModeRequest):
     global ACTIVE_MODE, LATEST_TELEMETRY
     ACTIVE_MODE = req.mode
+    if ACTIVE_MODE == "CALIBRATION":
+        from backend.evaluation.rules.calibration import CALIBRATION_STATE
+        CALIBRATION_STATE["step"] = 1
+        CALIBRATION_STATE["front_cam_id"] = None
+        CALIBRATION_STATE["side_cam_id"] = None
+        CALIBRATION_STATE["back_cam_id"] = None
+        CALIBRATION_STATE["locked_track_id"] = None
+        CALIBRATION_STATE["completed"] = False
+        CALIBRATION_STATE["last_success_time"] = 0
+        global LOCKED_CADET_IDS
+        LOCKED_CADET_IDS.clear()
+        print("API mode change: Reset calibration state to step 1")
     if LATEST_TELEMETRY:
         LATEST_TELEMETRY["active_mode"] = ACTIVE_MODE
     print(f"Manual mode change: {ACTIVE_MODE}")
@@ -562,13 +574,15 @@ async def fusion_evaluator_loop():
                             LOCKED_CADET_IDS = {front_cam: track_id}
                         elif step == 2:
                             for c, t in passed_cams:
-                                if c == CALIBRATION_STATE["front_cam_id"] and t == CALIBRATION_STATE["locked_track_id"]:
+                                if c == CALIBRATION_STATE["front_cam_id"]:
+                                    CALIBRATION_STATE["locked_track_id"] = t
                                     CALIBRATION_STATE["step"] = 3
                                     CALIBRATION_STATE["last_success_time"] = time.time()
                                     break
                         elif step == 3:
                             for c, t in passed_cams:
                                 if c == CALIBRATION_STATE["front_cam_id"]:
+                                    CALIBRATION_STATE["locked_track_id"] = t
                                     CALIBRATION_STATE["completed"] = True
                                     CALIBRATION_STATE["last_success_time"] = time.time()
                                     remaining = [cam for cam in [0,1,2] if cam != c]
@@ -726,6 +740,20 @@ async def websocket_telemetry(websocket: WebSocket):
     global ACTIVE_MODE
     await websocket.accept()
     
+    # Reset calibration state on new websocket connection if we are in CALIBRATION mode
+    if ACTIVE_MODE == "CALIBRATION":
+        from backend.evaluation.rules.calibration import CALIBRATION_STATE
+        CALIBRATION_STATE["step"] = 1
+        CALIBRATION_STATE["front_cam_id"] = None
+        CALIBRATION_STATE["side_cam_id"] = None
+        CALIBRATION_STATE["back_cam_id"] = None
+        CALIBRATION_STATE["locked_track_id"] = None
+        CALIBRATION_STATE["completed"] = False
+        CALIBRATION_STATE["last_success_time"] = 0
+        global LOCKED_CADET_IDS
+        LOCKED_CADET_IDS.clear()
+        print("Websocket connected: Reset calibration state to step 1")
+    
     async def send_telemetry():
         while True:
             try:
@@ -735,7 +763,7 @@ async def websocket_telemetry(websocket: WebSocket):
                 break
 
     async def receive_mode():
-        global ACTIVE_MODE
+        global ACTIVE_MODE, LATEST_TELEMETRY
         while True:
             try:
                 data = await websocket.receive_text()
@@ -745,6 +773,18 @@ async def websocket_telemetry(websocket: WebSocket):
                     # Fix spelling mismatch from UI "Savadhan" vs backend "SAVDHAN"
                     if ACTIVE_MODE == "SAVADHAN":
                         ACTIVE_MODE = "SAVDHAN"
+                    if ACTIVE_MODE == "CALIBRATION":
+                        from backend.evaluation.rules.calibration import CALIBRATION_STATE
+                        CALIBRATION_STATE["step"] = 1
+                        CALIBRATION_STATE["front_cam_id"] = None
+                        CALIBRATION_STATE["side_cam_id"] = None
+                        CALIBRATION_STATE["back_cam_id"] = None
+                        CALIBRATION_STATE["locked_track_id"] = None
+                        CALIBRATION_STATE["completed"] = False
+                        CALIBRATION_STATE["last_success_time"] = 0
+                        LOCKED_CADET_IDS.clear()
+                        print("Websocket mode change: Reset calibration state to step 1")
+                    LATEST_TELEMETRY["active_mode"] = ACTIVE_MODE
                     print(f"Mode switched to {ACTIVE_MODE}")
             except Exception:
                 break
