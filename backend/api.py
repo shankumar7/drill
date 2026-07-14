@@ -457,6 +457,19 @@ async def process_voice_command(audio: UploadFile = File(...)):
 async def video_feed(camera_id: int):
     return StreamingResponse(generate_frames(camera_id), media_type="multipart/x-mixed-replace; boundary=frame")
 
+@app.get("/api/snapshot/{camera_id}")
+async def get_snapshot(camera_id: int):
+    import base64
+    frame = ANNOTATED_FRAMES.get(camera_id)
+    if frame is None:
+        frame = np.ones((480, 640, 3), dtype=np.uint8) * 150
+        cv2.putText(frame, "NO SIGNAL", (200, 240), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+    ret, buffer = cv2.imencode('.jpg', frame)
+    if not ret:
+        return {"status": "error", "message": "Failed to encode frame"}
+    b64_str = base64.b64encode(buffer).decode('utf-8')
+    return {"status": "ok", "image": f"data:image/jpeg;base64,{b64_str}"}
+
 @app.on_event("startup")
 async def startup_event():
     init_db()

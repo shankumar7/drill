@@ -14,67 +14,36 @@ export function RegistrationScreen({ onComplete }: { onComplete: (cadet: any) =>
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [cadets, setCadets] = useState<any[]>([]);
-  const [cameras, setCameras] = useState<MediaDeviceInfo[]>([]);
-  const [currentCameraIndex, setCurrentCameraIndex] = useState(0);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  
+  const [frontCamId, setFrontCamId] = useState<number>(0);
+
   useEffect(() => {
     fetch("http://localhost:8000/api/cadets")
       .then(res => res.json())
       .then(data => { if (data.status === "ok") setCadets(data.cadets); })
       .catch(err => console.error(err));
+
+    fetch("http://localhost:8000/api/settings")
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.camera_mapping && data.camera_mapping.front !== undefined) {
+          setFrontCamId(data.camera_mapping.front);
+        }
+      })
+      .catch(err => console.error(err));
   }, []);
-  useEffect(() => {
-    if (mode === "register") {
-      navigator.mediaDevices.enumerateDevices().then(devices => {
-        setCameras(devices.filter(d => d.kind === "videoinput"));
-      });
-    }
-  }, [mode]);
 
-  useEffect(() => {
-    if (mode === "register") {
-      const constraints: MediaStreamConstraints = { video: true };
-      if (cameras.length > 0 && cameras[currentCameraIndex]) {
-        constraints.video = { deviceId: { exact: cameras[currentCameraIndex].deviceId } };
+  const capturePhoto = async () => {
+    try {
+      const res = await fetch(`${BASE_URL}/api/snapshot/${frontCamId}`);
+      const data = await res.json();
+      if (data.status === "ok") {
+        setImage(data.image);
+      } else {
+        setError(data.message || "Failed to capture photo");
       }
-      
-      if (videoRef.current && videoRef.current.srcObject) {
-        const stream = videoRef.current.srcObject as MediaStream;
-        stream.getTracks().forEach(t => t.stop());
-      }
-
-      navigator.mediaDevices.getUserMedia(constraints)
-        .then(stream => {
-          if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-          }
-        })
-        .catch(err => console.error("Webcam error:", err));
-    } else {
-      if (videoRef.current && videoRef.current.srcObject) {
-        const stream = videoRef.current.srcObject as MediaStream;
-        stream.getTracks().forEach(t => t.stop());
-      }
-    }
-    return () => {
-      if (videoRef.current && videoRef.current.srcObject) {
-        const stream = videoRef.current.srcObject as MediaStream;
-        stream.getTracks().forEach(t => t.stop());
-      }
-    };
-  }, [mode, currentCameraIndex, cameras]);
-
-  const capturePhoto = () => {
-    if (videoRef.current) {
-      const canvas = document.createElement("canvas");
-      canvas.width = videoRef.current.videoWidth;
-      canvas.height = videoRef.current.videoHeight;
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        ctx.drawImage(videoRef.current, 0, 0);
-        setImage(canvas.toDataURL("image/jpeg", 0.8));
-      }
+    } catch (err) {
+      console.error("Capture error:", err);
+      setError("Webcam capture error");
     }
   };
 
@@ -307,16 +276,14 @@ export function RegistrationScreen({ onComplete }: { onComplete: (cadet: any) =>
             <div className="relative bg-stone-950/80 border border-white/10 rounded-2xl h-48 overflow-hidden flex items-center justify-center group shadow-inner">
               {!image ? (
                 <>
-                  <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:opacity-60 transition-opacity" />
+                  <img src={`${BASE_URL}/api/video_feed/${frontCamId}`} className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:opacity-60 transition-opacity" />
                   <button onClick={capturePhoto} className="relative z-10 flex flex-col items-center gap-2 p-4 bg-black/40 backdrop-blur-md hover:bg-emerald-900/60 rounded-2xl border border-white/10 hover:border-emerald-500/50 transition-all shadow-lg hover:shadow-emerald-500/20 hover:scale-105">
                     <Camera className="w-8 h-8 text-stone-300 group-hover:text-emerald-400 transition-colors" />
                     <span className="text-[10px] font-black uppercase tracking-widest text-stone-400 group-hover:text-emerald-400">Capture Photo</span>
                   </button>
-                  {cameras.length > 1 && (
-                    <button onClick={() => setCurrentCameraIndex((currentCameraIndex + 1) % cameras.length)} className="absolute top-3 right-3 z-20 p-2 bg-stone-900/80 backdrop-blur-md rounded-full hover:bg-emerald-600 border border-white/10 transition-colors shadow-lg">
-                      <RefreshCw className="w-4 h-4 text-white" />
-                    </button>
-                  )}
+                  <button onClick={() => setFrontCamId((frontCamId + 1) % 3)} className="absolute top-3 right-3 z-20 p-2 bg-stone-900/80 backdrop-blur-md rounded-full hover:bg-emerald-600 border border-white/10 transition-colors shadow-lg" title="Switch Camera Source">
+                    <RefreshCw className="w-4 h-4 text-white" />
+                  </button>
                 </>
               ) : (
                 <>
