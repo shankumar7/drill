@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { Gauge } from "../components/Gauge";
-import { Mic, CheckCircle2, AlertCircle, HelpCircle, ChevronRightCircle, Activity, Camera, Maximize, PlayCircle, Settings, X, LogOut, Check, Wifi, WifiOff, Crosshair, Target, BarChart3 } from "lucide-react";
+import { Mic, CheckCircle2, AlertCircle, HelpCircle, ChevronRightCircle, Activity, Camera, Maximize, PlayCircle, Settings, X, LogOut, Check, Wifi, WifiOff, Crosshair, Target, BarChart3, ChevronLeft, ChevronRight } from "lucide-react";
 import { RegistrationScreen } from "./components/RegistrationScreen";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -602,6 +602,17 @@ function Dashboard({ activeCadet, onComplete }: { activeCadet: any; onComplete: 
   const failStartTime = useRef<number | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeout = useRef<NodeJS.Timeout | null>(null);
+  const modesContainerRef = useRef<HTMLDivElement>(null);
+
+  const scrollModes = (direction: "left" | "right") => {
+    if (modesContainerRef.current) {
+      const scrollAmount = 200;
+      modesContainerRef.current.scrollBy({
+        left: direction === "left" ? -scrollAmount : scrollAmount,
+        behavior: "smooth"
+      });
+    }
+  };
 
   const fetchSettings = () => fetch(`${BASE_URL}/api/settings`).then(r => r.json()).then(setSettings).catch(() => {});
 
@@ -735,13 +746,34 @@ function Dashboard({ activeCadet, onComplete }: { activeCadet: any; onComplete: 
             <div className="text-[8px] font-bold tracking-[0.3em] text-stone-700 uppercase mt-0.5">SDD · MCEME · REAL-TIME</div>
           </div>
         </div>
-        <div className="hidden lg:flex flex-1 mx-4 overflow-x-auto no-scrollbar items-center gap-1 bg-stone-900/80 border border-white/[0.04] rounded-full p-1 shadow-inner">
-          {drillModes.map(m => (
-            <button key={m.val} onClick={() => changeMode(m.val)}
-              className={`shrink-0 px-4 py-1.5 text-[10px] font-black tracking-[0.1em] uppercase rounded-full transition-all duration-300 ${telemetry.active_mode === m.val ? "bg-emerald-500 text-stone-950 shadow-[0_0_15px_rgba(16,185,129,0.3)]" : "text-stone-500 hover:bg-stone-800/80 hover:text-stone-200"}`}>
-              {m.label}
-            </button>
-          ))}
+        <div className="hidden lg:flex items-center flex-1 mx-4 bg-stone-900/80 border border-white/[0.04] rounded-full p-1 shadow-inner overflow-hidden max-w-[50%] xl:max-w-[65%]">
+          <button onClick={() => scrollModes("left")} className="p-1 hover:bg-stone-800 rounded-full text-stone-500 hover:text-stone-300 transition-colors shrink-0" title="Scroll Left">
+            <ChevronLeft className="w-3.5 h-3.5" />
+          </button>
+          <div ref={modesContainerRef} className="flex-1 flex overflow-x-auto no-scrollbar items-center gap-1 scroll-smooth">
+            {drillModes.map(m => (
+              <button key={m.val} onClick={() => changeMode(m.val)}
+                className={`shrink-0 px-4 py-1.5 text-[10px] font-black tracking-[0.1em] uppercase rounded-full transition-all duration-300 ${telemetry.active_mode === m.val ? "bg-emerald-500 text-stone-950 shadow-[0_0_15px_rgba(16,185,129,0.3)]" : "text-stone-500 hover:bg-stone-800/80 hover:text-stone-200"}`}>
+                {m.label}
+              </button>
+            ))}
+          </div>
+          <button onClick={() => scrollModes("right")} className="p-1 hover:bg-stone-800 rounded-full text-stone-500 hover:text-stone-300 transition-colors shrink-0" title="Scroll Right">
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+        <div className="flex lg:hidden items-center mx-2 shrink-0">
+          <select 
+            value={telemetry.active_mode || "SAVDHAN"} 
+            onChange={(e) => changeMode(e.target.value)} 
+            className="bg-stone-900/90 border border-white/10 rounded-xl px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-stone-300 focus:outline-none focus:border-emerald-500"
+          >
+            {drillModes.map(m => (
+              <option key={m.val} value={m.val} className="bg-stone-950 text-stone-300">
+                {m.label}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="flex items-center gap-3">
           <SessionTimer running={wsStatus === "connected"} />
