@@ -15,6 +15,16 @@ export function RegistrationScreen({ onComplete }: { onComplete: (cadet: any) =>
   const [loading, setLoading] = useState(false);
   const [cadets, setCadets] = useState<any[]>([]);
   const [frontCamId, setFrontCamId] = useState<number>(0);
+  const pinInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (mode === "login" && pinInputRef.current) {
+      const timer = setTimeout(() => {
+        pinInputRef.current?.focus();
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [mode]);
 
   useEffect(() => {
     fetch("http://localhost:8000/api/cadets")
@@ -258,7 +268,7 @@ export function RegistrationScreen({ onComplete }: { onComplete: (cadet: any) =>
               <p className="text-stone-500 text-xs font-bold uppercase tracking-widest">Enter your 4-digit security PIN</p>
             </div>
             <div className="relative">
-              <input type="password" placeholder="****" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} maxLength={4} className="w-full bg-stone-950/50 border border-white/10 rounded-2xl p-6 text-center text-4xl tracking-[1em] text-emerald-400 font-black shadow-inner focus:outline-none focus:border-emerald-500/50 focus:shadow-[0_0_30px_rgba(16,185,129,0.1)] transition-all placeholder:text-stone-800" />
+              <input ref={pinInputRef} autoFocus type="password" placeholder="****" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} maxLength={4} className="w-full bg-stone-950/50 border border-white/10 rounded-2xl p-6 text-center text-4xl tracking-[1em] text-emerald-400 font-black shadow-inner focus:outline-none focus:border-emerald-500/50 focus:shadow-[0_0_30px_rgba(16,185,129,0.1)] transition-all placeholder:text-stone-800" />
             </div>
             <button type="submit" disabled={loading || pin.length !== 4} className="p-4 bg-stone-800 hover:bg-emerald-900/50 text-stone-300 hover:text-emerald-400 border border-white/5 hover:border-emerald-500/30 rounded-2xl font-black uppercase tracking-widest transition-all disabled:opacity-50 disabled:pointer-events-none mt-2 shadow-lg">
               {loading ? "Authenticating..." : "Login"}
