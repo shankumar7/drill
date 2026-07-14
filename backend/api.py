@@ -221,6 +221,7 @@ from queue import Queue, Empty
 CAMERA_QUEUES = {0: Queue(maxsize=3), 1: Queue(maxsize=3), 2: Queue(maxsize=3)}
 CAMERA_READERS = {}
 ANNOTATED_FRAMES = {0: None, 1: None, 2: None}
+RAW_FRAMES = {0: None, 1: None, 2: None}
 
 async def synchronized_inference_loop():
     import time
@@ -269,6 +270,7 @@ async def synchronized_inference_loop():
                         
                         MULTI_CAM_DETECTIONS[cam_id] = {"det": det, "ts": time.time(), "ppi": ppi, "conf": avg_conf, "available_ids": available_ids, "all_dets": detections}
                         
+                        RAW_FRAMES[cam_id] = frame.copy()
                         annotated = frame.copy()
                         if SETTINGS.get("show_skeleton", True):
                             _draw_skeleton(annotated, det.keypoints, color_name=SETTINGS.get("skeleton_color", "green"), opacity=SETTINGS.get("overlay_opacity", 0.8))
@@ -281,6 +283,7 @@ async def synchronized_inference_loop():
                         ANNOTATED_FRAMES[cam_id] = annotated
                     else:
                         MULTI_CAM_DETECTIONS[cam_id] = None
+                        RAW_FRAMES[cam_id] = frame.copy()
                         ANNOTATED_FRAMES[cam_id] = frame.copy()
                 except Exception as e:
                     import traceback
@@ -288,10 +291,10 @@ async def synchronized_inference_loop():
                     print(f"Error in ML pipeline: {e}")
                     
         await asyncio.to_thread(_infer)
-
-async def generate_frames(camera_id: int):
+ 
+async def generate_frames(camera_id: int, raw: bool = False):
     while True:
-        frame = ANNOTATED_FRAMES.get(camera_id)
+        frame = RAW_FRAMES.get(camera_id) if raw else ANNOTATED_FRAMES.get(camera_id)
         if frame is None:
             frame = np.ones((480, 640, 3), dtype=np.uint8) * 150
             cv2.putText(frame, f"CAM {camera_id} - WAITING", (150, 240), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
@@ -454,13 +457,13 @@ async def process_voice_command(audio: UploadFile = File(...)):
     return {"error": "Voice commands disabled (Whisper removed)"}
 
 @app.get("/api/video_feed/{camera_id}")
-async def video_feed(camera_id: int):
-    return StreamingResponse(generate_frames(camera_id), media_type="multipart/x-mixed-replace; boundary=frame")
+async def video_feed(camera_id: int, raw: bool = False):
+    return StreamingResponse(generate_frames(camera_id, raw), media_type="multipart/x-mixed-replace; boundary=frame")
 
 @app.get("/api/snapshot/{camera_id}")
-async def get_snapshot(camera_id: int):
+async def get_snapshot(camera_id: int, raw: bool = True):
     import base64
-    frame = ANNOTATED_FRAMES.get(camera_id)
+    frame = RAW_FRAMES.get(camera_id) if raw else ANNOTATED_FRAMES.get(camera_id)
     if frame is None:
         frame = np.ones((480, 640, 3), dtype=np.uint8) * 150
         cv2.putText(frame, "NO SIGNAL", (200, 240), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
