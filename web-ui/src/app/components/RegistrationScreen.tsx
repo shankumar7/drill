@@ -57,7 +57,8 @@ export function RegistrationScreen({ onComplete }: { onComplete: (cadet: any) =>
     }
   };
 
-  const handleRegister = async () => {
+  const handleRegister = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!name || pin.length < 4 || !image) {
       setError("Please fill all fields and capture a photo.");
       return;
@@ -278,7 +279,7 @@ export function RegistrationScreen({ onComplete }: { onComplete: (cadet: any) =>
         )}
 
         {mode === "register" && (
-          <div className="flex flex-col gap-5 w-full max-w-sm mx-auto">
+          <form onSubmit={handleRegister} className="flex flex-col gap-5 w-full max-w-sm mx-auto">
 
             <input type="text" placeholder="Cadet Name" value={name} onChange={(e) => setName(e.target.value)} className="bg-stone-950/50 border border-white/10 rounded-2xl p-4 text-white text-center font-bold tracking-widest uppercase focus:outline-none focus:border-emerald-500/50 transition-all placeholder:text-stone-700 shadow-inner" />
             <input type="password" placeholder="Create 4-digit PIN" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} maxLength={4} className="bg-stone-950/50 border border-white/10 rounded-2xl p-4 text-center text-2xl tracking-[1em] text-emerald-400 font-black focus:outline-none focus:border-emerald-500/50 transition-all placeholder:text-stone-800 shadow-inner" />
@@ -287,27 +288,27 @@ export function RegistrationScreen({ onComplete }: { onComplete: (cadet: any) =>
               {!image ? (
                 <>
                   <img src={`${BASE_URL}/api/video_feed/${frontCamId}?raw=true`} className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:opacity-60 transition-opacity" />
-                  <button onClick={capturePhoto} className="relative z-10 flex flex-col items-center gap-2 p-4 bg-black/40 backdrop-blur-md hover:bg-emerald-900/60 rounded-2xl border border-white/10 hover:border-emerald-500/50 transition-all shadow-lg hover:shadow-emerald-500/20 hover:scale-105">
+                  <button type="button" onClick={capturePhoto} className="relative z-10 flex flex-col items-center gap-2 p-4 bg-black/40 backdrop-blur-md hover:bg-emerald-900/60 rounded-2xl border border-white/10 hover:border-emerald-500/50 transition-all shadow-lg hover:shadow-emerald-500/20 hover:scale-105">
                     <Camera className="w-8 h-8 text-stone-300 group-hover:text-emerald-400 transition-colors" />
                     <span className="text-[10px] font-black uppercase tracking-widest text-stone-400 group-hover:text-emerald-400">Capture Photo</span>
                   </button>
-                  <button onClick={() => setFrontCamId((frontCamId + 1) % 3)} className="absolute top-3 right-3 z-20 p-2 bg-stone-900/80 backdrop-blur-md rounded-full hover:bg-emerald-600 border border-white/10 transition-colors shadow-lg" title="Switch Camera Source">
+                  <button type="button" onClick={() => setFrontCamId((frontCamId + 1) % 3)} className="absolute top-3 right-3 z-20 p-2 bg-stone-900/80 backdrop-blur-md rounded-full hover:bg-emerald-600 border border-white/10 transition-colors shadow-lg" title="Switch Camera Source">
                     <RefreshCw className="w-4 h-4 text-white" />
                   </button>
                 </>
               ) : (
                 <>
                   <img src={image} alt="captured" className="absolute inset-0 w-full h-full object-cover" />
-                  <button onClick={() => setImage(null)} className="relative z-10 px-6 py-3 bg-black/60 backdrop-blur-md rounded-full text-[10px] font-black uppercase tracking-widest text-white border border-white/20 hover:border-red-500 hover:text-red-400 transition-colors shadow-lg">Retake</button>
+                  <button type="button" onClick={() => setImage(null)} className="relative z-10 px-6 py-3 bg-black/60 backdrop-blur-md rounded-full text-[10px] font-black uppercase tracking-widest text-white border border-white/20 hover:border-red-500 hover:text-red-400 transition-colors shadow-lg">Retake</button>
                 </>
               )}
             </div>
 
-            <button onClick={handleRegister} disabled={loading || pin.length !== 4 || !name || !image} className="p-4 bg-emerald-600/20 hover:bg-emerald-600/40 border border-emerald-500/30 text-emerald-400 rounded-2xl font-black uppercase tracking-widest transition-all mt-2 flex items-center justify-center gap-2 disabled:opacity-50 disabled:pointer-events-none shadow-lg hover:shadow-emerald-500/20">
+            <button type="submit" disabled={loading || pin.length !== 4 || !name || !image} className="p-4 bg-emerald-600/20 hover:bg-emerald-600/40 border border-emerald-500/30 text-emerald-400 rounded-2xl font-black uppercase tracking-widest transition-all mt-2 flex items-center justify-center gap-2 disabled:opacity-50 disabled:pointer-events-none shadow-lg hover:shadow-emerald-500/20">
               {loading ? "Registering..." : <><Check className="w-5 h-5" /> Complete Enlistment</>}
             </button>
-            <button onClick={() => { setMode("choose"); setError(""); setPin(""); setName(""); setImage(null); }} className="text-stone-500 hover:text-stone-300 text-[10px] font-black uppercase tracking-widest text-center w-full mt-2 hover:underline underline-offset-4">Cancel</button>
-          </div>
+            <button type="button" onClick={() => { setMode("choose"); setError(""); setPin(""); setName(""); setImage(null); }} className="text-stone-500 hover:text-stone-300 text-[10px] font-black uppercase tracking-widest text-center w-full mt-2 hover:underline underline-offset-4">Cancel</button>
+          </form>
         )}
       </div>
     </motion.div>
