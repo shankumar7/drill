@@ -286,7 +286,7 @@ export function RegistrationScreen({ onComplete }: { onComplete: (cadet: any) =>
             <div className="relative bg-stone-950/80 border border-white/10 rounded-2xl h-48 overflow-hidden flex items-center justify-center group shadow-inner">
               {!image ? (
                 <>
-                  <img src={`${BASE_URL}/api/video_feed/${frontCamId}`} className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:opacity-60 transition-opacity" />
+                  <img src={`${BASE_URL}/api/video_feed/${frontCamId}?raw=true`} className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:opacity-60 transition-opacity" />
                   <button onClick={capturePhoto} className="relative z-10 flex flex-col items-center gap-2 p-4 bg-black/40 backdrop-blur-md hover:bg-emerald-900/60 rounded-2xl border border-white/10 hover:border-emerald-500/50 transition-all shadow-lg hover:shadow-emerald-500/20 hover:scale-105">
                     <Camera className="w-8 h-8 text-stone-300 group-hover:text-emerald-400 transition-colors" />
                     <span className="text-[10px] font-black uppercase tracking-widest text-stone-400 group-hover:text-emerald-400">Capture Photo</span>
