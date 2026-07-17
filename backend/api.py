@@ -222,6 +222,8 @@ CAMERA_QUEUES = {0: Queue(maxsize=3), 1: Queue(maxsize=3), 2: Queue(maxsize=3)}
 CAMERA_READERS = {}
 ANNOTATED_FRAMES = {0: None, 1: None, 2: None}
 RAW_FRAMES = {0: None, 1: None, 2: None}
+ACTIVE_CLIENT_COUNTS = {0: 0, 1: 0, 2: 0}
+CAMERA_LOCK = asyncio.Lock()
 
 async def synchronized_inference_loop():
     import time
@@ -293,15 +295,50 @@ async def synchronized_inference_loop():
         await asyncio.to_thread(_infer)
  
 async def generate_frames(camera_id: int, raw: bool = False):
-    while True:
-        frame = RAW_FRAMES.get(camera_id) if raw else ANNOTATED_FRAMES.get(camera_id)
-        if frame is None:
-            frame = np.ones((480, 640, 3), dtype=np.uint8) * 150
-            cv2.putText(frame, f"CAM {camera_id} - WAITING", (150, 240), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
-            
-        ret, buffer = cv2.imencode('.jpg', frame)
-        yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
-        await asyncio.sleep(1/30)
+    # Dynamic camera reader activation on client connection
+    async with CAMERA_LOCK:
+        ACTIVE_CLIENT_COUNTS[camera_id] += 1
+        if CAMERA_READERS.get(camera_id) is None:
+            try:
+                CAMERA_READERS[camera_id] = CameraReader(camera_id, CAMERA_QUEUES[camera_id])
+                CAMERA_READERS[camera_id].start()
+                print(f"Dynamically started CameraReader for camera {camera_id} (Active clients: {ACTIVE_CLIENT_COUNTS[camera_id]})")
+            except Exception as e:
+                print(f"Failed to dynamically start camera {camera_id}: {e}")
+
+    try:
+        while True:
+            frame = RAW_FRAMES.get(camera_id) if raw else ANNOTATED_FRAMES.get(camera_id)
+            if frame is None:
+                frame = np.ones((480, 640, 3), dtype=np.uint8) * 150
+                cv2.putText(frame, f"CAM {camera_id} - WAITING", (150, 240), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+                
+            ret, buffer = cv2.imencode('.jpg', frame)
+            yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
+            await asyncio.sleep(1/30)
+    finally:
+        # Dynamic camera reader deactivation when stream disconnects
+        async with CAMERA_LOCK:
+            ACTIVE_CLIENT_COUNTS[camera_id] = max(0, ACTIVE_CLIENT_COUNTS[camera_id] - 1)
+            if ACTIVE_CLIENT_COUNTS[camera_id] == 0:
+                reader = CAMERA_READERS.pop(camera_id, None)
+                if reader:
+                    try:
+                        reader.stop()
+                        print(f"Dynamically stopped/released CameraReader for camera {camera_id}")
+                    except Exception as e:
+                        print(f"Error stopping camera {camera_id}: {e}")
+                # Clear frames and queue
+                RAW_FRAMES[camera_id] = None
+                ANNOTATED_FRAMES[camera_id] = None
+                # Drain the queue to prevent stale frames on next startup
+                q = CAMERA_QUEUES.get(camera_id)
+                if q:
+                    while not q.empty():
+                        try:
+                            q.get_nowait()
+                        except Empty:
+                            break
 
 
 
@@ -465,10 +502,26 @@ async def video_feed(camera_id: int, raw: bool = False):
 @app.get("/api/snapshot/{camera_id}")
 async def get_snapshot(camera_id: int, raw: bool = True):
     import base64
-    frame = RAW_FRAMES.get(camera_id) if raw else ANNOTATED_FRAMES.get(camera_id)
+    
+    frame = None
+    if CAMERA_READERS.get(camera_id) is not None:
+        frame = RAW_FRAMES.get(camera_id) if raw else ANNOTATED_FRAMES.get(camera_id)
+    else:
+        try:
+            temp_reader = CameraReader(camera_id, CAMERA_QUEUES[camera_id])
+            temp_reader.start()
+            await asyncio.sleep(0.5)
+            ok, frame_img = temp_reader.capture.read()
+            temp_reader.stop()
+            if ok:
+                frame = frame_img
+        except Exception as e:
+            print(f"Temp camera snapshot failed: {e}")
+
     if frame is None:
         frame = np.ones((480, 640, 3), dtype=np.uint8) * 150
         cv2.putText(frame, "NO SIGNAL", (200, 240), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+        
     ret, buffer = cv2.imencode('.jpg', frame)
     if not ret:
         return {"status": "error", "message": "Failed to encode frame"}
@@ -478,13 +531,6 @@ async def get_snapshot(camera_id: int, raw: bool = True):
 @app.on_event("startup")
 async def startup_event():
     init_db()
-    for cam_id in [0, 1, 2]:
-        try:
-            CAMERA_READERS[cam_id] = CameraReader(cam_id, CAMERA_QUEUES[cam_id])
-            CAMERA_READERS[cam_id].start()
-        except Exception as e:
-            print(f"Failed to start camera {cam_id}: {e}")
-            
     asyncio.create_task(fusion_evaluator_loop())
     asyncio.create_task(prune_stale_detections())
     asyncio.create_task(synchronized_inference_loop())
