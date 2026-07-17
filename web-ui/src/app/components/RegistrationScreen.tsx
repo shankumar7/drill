@@ -368,15 +368,9 @@ export function RegistrationScreen({ onComplete }: { onComplete: (cadet: any) =>
         <div className="absolute inset-0 opacity-20 mix-blend-overlay" style={{ backgroundImage: "url('data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E')" }}></div>
       </div>
 
-      <div className={`relative z-10 bg-stone-900/40 backdrop-blur-3xl border border-white/10 p-8 sm:p-12 flex flex-col transition-all shadow-[0_0_100px_rgba(0,0,0,0.5)] ${mode === "choose" ? "w-[95vw] h-[95vh] rounded-[40px]" : "max-w-lg rounded-3xl w-full items-center"}`}>
+      <div className="relative z-10 bg-stone-900/40 backdrop-blur-3xl border border-white/10 p-8 sm:p-10 flex flex-col transition-all shadow-[0_0_100px_rgba(0,0,0,0.5)] w-[95vw] max-w-6xl h-[88vh] rounded-[40px] overflow-hidden">
         
-        {mode !== "choose" && (
-          <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-stone-100 to-stone-500 uppercase tracking-widest mb-8 text-center drop-shadow-sm">
-            {mode === "register" ? "New Cadet" : "Cadet Login"}
-          </h2>
-        )}
-        
-        {error && <div className="bg-red-950/80 text-red-400 p-4 rounded-xl mb-6 w-full text-center text-xs font-black uppercase tracking-widest border border-red-500/20 shadow-lg backdrop-blur-md">{error}</div>}
+        {error && <div className="bg-red-950/80 text-red-400 p-4 rounded-xl mb-6 w-full text-center text-xs font-black uppercase tracking-widest border border-red-500/20 shadow-lg backdrop-blur-md shrink-0">{error}</div>}
 
         {mode === "choose" && (
           <div className="flex flex-col w-full h-full min-h-0">
@@ -467,54 +461,132 @@ export function RegistrationScreen({ onComplete }: { onComplete: (cadet: any) =>
         )}
 
         {mode === "login" && (
-          <form onSubmit={handleLogin} className="flex flex-col gap-6 w-full max-w-sm mx-auto">
-            <div className="text-center mb-4">
-              <h3 className="text-stone-200 text-xl font-black uppercase tracking-widest mb-2">Authentication</h3>
-              <p className="text-stone-500 text-xs font-bold uppercase tracking-widest">Enter your 4-digit security PIN</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center h-full w-full min-h-0">
+            {/* Left: Branding & Status Panel */}
+            <div className="hidden md:flex flex-col justify-center items-start text-left p-6 border-r border-white/5 h-full">
+              <div className="flex items-center gap-4 mb-6">
+                <img src="/top_right_logo.png" alt="SDD" className="w-12 h-12 object-contain" />
+                <div>
+                  <h3 className="text-stone-100 text-lg font-black tracking-wider uppercase">SDD MCEME</h3>
+                  <p className="text-[10px] text-stone-500 font-bold uppercase tracking-widest">Simulation Development Division</p>
+                </div>
+              </div>
+              <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-stone-100 to-stone-400 uppercase tracking-wider mb-4 leading-tight">
+                Military Drill Posture Analysis
+              </h1>
+              <p className="text-stone-400 text-xs uppercase tracking-wide leading-relaxed mb-6">
+                Real-time Pose Tracking System powered by YOLO11n-POSE. Authenticate using your security PIN to begin static posture evaluation and dynamic sync calculations.
+              </p>
+              <div className="flex flex-col gap-2.5 w-full bg-stone-950/40 border border-white/5 rounded-2xl p-4">
+                <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-widest text-stone-500 border-b border-white/5 pb-2">
+                  <span>Engine Module</span>
+                  <span className="text-emerald-400">Online</span>
+                </div>
+                <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-widest text-stone-500">
+                  <span>Camera Feeds Mapping</span>
+                  <span className="text-stone-300">Front / Side / Back</span>
+                </div>
+              </div>
             </div>
-            <div className="relative">
-              <input ref={pinInputRef} autoFocus type="password" placeholder="****" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} maxLength={4} className="w-full bg-stone-950/50 border border-white/10 rounded-2xl p-6 text-center text-4xl tracking-[1em] text-emerald-400 font-black shadow-inner focus:outline-none focus:border-emerald-500/50 focus:shadow-[0_0_30px_rgba(16,185,129,0.1)] transition-all placeholder:text-stone-800" />
-            </div>
-            <button type="submit" disabled={loading || pin.length !== 4} className="p-4 bg-stone-800 hover:bg-emerald-900/50 text-stone-300 hover:text-emerald-400 border border-white/5 hover:border-emerald-500/30 rounded-2xl font-black uppercase tracking-widest transition-all disabled:opacity-50 disabled:pointer-events-none mt-2 shadow-lg">
-              {loading ? "Authenticating..." : "Login"}
-            </button>
-            <button type="button" onClick={() => { setMode("choose"); setError(""); setPin(""); }} className="text-stone-500 hover:text-stone-300 text-[10px] font-black uppercase tracking-widest mt-2 hover:underline underline-offset-4">Cancel</button>
-          </form>
+
+            {/* Right: Keypad Entry */}
+            <form onSubmit={handleLogin} className="flex flex-col gap-6 w-full max-w-sm mx-auto justify-center h-full">
+              <div className="text-center mb-2">
+                <h3 className="text-stone-200 text-2xl font-black uppercase tracking-widest mb-2">Cadet Login</h3>
+                <p className="text-stone-500 text-xs font-bold uppercase tracking-widest">Enter your 4-digit security PIN</p>
+              </div>
+              <div className="relative">
+                <input ref={pinInputRef} autoFocus type="password" placeholder="••••" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} maxLength={4} className="w-full bg-stone-950/50 border border-white/10 rounded-2xl p-5 text-center text-4xl tracking-[1em] text-emerald-400 font-black shadow-inner focus:outline-none focus:border-emerald-500/50 focus:shadow-[0_0_30px_rgba(16,185,129,0.1)] transition-all placeholder:text-stone-850" />
+              </div>
+              <button type="submit" disabled={loading || pin.length !== 4} className="p-4 bg-emerald-500 hover:bg-emerald-400 disabled:bg-stone-850 disabled:text-stone-600 disabled:border-transparent text-stone-950 hover:scale-[1.02] border border-transparent rounded-2xl font-black uppercase tracking-widest transition-all mt-2 shadow-lg hover:shadow-emerald-500/20">
+                {loading ? "Authenticating..." : "Authenticate"}
+              </button>
+              <button type="button" onClick={() => { setMode("choose"); setError(""); setPin(""); }} className="text-stone-500 hover:text-stone-300 text-[10px] font-black uppercase tracking-widest mt-2 hover:underline underline-offset-4 text-center">Cancel</button>
+            </form>
+          </div>
         )}
 
         {mode === "register" && (
-          <form onSubmit={handleRegister} className="flex flex-col gap-5 w-full max-w-sm mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch h-full w-full min-h-0">
+            {/* Left Column: Camera Capture Panel */}
+            <div className="flex flex-col gap-4 h-full justify-between">
+              <div className="text-left">
+                <h3 className="text-stone-300 text-xs font-black uppercase tracking-[0.2em] mb-1">Step 1: Profile Image</h3>
+                <p className="text-[10px] text-stone-500 font-bold uppercase tracking-wider">Capture photo for AI skeleton tracking mapping</p>
+              </div>
 
-            <input type="text" placeholder="Cadet Name" value={name} onChange={(e) => setName(e.target.value)} className="bg-stone-950/50 border border-white/10 rounded-2xl p-4 text-white text-center font-bold tracking-widest uppercase focus:outline-none focus:border-emerald-500/50 transition-all placeholder:text-stone-700 shadow-inner" />
-            <input type="text" placeholder="Unit / Batch (Optional)" value={cadetUnit} onChange={(e) => setCadetUnit(e.target.value)} className="bg-stone-950/50 border border-white/10 rounded-2xl p-4 text-white text-center font-bold tracking-widest uppercase focus:outline-none focus:border-emerald-500/50 transition-all placeholder:text-stone-700 shadow-inner" />
-            <input type="text" placeholder="Instructor Name (Optional)" value={cadetInstructor} onChange={(e) => setCadetInstructor(e.target.value)} className="bg-stone-950/50 border border-white/10 rounded-2xl p-4 text-white text-center font-bold tracking-widest uppercase focus:outline-none focus:border-emerald-500/50 transition-all placeholder:text-stone-700 shadow-inner" />
-            <input type="password" placeholder="Create 4-digit PIN" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} maxLength={4} className="bg-stone-950/50 border border-white/10 rounded-2xl p-4 text-center text-2xl tracking-[1em] text-emerald-400 font-black focus:outline-none focus:border-emerald-500/50 transition-all placeholder:text-stone-800 shadow-inner" />
-            
-            <div className="relative bg-stone-950/80 border border-white/10 rounded-2xl h-48 overflow-hidden flex items-center justify-center group shadow-inner">
-              {!image ? (
-                <>
-                  <img src={`${BASE_URL}/api/video_feed/${frontCamId}?raw=true`} className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:opacity-60 transition-opacity" />
-                  <button type="button" onClick={capturePhoto} className="relative z-10 flex flex-col items-center gap-2 p-4 bg-black/40 backdrop-blur-md hover:bg-emerald-900/60 rounded-2xl border border-white/10 hover:border-emerald-500/50 transition-all shadow-lg hover:shadow-emerald-500/20 hover:scale-105">
-                    <Camera className="w-8 h-8 text-stone-300 group-hover:text-emerald-400 transition-colors" />
-                    <span className="text-[10px] font-black uppercase tracking-widest text-stone-400 group-hover:text-emerald-400">Capture Photo</span>
-                  </button>
-                  <button type="button" onClick={() => setFrontCamId((frontCamId + 1) % 3)} className="absolute top-3 right-3 z-20 p-2 bg-stone-900/80 backdrop-blur-md rounded-full hover:bg-emerald-600 border border-white/10 transition-colors shadow-lg" title="Switch Camera Source">
-                    <RefreshCw className="w-4 h-4 text-white" />
-                  </button>
-                </>
-              ) : (
-                <>
-                  <img src={image} alt="captured" className="absolute inset-0 w-full h-full object-cover" />
-                  <button type="button" onClick={() => setImage(null)} className="relative z-10 px-6 py-3 bg-black/60 backdrop-blur-md rounded-full text-[10px] font-black uppercase tracking-widest text-white border border-white/20 hover:border-red-500 hover:text-red-400 transition-colors shadow-lg">Retake</button>
-                </>
-              )}
+              <div className="relative bg-stone-950/80 border border-white/10 rounded-3xl flex-1 min-h-[300px] overflow-hidden flex items-center justify-center group shadow-inner">
+                {/* Green Tactical Scanning target corners overlay */}
+                <div className="absolute inset-6 pointer-events-none z-20 border border-emerald-500/20 rounded-2xl">
+                  {/* Top-left corner */}
+                  <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-emerald-500"></div>
+                  {/* Top-right corner */}
+                  <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-emerald-500"></div>
+                  {/* Bottom-left corner */}
+                  <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-emerald-500"></div>
+                  {/* Bottom-right corner */}
+                  <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-emerald-500"></div>
+                  {/* Scrolling scanner line */}
+                  {!image && <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-emerald-500 to-transparent animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>}
+                </div>
+
+                {!image ? (
+                  <>
+                    <img src={`${BASE_URL}/api/video_feed/${frontCamId}?raw=true`} className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-opacity" />
+                    <button type="button" onClick={capturePhoto} className="relative z-10 flex flex-col items-center gap-2 p-5 bg-black/60 backdrop-blur-md hover:bg-emerald-950/80 rounded-2xl border border-white/10 hover:border-emerald-500/50 transition-all shadow-xl hover:shadow-emerald-500/10 hover:scale-105">
+                      <Camera className="w-9 h-9 text-stone-200 group-hover:text-emerald-400 transition-colors" />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-stone-300 group-hover:text-emerald-400">Capture Image</span>
+                    </button>
+                    <button type="button" onClick={() => setFrontCamId((frontCamId + 1) % 3)} className="absolute top-4 right-4 z-20 p-3 bg-stone-900/80 backdrop-blur-md rounded-full hover:bg-emerald-600 border border-white/10 transition-colors shadow-lg" title="Switch Camera Source">
+                      <RefreshCw className="w-4 h-4 text-white" />
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <img src={image} alt="captured" className="absolute inset-0 w-full h-full object-cover" />
+                    <button type="button" onClick={() => setImage(null)} className="relative z-10 px-6 py-3 bg-black/75 backdrop-blur-md rounded-full text-[10px] font-black uppercase tracking-widest text-white border border-white/20 hover:border-red-500 hover:text-red-400 transition-colors shadow-lg hover:scale-105">Retake Snapshot</button>
+                  </>
+                )}
+              </div>
             </div>
 
-            <button type="submit" disabled={loading || pin.length !== 4 || !name || !image} className="p-4 bg-emerald-600/20 hover:bg-emerald-600/40 border border-emerald-500/30 text-emerald-400 rounded-2xl font-black uppercase tracking-widest transition-all mt-2 flex items-center justify-center gap-2 disabled:opacity-50 disabled:pointer-events-none shadow-lg hover:shadow-emerald-500/20">
-              {loading ? "Registering..." : <><Check className="w-5 h-5" /> Complete Enlistment</>}
-            </button>
-            <button type="button" onClick={() => { setMode("choose"); setError(""); setPin(""); setName(""); setImage(null); setCadetUnit(""); setCadetInstructor(""); }} className="text-stone-500 hover:text-stone-300 text-[10px] font-black uppercase tracking-widest text-center w-full mt-2 hover:underline underline-offset-4">Cancel</button>
-          </form>
+            {/* Right Column: Cadet Registration Form */}
+            <form onSubmit={handleRegister} className="flex flex-col justify-between h-full">
+              <div className="text-left mb-4">
+                <h3 className="text-stone-300 text-xs font-black uppercase tracking-[0.2em] mb-1">Step 2: Cadet Metadata</h3>
+                <p className="text-[10px] text-stone-500 font-bold uppercase tracking-wider">Provide cadet details and configure security credentials</p>
+              </div>
+
+              <div className="flex flex-col gap-4 overflow-y-auto pr-1 flex-1 py-2 custom-scrollbar">
+                <div className="flex flex-col items-start gap-1.5 w-full">
+                  <label className="text-[9px] text-stone-500 font-black uppercase tracking-widest ml-1">Full Name</label>
+                  <input type="text" placeholder="e.g. Cdt Shan Kumar" value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-stone-950/50 border border-white/10 rounded-2xl p-4 text-white font-bold tracking-wide uppercase focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/30 transition-all placeholder:text-stone-700 shadow-inner" />
+                </div>
+
+                <div className="flex flex-col items-start gap-1.5 w-full">
+                  <label className="text-[9px] text-stone-500 font-black uppercase tracking-widest ml-1">Unit / Batch (Optional)</label>
+                  <input type="text" placeholder="e.g. 11 EME BN — A Company" value={cadetUnit} onChange={(e) => setCadetUnit(e.target.value)} className="w-full bg-stone-950/50 border border-white/10 rounded-2xl p-4 text-white font-bold tracking-wide uppercase focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/30 transition-all placeholder:text-stone-700 shadow-inner" />
+                </div>
+
+                <div className="flex flex-col items-start gap-1.5 w-full">
+                  <label className="text-[9px] text-stone-500 font-black uppercase tracking-widest ml-1">Instructor Name (Optional)</label>
+                  <input type="text" placeholder="e.g. Lt Col K Srinath" value={cadetInstructor} onChange={(e) => setCadetInstructor(e.target.value)} className="w-full bg-stone-950/50 border border-white/10 rounded-2xl p-4 text-white font-bold tracking-wide uppercase focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/30 transition-all placeholder:text-stone-700 shadow-inner" />
+                </div>
+
+                <div className="flex flex-col items-start gap-1.5 w-full">
+                  <label className="text-[9px] text-stone-500 font-black uppercase tracking-widest ml-1">Create 4-Digit PIN</label>
+                  <input type="password" placeholder="••••" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} maxLength={4} className="w-full bg-stone-950/50 border border-white/10 rounded-2xl p-4 text-center text-xl tracking-[1em] text-emerald-400 font-black focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/30 transition-all placeholder:text-stone-850 shadow-inner" />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2 mt-4 pt-4 border-t border-white/5 shrink-0">
+                <button type="submit" disabled={loading || pin.length !== 4 || !name || !image} className="w-full p-4 bg-emerald-500 hover:bg-emerald-400 disabled:bg-stone-850 disabled:text-stone-600 disabled:border-transparent disabled:pointer-events-none text-stone-950 border border-transparent rounded-2xl font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-emerald-500/10 hover:scale-[1.01]">
+                  {loading ? "Registering Cadet..." : <><Check className="w-5 h-5" /> Enlist Cadet</>}
+                </button>
+                <button type="button" onClick={() => { setMode("choose"); setError(""); setPin(""); setName(""); setImage(null); setCadetUnit(""); setCadetInstructor(""); }} className="text-stone-500 hover:text-stone-300 text-[10px] font-black uppercase tracking-widest text-center w-full mt-2 hover:underline underline-offset-4">Cancel</button>
+              </div>
+            </form>
+          </div>
         )}
       </div>
     </motion.div>
