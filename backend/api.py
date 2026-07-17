@@ -508,13 +508,15 @@ async def get_snapshot(camera_id: int, raw: bool = True):
         frame = RAW_FRAMES.get(camera_id) if raw else ANNOTATED_FRAMES.get(camera_id)
     else:
         try:
-            temp_reader = CameraReader(camera_id, CAMERA_QUEUES[camera_id])
-            temp_reader.start()
-            await asyncio.sleep(0.5)
-            ok, frame_img = temp_reader.capture.read()
-            temp_reader.stop()
-            if ok:
-                frame = frame_img
+            # Synchronous warm-up logic to ensure auto-focus and auto-exposure are fully calibrated
+            cap = cv2.VideoCapture(camera_id)
+            if cap.isOpened():
+                frame_img = None
+                for _ in range(12):
+                    ok, frame_img = cap.read()
+                cap.release()
+                if ok and frame_img is not None:
+                    frame = frame_img
         except Exception as e:
             print(f"Temp camera snapshot failed: {e}")
 

@@ -178,17 +178,31 @@ export function RegistrationScreen({ onComplete }: { onComplete: (cadet: any) =>
         doc.rect(15, 34, 180, 27, "FD");
 
         // Cadet Info
+        if (cadet.image_base64) {
+          try {
+            doc.addImage(cadet.image_base64, "JPEG", 18, 37.5, 20, 20);
+            // Draw a thin border around the profile photo
+            doc.setDrawColor(203, 213, 225); // Slate-300
+            doc.setLineWidth(0.3);
+            doc.rect(18, 37.5, 20, 20, "S");
+          } catch (err) {
+            console.error("Failed to add cadet photo to PDF:", err);
+          }
+        }
+
+        const infoStartX = cadet.image_base64 ? 43 : 20;
+
         doc.setFont("helvetica", "bold");
         doc.setFontSize(9);
         doc.setTextColor(15, 23, 42);
-        doc.text(`CADET ID / ID:  #${cadet.id}`, 20, 40);
-        doc.text(`CADET NAME:     ${cadet.name.toUpperCase()}`, 20, 46);
+        doc.text(`CADET ID / ID:  #${cadet.id}`, infoStartX, 40);
+        doc.text(`CADET NAME:     ${cadet.name.toUpperCase()}`, infoStartX, 46);
         
         doc.setFont("helvetica", "normal");
         doc.setTextColor(71, 85, 105);
         const truncateUnit = unit.length > 55 ? unit.substring(0, 52) + "..." : unit;
-        doc.text(`UNIT / BATCH:   ${truncateUnit.toUpperCase()}`, 20, 52);
-        doc.text(`GENERATED:      ${new Date().toLocaleString()}`, 20, 57);
+        doc.text(`UNIT / BATCH:   ${truncateUnit.toUpperCase()}`, infoStartX, 52);
+        doc.text(`GENERATED:      ${new Date().toLocaleString()}`, infoStartX, 57);
 
         // Score Stats (Right Side of Profile Box)
         const overallScore = cadet.avg_score != null ? Math.round(cadet.avg_score) : 0;
