@@ -29,19 +29,19 @@ class SaluteRightArmAngleRule(EvaluationRule):
         # Check if the elbow is properly raised out to the side. 
         # If elbow is significantly below shoulder, the person is just putting their hand in front of their chest.
         elbow_drop = (elbow[1] - shoulder[1]) / (spine_length + 1e-6)
-        if elbow_drop > 0.2:
+        if elbow_drop > 0.175:
             return RuleResult(self.name, "fail", 40.0, "Right elbow must be raised out, not tucked down.")
             
         angle = angle_degrees(wrist, elbow, shoulder)
         
         # Ideal saluting interior angle is roughly 25 to 120 degrees (widened for real-world tolerance)
         score = 0.0
-        if 25 <= angle <= 120:
+        if 20.0 <= angle <= 114.2:
             score = 100.0
-        elif 15 <= angle < 25:
-            score = 100.0 - ((25 - angle) * 10.0)
-        elif 120 < angle <= 145:
-            score = 100.0 - ((angle - 120) * 4.0)
+        elif 10.0 <= angle < 20.0:
+            score = 100.0 - ((20.0 - angle) * 10.0)
+        elif 114.2 < angle <= 139.2:
+            score = 100.0 - ((angle - 114.2) * 4.0)
             
         score = max(0.0, score)
         
@@ -72,9 +72,9 @@ class StraightLeftArmAngleRule(EvaluationRule):
         
         # Ideal straight arm is roughly 145 to 180 degrees
         score = 0.0
-        if 145 <= angle <= 180:
+        if 20.0 <= angle <= 114.2:
             score = 100.0
-        elif 120 <= angle < 145:
+        elif 10.0 <= angle < 20.0:
             score = 100.0 - ((145 - angle) * 4.0)
             
         score = max(0.0, score)

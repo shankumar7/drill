@@ -316,6 +316,8 @@ class RegisterRequest(BaseModel):
     name: str
     pin: str
     image: str
+    unit: str | None = None
+    instructor: str | None = None
 
 class LoginRequest(BaseModel):
     pin: str
@@ -330,7 +332,7 @@ class SessionRequest(BaseModel):
 @app.post("/api/register")
 async def api_register_cadet(req: RegisterRequest):
     try:
-        cadet_id = register_cadet(req.name, req.pin, req.image)
+        cadet_id = register_cadet(req.name, req.pin, req.image, req.unit, req.instructor)
         return {"status": "ok", "cadet_id": cadet_id, "name": req.name}
     except Exception as e:
         return {"status": "error", "message": str(e)}

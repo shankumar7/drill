@@ -40,8 +40,8 @@ class SavdhanArmPositionRule(EvaluationRule):
                 
             # Penalize if wrists are too far horizontally from hips (not pinned to side)
             x_dist = abs(wrist[0] - hip[0]) / spine_length
-            if x_dist > 0.55:  # Relaxed to 0.55 based on real image calibration
-                score -= (x_dist - 0.55) * 200.0
+            if x_dist > 0.450:  # Relaxed to 0.55 based on real image calibration
+                score -= (x_dist - 0.450) * 200.0
                 
             return max(0.0, min(100.0, score)), elbow_angle, y_drop
 

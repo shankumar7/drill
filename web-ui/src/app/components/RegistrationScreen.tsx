@@ -11,6 +11,8 @@ export function RegistrationScreen({ onComplete }: { onComplete: (cadet: any) =>
   const [name, setName] = useState("");
   const [pin, setPin] = useState("");
   const [image, setImage] = useState<string | null>(null);
+  const [cadetUnit, setCadetUnit] = useState("");
+  const [cadetInstructor, setCadetInstructor] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [cadets, setCadets] = useState<any[]>([]);
@@ -69,11 +71,11 @@ export function RegistrationScreen({ onComplete }: { onComplete: (cadet: any) =>
       const res = await fetch("http://localhost:8000/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, pin, image })
+        body: JSON.stringify({ name, pin, image, unit: cadetUnit, instructor: cadetInstructor })
       });
       const data = await res.json();
       if (data.status === "ok") {
-        onComplete({ id: data.cadet_id, name: data.name });
+        onComplete({ id: data.cadet_id, name: data.name, unit: cadetUnit, instructor: cadetInstructor });
       } else {
         setError(data.message || "Registration failed");
       }
@@ -108,29 +110,228 @@ export function RegistrationScreen({ onComplete }: { onComplete: (cadet: any) =>
     try {
       const res = await fetch(`${BASE_URL}/api/cadets/${cadet.id}/sessions`);
       const data = await res.json();
+      
+      // Fetch settings for dynamic instructor name & unit name
+      const settingsRes = await fetch(`${BASE_URL}/api/settings`).catch(() => null);
+      const settingsData = settingsRes ? await settingsRes.json().catch(() => ({})) : {};
+      const instructor = cadet.instructor || settingsData.instructor_name || "Lt Col K Srinath";
+      const unit = cadet.unit || settingsData.unit_name || "Simulation Development Division (SDD), MCEME";
+
       if (data.status === "ok") {
         const doc = new jsPDF();
-        doc.setFontSize(20);
-        doc.text(`Drill Report: ${cadet.name}`, 14, 22);
         
-        doc.setFontSize(12);
-        doc.text(`Average Score: ${cadet.avg_score != null ? Math.round(cadet.avg_score) : 0}%`, 14, 32);
-        doc.text(`Accuracy: ${cadet.accuracy != null ? Math.round(cadet.accuracy) : 0}%`, 14, 40);
+        // 1. Load SDD Logo Image as base64
+        const logoUrl = "/top_right_logo.png";
+        let logoBase64: string | null = null;
+        try {
+          logoBase64 = await new Promise<string>((resolve, reject) => {
+            const img = new Image();
+            img.crossOrigin = "Anonymous";
+            img.onload = () => {
+              const canvas = document.createElement("canvas");
+              canvas.width = img.width;
+              canvas.height = img.height;
+              const ctx = canvas.getContext("2d");
+              if (ctx) {
+                ctx.drawImage(img, 0, 0);
+                resolve(canvas.toDataURL("image/png"));
+              } else {
+                reject();
+              }
+            };
+            img.onerror = () => reject();
+            img.src = logoUrl;
+          });
+        } catch (err) {
+          console.warn("Could not load SDD logo image", err);
+        }
 
+        // Draw Logo if loaded
+        if (logoBase64) {
+          doc.addImage(logoBase64, "PNG", 15, 11, 16, 16);
+        }
+
+        // 2. Header Text
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(11);
+        doc.setTextColor(30, 41, 59); // Slate-800
+        doc.text("SIMULATION DEVELOPMENT DIVISION (SDD), MCEME", logoBase64 ? 35 : 15, 16);
+        
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8.5);
+        doc.setTextColor(100, 116, 139); // Slate-500
+        doc.text("MILITARY DRILL ANALYSIS & EVALUATION SYSTEM", logoBase64 ? 35 : 15, 21);
+        
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(13);
+        doc.setTextColor(15, 23, 42); // Slate-900
+        doc.text("CADET DRILL EVALUATION REPORT", logoBase64 ? 35 : 15, 27);
+
+        // Divider Line
+        doc.setDrawColor(203, 213, 225); // Slate-300
+        doc.setLineWidth(0.5);
+        doc.line(15, 30, 195, 30);
+
+        // 3. Cadet Profile Info Block
+        doc.setFillColor(248, 250, 252); // Slate-50
+        doc.setDrawColor(226, 232, 240); // Slate-200
+        doc.rect(15, 34, 180, 27, "FD");
+
+        // Cadet Info
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+        doc.setTextColor(15, 23, 42);
+        doc.text(`CADET ID / ID:  #${cadet.id}`, 20, 40);
+        doc.text(`CADET NAME:     ${cadet.name.toUpperCase()}`, 20, 46);
+        
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(71, 85, 105);
+        const truncateUnit = unit.length > 55 ? unit.substring(0, 52) + "..." : unit;
+        doc.text(`UNIT / BATCH:   ${truncateUnit.toUpperCase()}`, 20, 52);
+        doc.text(`GENERATED:      ${new Date().toLocaleString()}`, 20, 57);
+
+        // Score Stats (Right Side of Profile Box)
+        const overallScore = cadet.avg_score != null ? Math.round(cadet.avg_score) : 0;
+        const accuracy = cadet.accuracy != null ? Math.round(cadet.accuracy) : 0;
+
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(71, 85, 105);
+        doc.text("AVERAGE SCORE:", 132, 40);
+        doc.setFontSize(12);
+        doc.setTextColor(30, 58, 138); // Deep Navy Blue
+        doc.text(`${overallScore}%`, 166, 40);
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+        doc.setTextColor(71, 85, 105);
+        doc.text("CONSISTENCY:", 132, 46);
+        doc.setFontSize(12);
+        doc.setTextColor(30, 58, 138);
+        doc.text(`${accuracy}%`, 166, 46);
+
+        // Calculate Status
+        let statusStr = "FAIL";
+        let statusColor = [185, 28, 28]; // Red
+        if (overallScore >= 85) {
+          statusStr = "PASS (EXCELLENT)";
+          statusColor = [21, 128, 61]; // Green
+        } else if (overallScore >= 75) {
+          statusStr = "PASS (SATISFACTORY)";
+          statusColor = [30, 58, 138]; // Blue
+        }
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+        doc.setTextColor(71, 85, 105);
+        doc.text("STATUS:", 132, 52);
+        doc.setTextColor(statusColor[0], statusColor[1], statusColor[2]);
+        doc.text(statusStr, 166, 52);
+
+        // 4. Detailed Session History Table
         const tableData = data.sessions.map((s: any) => [
           new Date(s.timestamp).toLocaleString(),
-          s.drill_type,
+          s.drill_type.replace(/_/g, " ").toUpperCase(),
           `${Math.round(s.score)}%`,
           s.is_pass ? "PASS" : "FAIL",
           s.cycle_count
         ]);
 
         autoTable(doc, {
-          startY: 50,
-          head: [["Date", "Drill", "Score", "Result", "Cycles"]],
+          startY: 65,
+          head: [["Date & Time", "Drill Type", "Score", "Result", "Cycles"]],
           body: tableData,
+          theme: "grid",
+          headStyles: {
+            fillColor: [30, 41, 59], // Slate-700
+            textColor: [255, 255, 255],
+            fontSize: 9,
+            fontStyle: "bold",
+            halign: "center",
+          },
+          columnStyles: {
+            0: { cellWidth: 50, halign: "left" },
+            1: { cellWidth: 60, halign: "left" },
+            2: { cellWidth: 20, halign: "center" },
+            3: { cellWidth: 30, halign: "center" },
+            4: { cellWidth: 20, halign: "center" }
+          },
+          styles: {
+            fontSize: 8.5,
+            cellPadding: 3,
+            valign: "middle"
+          },
+          alternateRowStyles: {
+            fillColor: [248, 250, 252], // Slate-50
+          },
+          didParseCell: (cellData) => {
+            if (cellData.column.index === 3) {
+              if (cellData.cell.text[0] === "PASS") {
+                cellData.cell.styles.textColor = [21, 128, 61]; // green
+                cellData.cell.styles.fontStyle = "bold";
+              } else if (cellData.cell.text[0] === "FAIL") {
+                cellData.cell.styles.textColor = [185, 28, 28]; // red
+                cellData.cell.styles.fontStyle = "bold";
+              }
+            }
+          }
         });
 
+        // 5. Assessment & Remarks Section
+        const finalY = (doc as any).lastAutoTable.finalY || 150;
+        
+        // Draw light line divider
+        doc.setDrawColor(226, 232, 240);
+        doc.setLineWidth(0.5);
+        doc.line(15, finalY + 8, 195, finalY + 8);
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10);
+        doc.setTextColor(15, 23, 42);
+        doc.text("PERFORMANCE ASSESSMENT & REMARKS", 15, finalY + 15);
+
+        // Choose remark text based on score
+        let remarkText = "";
+        if (overallScore >= 85) {
+          remarkText = "The cadet demonstrates superior postural stability, precise foot spacing, and robust arm lock alignments. Standard of performance meets the official military guidelines for excellence.";
+        } else if (overallScore >= 75) {
+          remarkText = "Satisfactory execution of drill moves. Minor deviations observed in arm separation or heel alignments. Passing performance, but continuous practice is advised for perfection.";
+        } else {
+          remarkText = "Significant alignment deviations or instability detected. Cadet needs additional supervisor guidance, focusing on heel contact, arm pinning, and step locking rules.";
+        }
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(71, 85, 105);
+        const splitRemarks = doc.splitTextToSize(remarkText, 180);
+        doc.text(splitRemarks, 15, finalY + 21);
+
+        // 6. Signature Section
+        const sigY = finalY + 21 + (splitRemarks.length * 5) + 15;
+        
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9.5);
+        doc.setTextColor(15, 23, 42);
+        doc.text("INSTRUCTOR EVALUATION SIGN-OFF", 15, sigY);
+
+        doc.setDrawColor(148, 163, 184); // Slate-400
+        doc.setLineWidth(0.5);
+        doc.line(15, sigY + 8, 80, sigY + 8); // Line for signature
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8.5);
+        doc.setTextColor(100, 116, 139);
+        doc.text(`NAME:  ${instructor.toUpperCase()}`, 15, sigY + 13);
+        doc.text("TITLE: SUPERVISING OFFICER / DRILL INSTRUCTOR", 15, sigY + 18);
+        doc.text(`UNIT:  ${unit.toUpperCase()}`, 15, sigY + 23);
+
+        // 7. Footer
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.setTextColor(148, 163, 184);
+        doc.text("Simulation Development Division (SDD), MCEME — Automated AI System", 105, 287, { align: "center" });
+        doc.text("Page 1 of 1", 195, 287, { align: "right" });
+
+        // Save PDF
         doc.save(`${cadet.name}_Drill_Report.pdf`);
       }
     } catch (e) {
@@ -210,7 +411,10 @@ export function RegistrationScreen({ onComplete }: { onComplete: (cadet: any) =>
                         <div className="absolute inset-0 bg-emerald-500 rounded-full blur-xl opacity-0 group-hover:opacity-30 transition-opacity duration-300" />
                         <img src={c.image_base64} alt={c.name} className="relative w-16 h-16 rounded-full object-cover border-2 border-stone-800 group-hover:border-emerald-500 transition-colors duration-300 shadow-lg" />
                       </div>
-                      <span className="relative text-stone-200 text-lg font-black uppercase tracking-[0.2em] group-hover:text-emerald-400 transition-colors">{c.name}</span>
+                      <div className="flex flex-col items-start">
+                        <span className="relative text-stone-200 text-lg font-black uppercase tracking-[0.2em] group-hover:text-emerald-400 transition-colors">{c.name}</span>
+                        {c.unit && <span className="text-[9px] text-stone-500 font-bold uppercase tracking-wider mt-0.5 group-hover:text-stone-400 transition-colors">{c.unit}</span>}
+                      </div>
                     </div>
                     
                     {/* Metrics Section */}
@@ -282,6 +486,8 @@ export function RegistrationScreen({ onComplete }: { onComplete: (cadet: any) =>
           <form onSubmit={handleRegister} className="flex flex-col gap-5 w-full max-w-sm mx-auto">
 
             <input type="text" placeholder="Cadet Name" value={name} onChange={(e) => setName(e.target.value)} className="bg-stone-950/50 border border-white/10 rounded-2xl p-4 text-white text-center font-bold tracking-widest uppercase focus:outline-none focus:border-emerald-500/50 transition-all placeholder:text-stone-700 shadow-inner" />
+            <input type="text" placeholder="Unit / Batch (Optional)" value={cadetUnit} onChange={(e) => setCadetUnit(e.target.value)} className="bg-stone-950/50 border border-white/10 rounded-2xl p-4 text-white text-center font-bold tracking-widest uppercase focus:outline-none focus:border-emerald-500/50 transition-all placeholder:text-stone-700 shadow-inner" />
+            <input type="text" placeholder="Instructor Name (Optional)" value={cadetInstructor} onChange={(e) => setCadetInstructor(e.target.value)} className="bg-stone-950/50 border border-white/10 rounded-2xl p-4 text-white text-center font-bold tracking-widest uppercase focus:outline-none focus:border-emerald-500/50 transition-all placeholder:text-stone-700 shadow-inner" />
             <input type="password" placeholder="Create 4-digit PIN" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} maxLength={4} className="bg-stone-950/50 border border-white/10 rounded-2xl p-4 text-center text-2xl tracking-[1em] text-emerald-400 font-black focus:outline-none focus:border-emerald-500/50 transition-all placeholder:text-stone-800 shadow-inner" />
             
             <div className="relative bg-stone-950/80 border border-white/10 rounded-2xl h-48 overflow-hidden flex items-center justify-center group shadow-inner">
@@ -307,7 +513,7 @@ export function RegistrationScreen({ onComplete }: { onComplete: (cadet: any) =>
             <button type="submit" disabled={loading || pin.length !== 4 || !name || !image} className="p-4 bg-emerald-600/20 hover:bg-emerald-600/40 border border-emerald-500/30 text-emerald-400 rounded-2xl font-black uppercase tracking-widest transition-all mt-2 flex items-center justify-center gap-2 disabled:opacity-50 disabled:pointer-events-none shadow-lg hover:shadow-emerald-500/20">
               {loading ? "Registering..." : <><Check className="w-5 h-5" /> Complete Enlistment</>}
             </button>
-            <button type="button" onClick={() => { setMode("choose"); setError(""); setPin(""); setName(""); setImage(null); }} className="text-stone-500 hover:text-stone-300 text-[10px] font-black uppercase tracking-widest text-center w-full mt-2 hover:underline underline-offset-4">Cancel</button>
+            <button type="button" onClick={() => { setMode("choose"); setError(""); setPin(""); setName(""); setImage(null); setCadetUnit(""); setCadetInstructor(""); }} className="text-stone-500 hover:text-stone-300 text-[10px] font-black uppercase tracking-widest text-center w-full mt-2 hover:underline underline-offset-4">Cancel</button>
           </form>
         )}
       </div>

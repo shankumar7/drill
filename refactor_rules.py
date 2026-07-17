@@ -16,7 +16,7 @@ for f in files_to_read:
 header = """import math
 from backend.core.types import PoseDetection, RuleResult
 from backend.evaluation.rules.base import EvaluationRule
-from backend.evaluation.geometry import calculate_angle, segment_length
+from backend.evaluation.geometry import angle_degrees, segment_length, mid_point
 
 """
 

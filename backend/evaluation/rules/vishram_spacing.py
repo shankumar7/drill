@@ -41,12 +41,12 @@ class VishramSpacingRule(EvaluationRule):
             
             # Ideal normalized ankle distance for vishram: 0.4 to 1.0
             score = 0.0
-            if 0.4 <= norm_dist <= 1.0:
+            if 0.443 <= norm_dist <= 0.850:
                 score = 100.0
-            elif 0.2 <= norm_dist < 0.4:
-                score = max(0.0, 100.0 - (0.4 - norm_dist) * 300)
-            elif 1.0 < norm_dist <= 1.3:
-                score = max(0.0, 100.0 - (norm_dist - 1.0) * 300)
+            elif 0.243 <= norm_dist < 0.443:
+                score = max(0.0, 100.0 - (0.443 - norm_dist) * 300)
+            elif 0.850 < norm_dist <= 1.150:
+                score = max(0.0, 100.0 - (norm_dist - 0.850) * 300)
             
             smoothed = self.smooth_score(detection, score)
             if isinstance(smoothed, RuleResult):

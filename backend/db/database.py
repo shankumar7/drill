@@ -11,7 +11,9 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
             pin TEXT NOT NULL,
-            image_base64 TEXT
+            image_base64 TEXT,
+            unit TEXT,
+            instructor TEXT
         )
     ''')
     cursor.execute('''
@@ -30,16 +32,24 @@ def init_db():
         cursor.execute("ALTER TABLE sessions ADD COLUMN cycle_count INTEGER DEFAULT 0")
     except sqlite3.OperationalError:
         pass
+    try:
+        cursor.execute("ALTER TABLE cadets ADD COLUMN unit TEXT")
+    except sqlite3.OperationalError:
+        pass
+    try:
+        cursor.execute("ALTER TABLE cadets ADD COLUMN instructor TEXT")
+    except sqlite3.OperationalError:
+        pass
     conn.commit()
     conn.close()
 
-def register_cadet(name: str, pin: str, image_base64: str) -> int:
+def register_cadet(name: str, pin: str, image_base64: str, unit: str = None, instructor: str = None) -> int:
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute('''
-        INSERT INTO cadets (name, pin, image_base64)
-        VALUES (?, ?, ?)
-    ''', (name, pin, image_base64))
+        INSERT INTO cadets (name, pin, image_base64, unit, instructor)
+        VALUES (?, ?, ?, ?, ?)
+    ''', (name, pin, image_base64, unit, instructor))
     cadet_id = cursor.lastrowid
     conn.commit()
     conn.close()
@@ -50,7 +60,7 @@ def login_cadet(pin: str) -> dict | None:
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
     cursor.execute('''
-        SELECT id, name, image_base64 FROM cadets
+        SELECT id, name, image_base64, unit, instructor FROM cadets
         WHERE pin = ?
     ''', (pin,))
     row = cursor.fetchone()
@@ -78,7 +88,7 @@ def get_cadets() -> list[dict]:
     cursor = conn.cursor()
     cursor.execute('''
         SELECT 
-            c.id, c.name, c.image_base64,
+            c.id, c.name, c.image_base64, c.unit, c.instructor,
             COALESCE(AVG(s.score), 0) as avg_score,
             CASE WHEN COUNT(s.id) > 0 THEN (SUM(CASE WHEN s.is_pass THEN 1 ELSE 0 END) * 100.0 / COUNT(s.id)) ELSE 0 END as accuracy
         FROM cadets c

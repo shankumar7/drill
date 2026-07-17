@@ -39,10 +39,10 @@ class SaluteHandPositionRule(EvaluationRule):
                 
         # When saluting, fingertips touch the eyebrow. The wrist is a full hand-length away.
         score = 0.0
-        if norm_dist <= 0.55:
+        if norm_dist <= 0.517:
             score = 100.0
-        elif norm_dist < 0.75:
-            score = 100.0 - ((norm_dist - 0.55) * 500)
+        elif norm_dist < 0.717:
+            score = 100.0 - ((norm_dist - 0.517) * 500)
             
         score = max(0.0, score)
         
