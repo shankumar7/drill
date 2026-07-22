@@ -1,7 +1,7 @@
 # Set execution policy to bypass to allow loading scripts/venv
 Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
 
-$NodePath = "c:\Users\The Moe\Desktop\drill\node-dist\node-v22.23.1-win-x64"
+$NodePath = "$PSScriptRoot\node-dist\node-v22.23.1-win-x64"
 $env:Path = "$NodePath;" + $env:Path
 
 Write-Host "Cleaning up previous backend and frontend instances..." -ForegroundColor Yellow

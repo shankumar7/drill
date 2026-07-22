@@ -249,11 +249,9 @@ This report summarizes the data-driven geometric thresholds extracted by running
 
 All thresholds have been automatically updated in the corresponding rule files in `backend/evaluation/rules/`.
 """
-    report_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "training_report.md")
-    
-    # Wait, let's put it in the artifacts folder, and copy it here.
-    # The workspace path is C:\Users\The Moe\Desktop\drill
-    with open(os.path.join(r"C:\Users\The Moe\Desktop\drill", "training_report.md"), "w") as f:
+    workspace_root = os.path.dirname(os.path.abspath(__file__))
+    report_path = os.path.join(workspace_root, "training_report.md")
+    with open(report_path, "w") as f:
         f.write(report_content)
     print("Saved training_report.md to workspace.")
 
