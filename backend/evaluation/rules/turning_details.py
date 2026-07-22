@@ -63,25 +63,33 @@ class DahineMurhRule(EvaluationRule):
         metrics = get_body_metrics(k)
         history = detection.posture_history.setdefault(self.name, {"scores": []})
         
-        score = 100.0
-        msg = "Dahine Murh posture correctly held (turned 90° right)."
-        
-        # When turned 90 degrees to the right (side profile view)
+        # Check if cadet has turned to 90-degree side profile
         is_side_profile = metrics["shoulder_ratio"] < 0.55
         
-        if is_side_profile:
-            if not metrics["arm_locked"]:
-                score -= 15.0
+        if not is_side_profile:
+            # Cadet is still standing facing front (has not turned yet)
+            score = 0.0
+            msg = "Dahine Murh: Turn 90° to your RIGHT side."
+        else:
+            shoulder_mid_x = (k[5, 0] + k[6, 0]) / 2.0
+            nose_x = k[0, 0] if k[0, 2] > 0.2 else shoulder_mid_x
+            
+            # Turned right facing camera: head points towards left of image (smaller X)
+            turned_right = (nose_x <= shoulder_mid_x + 20)
+            
+            if not turned_right:
+                score = 0.0
+                msg = "Turned in WRONG direction! Turn 90° RIGHT for Dahine Murh."
+            elif not metrics["arm_locked"]:
+                score = 60.0
                 msg = "Dahine Murh: Keep arms pinned straight down by the seam of the trousers."
             else:
+                score = 100.0
                 msg = "Dahine Murh: Turned 90° right on right heel & left toe, left leg stamped parallel into Savdhan."
-        else:
-            msg = "Standing ready for Dahine Murh (90° Right Turn)."
-            score = 100.0
 
         scores = history.get("scores", [])
         scores.append(score)
-        del scores[:-10]
+        del scores[:-5]
         history["scores"] = scores
         
         stable_score = sum(scores) / len(scores) if scores else score
@@ -106,25 +114,33 @@ class BayenMurhRule(EvaluationRule):
         metrics = get_body_metrics(k)
         history = detection.posture_history.setdefault(self.name, {"scores": []})
         
-        score = 100.0
-        msg = "Bayen Murh posture correctly held (turned 90° left)."
-        
-        # When turned 90 degrees to the left (side profile view)
+        # Check if cadet has turned to 90-degree side profile
         is_side_profile = metrics["shoulder_ratio"] < 0.55
         
-        if is_side_profile:
-            if not metrics["arm_locked"]:
-                score -= 15.0
+        if not is_side_profile:
+            # Cadet is still standing facing front (has not turned yet)
+            score = 0.0
+            msg = "Bayen Murh: Turn 90° to your LEFT side."
+        else:
+            shoulder_mid_x = (k[5, 0] + k[6, 0]) / 2.0
+            nose_x = k[0, 0] if k[0, 2] > 0.2 else shoulder_mid_x
+            
+            # Turned left facing camera: head points towards right of image (larger X)
+            turned_left = (nose_x >= shoulder_mid_x - 20)
+            
+            if not turned_left:
+                score = 0.0
+                msg = "Turned in WRONG direction! Turn 90° LEFT for Bayen Murh."
+            elif not metrics["arm_locked"]:
+                score = 60.0
                 msg = "Bayen Murh: Keep arms pinned straight down by the seam of the trousers."
             else:
+                score = 100.0
                 msg = "Bayen Murh: Turned 90° left on left heel & right toe, right leg stamped parallel into Savdhan."
-        else:
-            msg = "Standing ready for Bayen Murh (90° Left Turn)."
-            score = 100.0
 
         scores = history.get("scores", [])
         scores.append(score)
-        del scores[:-10]
+        del scores[:-5]
         history["scores"] = scores
         
         stable_score = sum(scores) / len(scores) if scores else score
@@ -149,19 +165,24 @@ class PichheMurhRule(EvaluationRule):
         metrics = get_body_metrics(k)
         history = detection.posture_history.setdefault(self.name, {"scores": []})
         
-        score = 100.0
-        msg = "Pichhe Murh posture correctly held (turned 180°)."
+        # Check if cadet has initiated/completed 180° rotation
+        is_side_profile = metrics["shoulder_ratio"] < 0.55
         
-        # When evaluating turned/turned-away position or active 180° rotation
-        if not metrics["arm_locked"]:
-            score -= 15.0
-            msg = "Pichhe Murh: Keep arms pinned straight down by the seam of the trousers during 180° turn."
+        if not is_side_profile and k[0, 2] > 0.4:
+            # Cadet is still standing facing front towards camera (has not turned 180° yet)
+            score = 0.0
+            msg = "Pichhe Murh: Perform 180° About Turn."
         else:
-            msg = "Pichhe Murh: Turned 180° clockwise on right heel & left toe, left leg stamped parallel into Savdhan."
+            if not metrics["arm_locked"]:
+                score = 60.0
+                msg = "Pichhe Murh: Keep arms pinned straight down by the seam of the trousers during 180° turn."
+            else:
+                score = 100.0
+                msg = "Pichhe Murh: Turned 180° clockwise on right heel & left toe, left leg stamped parallel into Savdhan."
 
         scores = history.get("scores", [])
         scores.append(score)
-        del scores[:-10]
+        del scores[:-5]
         history["scores"] = scores
         
         stable_score = sum(scores) / len(scores) if scores else score
