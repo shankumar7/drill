@@ -772,8 +772,8 @@ function Dashboard({ activeCadet, onComplete }: { activeCadet: any; onComplete: 
         <div className="flex items-center gap-3">
           <img src="/top_right_logo.png" alt="SDD" className="w-8 h-8 object-contain" />
           <div>
-            <div className="text-[11px] font-black tracking-[0.15em] uppercase text-stone-100 leading-none">Military Drill <span className="text-stone-500 font-normal">Analysis System</span></div>
-            <div className="text-[8px] font-bold tracking-[0.3em] text-stone-700 uppercase mt-0.5">SDD · MCEME · REAL-TIME</div>
+            <div className="text-[12px] font-black tracking-[0.15em] uppercase text-stone-100 leading-none">SDD-MDAS <span className="text-stone-500 font-normal">| MILITARY DRILL ANALYSIS SYSTEM</span></div>
+            <div className="text-[8px] font-bold tracking-[0.3em] text-stone-600 uppercase mt-0.5">SDD · MCEME · REAL-TIME</div>
           </div>
         </div>
         <div className="hidden lg:flex items-center flex-1 mx-4 bg-stone-900/80 border border-white/[0.04] rounded-full p-1 shadow-inner overflow-hidden max-w-[50%] xl:max-w-[65%]">

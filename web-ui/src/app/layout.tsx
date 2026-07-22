@@ -10,8 +10,13 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: "Military Drill Analysis System",
-  description: "Advanced biomechanical tracking and posture evaluation for military drills.",
+  title: "SDD-MDAS",
+  description: "Simulation Development Division - Military Drill Analysis System",
+  icons: {
+    icon: "/top_right_logo.png",
+    shortcut: "/top_right_logo.png",
+    apple: "/top_right_logo.png",
+  },
 };
 
 export default function RootLayout({
