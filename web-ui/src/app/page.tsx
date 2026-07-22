@@ -2,9 +2,11 @@
 
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { Gauge } from "../components/Gauge";
-import { Mic, CheckCircle2, AlertCircle, HelpCircle, ChevronRightCircle, Activity, Camera, Maximize, PlayCircle, Settings, X, LogOut, Check, Wifi, WifiOff, Crosshair, Target, BarChart3, ChevronLeft, ChevronRight } from "lucide-react";
+import { Mic, CheckCircle2, AlertCircle, HelpCircle, ChevronRightCircle, Activity, Camera, Maximize, PlayCircle, Settings, X, LogOut, Check, Wifi, WifiOff, Crosshair, Target, BarChart3, ChevronLeft, ChevronRight, Download, FileText } from "lucide-react";
 import { RegistrationScreen } from "./components/RegistrationScreen";
 import { motion, AnimatePresence } from "framer-motion";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 // ─── Types ───────────────────────────────────────────────────
 type CameraMapping = { front: number; side: number; back: number; };
@@ -678,33 +680,59 @@ function Dashboard({ activeCadet, onComplete }: { activeCadet: any; onComplete: 
     failStartTime.current = null;
   }, [telemetry.active_mode]);
 
-  const changeMode = (mode: string) => { wsRef.current?.readyState === WebSocket.OPEN && wsRef.current.send(JSON.stringify({ mode })); };
-  const lockCadet = async (id: number) => { setSelectedCadet(id.toString()); try { await fetch(`${BASE_URL}/api/lock_cadet`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ track_id: id, source_camera: selectedCam }) }); } catch {} };
-  const saveSession = async () => {
-    const p = telemetry.overall_score >= 80;
-    const drill = telemetry.active_mode || "SAVDHAN";
-    const r = [...sessionResults, { drill, pass: p, score: telemetry.overall_score }];
-    setSessionResults(r);
-    
+  const saveDrillModeResult = useCallback((modeToSave?: string) => {
+    const currentMode = modeToSave || telemetry.active_mode;
+    if (!currentMode || currentMode === "CALIBRATION") return null;
+
+    const score = Math.round(telemetry.overall_score || 0);
+    const passThreshold = settings.pass_threshold || 80;
+    const isPass = score >= passThreshold;
+    const timestamp = new Date().toISOString();
+
+    const record = {
+      drill: currentMode,
+      pass: isPass,
+      score: score,
+      cycleCount: cycleCount,
+      timestamp: timestamp
+    };
+
+    setSessionResults(prev => [...prev, record]);
+
     if (activeCadet && activeCadet.id) {
-      try {
-        await fetch(`${BASE_URL}/api/sessions`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            cadet_id: activeCadet.id,
-            drill_type: drill,
-            score: telemetry.overall_score,
-            is_pass: p,
-            cycle_count: cycleCount
-          })
-        });
-      } catch (e) {
-        console.error("Failed to save session", e);
+      fetch(`${BASE_URL}/api/sessions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cadet_id: activeCadet.id,
+          drill_type: currentMode,
+          score: score,
+          is_pass: isPass,
+          cycle_count: cycleCount
+        })
+      }).catch(e => console.error("Failed to auto-save drill result:", e));
+    }
+    return record;
+  }, [telemetry.active_mode, telemetry.overall_score, settings.pass_threshold, cycleCount, activeCadet]);
+
+  const changeMode = (mode: string) => {
+    if (telemetry.active_mode && telemetry.active_mode !== "CALIBRATION" && telemetry.active_mode !== mode) {
+      saveDrillModeResult(telemetry.active_mode);
+    }
+    wsRef.current?.readyState === WebSocket.OPEN && wsRef.current.send(JSON.stringify({ mode }));
+  };
+
+  const lockCadet = async (id: number) => { setSelectedCadet(id.toString()); try { await fetch(`${BASE_URL}/api/lock_cadet`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ track_id: id, source_camera: selectedCam }) }); } catch {} };
+
+  const saveSession = async () => {
+    let finalResults = [...sessionResults];
+    if (telemetry.active_mode && telemetry.active_mode !== "CALIBRATION") {
+      const lastRec = saveDrillModeResult(telemetry.active_mode);
+      if (lastRec) {
+        finalResults.push(lastRec);
       }
     }
-    
-    onComplete(r);
+    onComplete(finalResults);
   };
 
   const drillModes = [
@@ -1001,8 +1029,181 @@ function Dashboard({ activeCadet, onComplete }: { activeCadet: any; onComplete: 
 }
 
 // ─── Results Screen ───────────────────────────────────────────
-function ResultsScreen({ results, onRestart }: { results: any[]; onRestart: () => void }) {
-  const passed = results.filter(r => r.pass).length, total = results.length;
+function ResultsScreen({ results, activeCadet, onRestart }: { results: any[]; activeCadet: any; onRestart: () => void }) {
+  const passed = results.filter(r => r.pass).length;
+  const total = results.length;
+  const avgScore = total > 0 ? Math.round(results.reduce((acc, r) => acc + (r.score || 0), 0) / total) : 0;
+  const accuracy = total > 0 ? Math.round((passed / total) * 100) : 0;
+
+  const downloadPDFReport = async () => {
+    try {
+      const doc = new jsPDF();
+      const logoUrl = "/top_right_logo.png";
+      let logoBase64: string | null = null;
+      try {
+        logoBase64 = await new Promise<string>((resolve, reject) => {
+          const img = new Image();
+          img.crossOrigin = "Anonymous";
+          img.onload = () => {
+            const canvas = document.createElement("canvas");
+            canvas.width = img.width; canvas.height = img.height;
+            const ctx = canvas.getContext("2d");
+            if (ctx) { ctx.drawImage(img, 0, 0); resolve(canvas.toDataURL("image/png")); }
+            else reject();
+          };
+          img.onerror = () => reject();
+          img.src = logoUrl;
+        });
+      } catch {}
+
+      if (logoBase64) doc.addImage(logoBase64, "PNG", 15, 11, 16, 16);
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.setTextColor(30, 41, 59);
+      doc.text("SIMULATION DEVELOPMENT DIVISION (SDD), MCEME", logoBase64 ? 35 : 15, 16);
+      
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8.5);
+      doc.setTextColor(100, 116, 139);
+      doc.text("MILITARY DRILL ANALYSIS & EVALUATION SYSTEM", logoBase64 ? 35 : 15, 21);
+      
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(13);
+      doc.setTextColor(15, 23, 42);
+      doc.text("COMPREHENSIVE SESSION EVALUATION REPORT", logoBase64 ? 35 : 15, 27);
+
+      doc.setDrawColor(203, 213, 225);
+      doc.setLineWidth(0.5);
+      doc.line(15, 30, 195, 30);
+
+      // Cadet Profile Box
+      doc.setFillColor(248, 250, 252);
+      doc.setDrawColor(226, 232, 240);
+      doc.rect(15, 34, 180, 27, "FD");
+
+      if (activeCadet && activeCadet.image_base64) {
+        try {
+          doc.addImage(activeCadet.image_base64, "JPEG", 18, 37.5, 20, 20);
+          doc.setDrawColor(203, 213, 225);
+          doc.setLineWidth(0.3);
+          doc.rect(18, 37.5, 20, 20, "S");
+        } catch {}
+      }
+
+      const infoStartX = (activeCadet && activeCadet.image_base64) ? 43 : 20;
+      const cadetName = activeCadet?.name || "CADET EVALUATION";
+      const cadetId = activeCadet?.id ? `#${activeCadet.id}` : "#SYSTEM";
+      const unit = activeCadet?.unit || "Simulation Development Division (SDD), MCEME";
+      const instructor = activeCadet?.instructor || "Lt Col K Srinath";
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.setTextColor(15, 23, 42);
+      doc.text(`CADET ID:       ${cadetId}`, infoStartX, 40);
+      doc.text(`CADET NAME:     ${cadetName.toUpperCase()}`, infoStartX, 46);
+      
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(71, 85, 105);
+      doc.text(`UNIT / BATCH:   ${unit.toUpperCase()}`, infoStartX, 52);
+      doc.text(`INSTRUCTOR:     ${instructor.toUpperCase()}`, infoStartX, 57);
+
+      // Summary Stats
+      doc.setFont("helvetica", "bold");
+      doc.text("AVG SCORE:", 132, 40);
+      doc.setFontSize(12);
+      doc.setTextColor(30, 58, 138);
+      doc.text(`${avgScore}%`, 166, 40);
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.setTextColor(71, 85, 105);
+      doc.text("PASS RATE:", 132, 46);
+      doc.setFontSize(12);
+      doc.setTextColor(30, 58, 138);
+      doc.text(`${accuracy}%`, 166, 46);
+
+      const statusStr = accuracy >= 80 ? "PASS (EXCELLENT)" : accuracy >= 60 ? "PASS (SATISFACTORY)" : "NEEDS IMPROVEMENT";
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.setTextColor(71, 85, 105);
+      doc.text("STATUS:", 132, 52);
+      doc.setTextColor(accuracy >= 60 ? 21 : 185, accuracy >= 60 ? 128 : 28, accuracy >= 60 ? 61 : 28);
+      doc.text(statusStr, 166, 52);
+
+      // Detailed Drills Table
+      const tableData = results.map((r, i) => [
+        (i + 1).toString().padStart(2, "0"),
+        (r.drill || "DRILL MODE").replace(/_/g, " ").toUpperCase(),
+        `${Math.round(r.score || 0)}%`,
+        r.pass ? "PASS" : "FAIL",
+        r.cycleCount || 0,
+        r.timestamp ? new Date(r.timestamp).toLocaleTimeString() : new Date().toLocaleTimeString()
+      ]);
+
+      autoTable(doc, {
+        startY: 67,
+        head: [["S.NO", "DRILL ACTION MODE", "SCORE", "VERDICT", "CYCLES", "TIME"]],
+        body: tableData,
+        theme: "striped",
+        headStyles: { fillColor: [15, 23, 42], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 8.5 },
+        bodyStyles: { fontSize: 8, textColor: [30, 41, 59] },
+        columnStyles: {
+          0: { cellWidth: 15, halign: "center" },
+          1: { cellWidth: 70, fontStyle: "bold" },
+          2: { cellWidth: 25, halign: "center", fontStyle: "bold" },
+          3: { cellWidth: 25, halign: "center", fontStyle: "bold" },
+          4: { cellWidth: 20, halign: "center" },
+          5: { cellWidth: 25, halign: "center" }
+        },
+        didParseCell: (data) => {
+          if (data.section === "body" && data.column.index === 3) {
+            const val = data.cell.raw;
+            if (val === "PASS") {
+              data.cell.styles.textColor = [21, 128, 61];
+            } else {
+              data.cell.styles.textColor = [185, 28, 28];
+            }
+          }
+        }
+      });
+
+      const finalY = (doc as any).lastAutoTable ? (doc as any).lastAutoTable.finalY + 25 : 220;
+      if (finalY < 270) {
+        doc.setDrawColor(148, 163, 184);
+        doc.setLineWidth(0.4);
+        doc.line(20, finalY, 70, finalY);
+        doc.line(130, finalY, 180, finalY);
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8);
+        doc.setTextColor(71, 85, 105);
+        doc.text("INSTRUCTOR / EVALUATOR", 23, finalY + 5);
+        doc.text("SDD MCEME OFFICER", 137, finalY + 5);
+      }
+
+      doc.save(`Drill_Session_Report_${cadetName.replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.pdf`);
+    } catch (e) {
+      console.error("Failed to generate PDF report:", e);
+    }
+  };
+
+  const downloadJSONData = () => {
+    const reportData = {
+      cadet: activeCadet ? { id: activeCadet.id, name: activeCadet.name, unit: activeCadet.unit } : null,
+      session_date: new Date().toISOString(),
+      summary: { total, passed, failed: total - passed, avg_score: avgScore, accuracy_pct: accuracy },
+      drills: results
+    };
+    const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Session_Data_${activeCadet?.name || "cadet"}_${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <motion.div className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
       <div className="absolute inset-0">
@@ -1011,36 +1212,66 @@ function ResultsScreen({ results, onRestart }: { results: any[]; onRestart: () =
         <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: `linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)`, backgroundSize: "40px 40px" }} />
       </div>
       <div className="fixed top-8 left-8 z-[100]"><img src="/top_right_logo.png" alt="SDD" className="w-6 sm:w-8 md:w-12 lg:w-16 xl:w-20 2xl:w-24 h-auto object-contain" /></div>
-      <div className="relative z-10 w-full max-w-3xl mx-6 p-8 bg-stone-900/80 backdrop-blur-3xl border border-white/10 rounded-3xl shadow-2xl">
+      <div className="relative z-10 w-full max-w-4xl mx-6 p-8 bg-stone-900/80 backdrop-blur-3xl border border-white/10 rounded-3xl shadow-2xl">
         <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-stone-400/50 to-transparent rounded-t-3xl" />
-        <div className="text-center mb-8">
+        <div className="text-center mb-6">
           <div className="text-[9px] font-black tracking-[0.3em] text-stone-600 uppercase mb-2">Session Complete</div>
-          <h1 className="text-3xl font-black text-stone-100 uppercase tracking-wider">Final Evaluation</h1>
+          <h1 className="text-3xl font-black text-stone-100 uppercase tracking-wider">Final Session Evaluation</h1>
+          {activeCadet && (
+            <p className="text-stone-400 text-xs font-mono mt-1">Cadet: <span className="text-stone-200 font-bold">{activeCadet.name}</span> (#{activeCadet.id})</p>
+          )}
         </div>
-        <div className="grid grid-cols-3 gap-4 mb-8 text-center">
-          {[{ label: "Total", value: total, color: "text-stone-200" }, { label: "Passed", value: passed, color: "text-emerald-400" }, { label: "Failed", value: total - passed, color: "text-red-400" }].map(item => (
-            <div key={item.label} className="p-5 bg-stone-800/50 rounded-2xl border border-white/[0.06]">
-              <div className="text-[9px] font-black text-stone-600 tracking-widest uppercase mb-2">{item.label}</div>
-              <div className={`text-4xl font-black ${item.color}`}>{item.value}</div>
+
+        <div className="grid grid-cols-4 gap-4 mb-6 text-center">
+          {[{ label: "Total Drills", value: total, color: "text-stone-200" },
+            { label: "Passed", value: passed, color: "text-emerald-400" },
+            { label: "Failed", value: total - passed, color: "text-red-400" },
+            { label: "Avg Score", value: `${avgScore}%`, color: "text-blue-400" }
+          ].map(item => (
+            <div key={item.label} className="p-4 bg-stone-800/50 rounded-2xl border border-white/[0.06]">
+              <div className="text-[9px] font-black text-stone-500 tracking-widest uppercase mb-1">{item.label}</div>
+              <div className={`text-3xl font-black ${item.color}`}>{item.value}</div>
             </div>
           ))}
         </div>
-        <div className="space-y-2 mb-8 max-h-[40vh] overflow-y-auto pr-2">
-          {results.map((r, i) => (
-            <div key={i} className="flex items-center justify-between p-4 bg-stone-800/50 border border-white/[0.06] rounded-xl">
-              <div className="flex items-center space-x-4">
-                <span className="text-stone-700 font-mono font-bold text-sm">{(i + 1).toString().padStart(2, "0")}</span>
-                <span className="text-stone-200 font-bold">{r.drill}</span>
+
+        <div className="space-y-2 mb-6 max-h-[35vh] overflow-y-auto pr-2">
+          {results.length === 0 ? (
+            <div className="text-center py-8 text-stone-500 text-xs font-mono">No drill actions recorded in this session.</div>
+          ) : (
+            results.map((r, i) => (
+              <div key={i} className="flex items-center justify-between p-3.5 bg-stone-800/50 border border-white/[0.06] rounded-xl">
+                <div className="flex items-center space-x-4">
+                  <span className="text-stone-600 font-mono font-bold text-xs">{(i + 1).toString().padStart(2, "0")}</span>
+                  <div>
+                    <span className="text-stone-200 font-bold text-sm block">{r.drill?.replace(/_/g, " ")}</span>
+                    <span className="text-[9px] font-mono text-stone-500">{r.timestamp ? new Date(r.timestamp).toLocaleTimeString() : ""}</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-5">
+                  <div className="text-right">
+                    <div className="text-[9px] text-stone-500 uppercase tracking-widest">Score</div>
+                    <div className="font-mono text-stone-200 font-bold">{r.score}%</div>
+                  </div>
+                  <div className={`px-3.5 py-1 rounded-lg font-black text-[10px] uppercase tracking-wider border ${r.pass ? "bg-emerald-950/50 text-emerald-400 border-emerald-500/30" : "bg-red-950/50 text-red-400 border-red-500/30"}`}>
+                    {r.pass ? "PASS" : "FAIL"}
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center gap-5">
-                <div className="text-right"><div className="text-[9px] text-stone-600 uppercase tracking-widest">Score</div><div className="font-mono text-stone-200 font-bold">{r.score}%</div></div>
-                <div className={`px-4 py-1.5 rounded-lg font-black text-[10px] uppercase tracking-wider border ${r.pass ? "bg-emerald-950/50 text-emerald-400 border-emerald-500/30" : "bg-red-950/50 text-red-400 border-red-500/30"}`}>{r.pass ? "PASS" : "FAIL"}</div>
-              </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
-        <div className="text-center">
-          <button onClick={onRestart} className="px-10 py-4 bg-stone-200 text-stone-950 font-black uppercase tracking-widest rounded-full hover:bg-white active:scale-95 transition-all shadow-xl">New Session</button>
+
+        <div className="flex items-center justify-center gap-4 pt-2">
+          <button onClick={downloadPDFReport} className="flex items-center gap-2 px-6 py-3 bg-emerald-500 hover:bg-emerald-400 text-stone-950 font-black text-xs uppercase tracking-widest rounded-full transition-all shadow-lg hover:shadow-emerald-500/20 active:scale-95">
+            <Download className="w-4 h-4" /> Download PDF Report
+          </button>
+          <button onClick={downloadJSONData} className="flex items-center gap-2 px-6 py-3 bg-stone-800 hover:bg-stone-700 text-stone-200 font-black text-xs uppercase tracking-widest rounded-full border border-white/10 transition-all active:scale-95">
+            <FileText className="w-4 h-4" /> Export JSON
+          </button>
+          <button onClick={onRestart} className="px-8 py-3 bg-stone-200 text-stone-950 font-black text-xs uppercase tracking-widest rounded-full hover:bg-white transition-all active:scale-95">
+            New Session
+          </button>
         </div>
       </div>
     </motion.div>
@@ -1066,7 +1297,7 @@ export default function App() {
         />
       )}
       {appState === "dashboard" && <Dashboard key="dashboard" activeCadet={activeCadet} onComplete={r => { setFinalResults(r); setAppState("results"); }} />}
-      {appState === "results" && <ResultsScreen key="results" results={finalResults} onRestart={() => setAppState("launch")} />}
+      {appState === "results" && <ResultsScreen key="results" results={finalResults} activeCadet={activeCadet} onRestart={() => setAppState("launch")} />}
     </AnimatePresence>
   );
 }
