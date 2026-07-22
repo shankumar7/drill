@@ -1,4 +1,4 @@
-import numpy as np
+import math
 from backend.core.types import PoseDetection, RuleResult
 from backend.evaluation.geometry import segment_length, mid_point
 from backend.evaluation.rules.base import EvaluationRule
@@ -12,16 +12,16 @@ def get_body_metrics(k):
     ratio = shoulder_width / (spine_length + 1e-6)
     
     # Left thigh angle relative to vertical [0, 1]
-    v_l = k[13, :2] - k[11, :2]
-    norm_v_l = np.linalg.norm(v_l)
-    cos_l = v_l[1] / (norm_v_l + 1e-6) if norm_v_l > 0 else 1.0
-    l_thigh_angle = np.degrees(np.arccos(np.clip(cos_l, -1.0, 1.0)))
+    v_l = [k[13, 0] - k[11, 0], k[13, 1] - k[11, 1]]
+    norm_v_l = math.hypot(v_l[0], v_l[1])
+    cos_l = max(-1.0, min(1.0, v_l[1] / (norm_v_l + 1e-6))) if norm_v_l > 0 else 1.0
+    l_thigh_angle = math.degrees(math.acos(cos_l))
     
     # Right thigh angle relative to vertical [0, 1]
-    v_r = k[14, :2] - k[12, :2]
-    norm_v_r = np.linalg.norm(v_r)
-    cos_r = v_r[1] / (norm_v_r + 1e-6) if norm_v_r > 0 else 1.0
-    r_thigh_angle = np.degrees(np.arccos(np.clip(cos_r, -1.0, 1.0)))
+    v_r = [k[14, 0] - k[12, 0], k[14, 1] - k[12, 1]]
+    norm_v_r = math.hypot(v_r[0], v_r[1])
+    cos_r = max(-1.0, min(1.0, v_r[1] / (norm_v_r + 1e-6))) if norm_v_r > 0 else 1.0
+    r_thigh_angle = math.degrees(math.acos(cos_r))
     
     # Normalized wrist-to-hip distances to check if arms remain locked
     l_wrist_hip = segment_length(k[9, :2], k[11, :2])
