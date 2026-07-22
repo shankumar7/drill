@@ -87,7 +87,10 @@ SETTINGS = {
     "instructor_name": "Lt Col K Srinath",
     "export_format": "json",
     "session_duration_limit": 0,
-    # ── Camera
+    # ── Camera & Frame Rates
+    "preview_fps": 30,
+    "inference_fps": 20,
+    "jpeg_quality": 75,
     "camera_mapping": {"front": 0, "side": 1, "back": 2},
     "side_camera_position": "right",
     "camera_flip_horizontal": False,
@@ -113,6 +116,9 @@ class SettingsUpdate(BaseModel):
     prefer_half_precision: bool | None = None
     tracking_config: str | None = None
     evaluation_fps: int | None = None
+    preview_fps: int | None = None
+    inference_fps: int | None = None
+    jpeg_quality: int | None = None
     # Evaluation
     pass_threshold: int | None = None
     score_smoothing_window: int | None = None
@@ -168,11 +174,6 @@ except Exception as e:
 def estimate_foot_geometry(keypoints):
     from backend.evaluation.geometry import segment_length, mid_point
     
-    # 5: L Shoulder, 6: R Shoulder, 11: L Hip, 12: R Hip, 15: L Ankle, 16: R Ankle, 19: L Toe, 22: R Toe
-    # (Note: YOLO11n-POSE uses COCO 17 or similar, toes are typically not explicitly 19/22 in COCO, 
-    # but ankles are 15, 16 and we can use ankles as proxies for heel distance, and toes are not reliably available 
-    # in standard 17-keypoint models without mediapipe. Let's just use 15 and 16).
-    
     l_shoulder, r_shoulder = keypoints[5, :2], keypoints[6, :2]
     l_hip, r_hip = keypoints[11, :2], keypoints[12, :2]
     
@@ -199,8 +200,6 @@ def estimate_foot_geometry(keypoints):
     l_ankle, r_ankle = keypoints[15, :2], keypoints[16, :2]
     heel_dist_px = segment_length(l_ankle, r_ankle)
     
-    # If the model has more than 17 keypoints (e.g. 23+ for hands/feet), try to extract toes.
-    # Otherwise, fallback to ankles for heel dist.
     toe_dist_px = heel_dist_px
     l_toe_conf = keypoints[19, 2] if keypoints.shape[0] > 19 and keypoints.shape[1] > 2 else 0.0
     r_toe_conf = keypoints[22, 2] if keypoints.shape[0] > 22 and keypoints.shape[1] > 2 else 0.0
@@ -228,7 +227,8 @@ CAMERA_LOCK = asyncio.Lock()
 async def synchronized_inference_loop():
     import time
     while True:
-        await asyncio.sleep(1/30)
+        inf_fps = SETTINGS.get("inference_fps", 20)
+        await asyncio.sleep(1.0 / max(1, inf_fps))
         
         frames = {}
         for cam_id in [0, 1, 2]:
@@ -242,6 +242,8 @@ async def synchronized_inference_loop():
                     pass
             if packet is not None:
                 frames[cam_id] = packet.image
+            elif RAW_FRAMES.get(cam_id) is not None:
+                frames[cam_id] = RAW_FRAMES[cam_id]
 
         if not frames:
             continue
@@ -272,7 +274,8 @@ async def synchronized_inference_loop():
                         
                         MULTI_CAM_DETECTIONS[cam_id] = {"det": det, "ts": time.time(), "ppi": ppi, "conf": avg_conf, "available_ids": available_ids, "all_dets": detections}
                         
-                        RAW_FRAMES[cam_id] = frame.copy()
+                        if RAW_FRAMES.get(cam_id) is None:
+                            RAW_FRAMES[cam_id] = frame.copy()
                         annotated = frame.copy()
                         if SETTINGS.get("show_skeleton", True):
                             _draw_skeleton(annotated, det.keypoints, color_name=SETTINGS.get("skeleton_color", "green"), opacity=SETTINGS.get("overlay_opacity", 0.8))
@@ -285,7 +288,8 @@ async def synchronized_inference_loop():
                         ANNOTATED_FRAMES[cam_id] = annotated
                     else:
                         MULTI_CAM_DETECTIONS[cam_id] = None
-                        RAW_FRAMES[cam_id] = frame.copy()
+                        if RAW_FRAMES.get(cam_id) is None:
+                            RAW_FRAMES[cam_id] = frame.copy()
                         ANNOTATED_FRAMES[cam_id] = frame.copy()
                 except Exception as e:
                     import traceback
@@ -293,14 +297,14 @@ async def synchronized_inference_loop():
                     print(f"Error in ML pipeline: {e}")
                     
         await asyncio.to_thread(_infer)
- 
+
 async def generate_frames(camera_id: int, raw: bool = False):
     # Dynamic camera reader activation on client connection
     async with CAMERA_LOCK:
         ACTIVE_CLIENT_COUNTS[camera_id] += 1
         if CAMERA_READERS.get(camera_id) is None:
             try:
-                CAMERA_READERS[camera_id] = CameraReader(camera_id, CAMERA_QUEUES[camera_id])
+                CAMERA_READERS[camera_id] = CameraReader(camera_id, CAMERA_QUEUES[camera_id], raw_frames_dict=RAW_FRAMES)
                 CAMERA_READERS[camera_id].start()
                 print(f"Dynamically started CameraReader for camera {camera_id} (Active clients: {ACTIVE_CLIENT_COUNTS[camera_id]})")
             except Exception as e:
@@ -308,14 +312,21 @@ async def generate_frames(camera_id: int, raw: bool = False):
 
     try:
         while True:
+            preview_fps = SETTINGS.get("preview_fps", 30)
+            jpeg_quality = SETTINGS.get("jpeg_quality", 75)
+            
             frame = RAW_FRAMES.get(camera_id) if raw else ANNOTATED_FRAMES.get(camera_id)
+            if frame is None and not raw:
+                frame = RAW_FRAMES.get(camera_id)
+                
             if frame is None:
                 frame = np.ones((480, 640, 3), dtype=np.uint8) * 150
                 cv2.putText(frame, f"CAM {camera_id} - WAITING", (150, 240), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
                 
-            ret, buffer = cv2.imencode('.jpg', frame)
-            yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
-            await asyncio.sleep(1/30)
+            ret, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, jpeg_quality])
+            if ret:
+                yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
+            await asyncio.sleep(1.0 / max(1, preview_fps))
     finally:
         # Dynamic camera reader deactivation when stream disconnects
         async with CAMERA_LOCK:

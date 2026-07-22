@@ -12,7 +12,7 @@ type CameraMapping = { front: number; side: number; back: number; };
 type AppSettings = {
   confidence: number; image_size: number; keypoint_visibility_threshold: number;
   max_detections: number; stale_detection_timeout: number; prefer_half_precision: boolean;
-  tracking_config: string; evaluation_fps: number;
+  tracking_config: string; evaluation_fps: number; preview_fps: number; inference_fps: number;
   pass_threshold: number; score_smoothing_window: number;
   savdhan_threshold: number; vishram_threshold: number;
   salute_threshold: number; aaram_se_threshold: number;
@@ -30,7 +30,7 @@ type AppSettings = {
 const DEFAULT_SETTINGS: AppSettings = {
   confidence: 0.5, image_size: 640, keypoint_visibility_threshold: 0.3,
   max_detections: 10, stale_detection_timeout: 2.0, prefer_half_precision: true,
-  tracking_config: "bytetrack.yaml", evaluation_fps: 20,
+  tracking_config: "bytetrack.yaml", evaluation_fps: 20, preview_fps: 30, inference_fps: 20,
   pass_threshold: 85, score_smoothing_window: 1,
   savdhan_threshold: 85, vishram_threshold: 80, salute_threshold: 80, aaram_se_threshold: 75,
   voice_enabled: true, voice_language: "en", voice_initial_prompt: "Military drill commands: savadhan, attention, vishram, ease, salute.",
@@ -297,6 +297,8 @@ function SettingsModal({ isOpen, onClose, mapping, onSave, baseUrl }: {
                 onChange={v => set("tracking_config", v)} />
               <SliderRow label="Stale Detection Timeout" desc="Seconds before a non-updated detection is dropped from the fusion pool." min={0.5} max={10} step={0.5} value={settings.stale_detection_timeout} unit="s" onChange={v => set("stale_detection_timeout", v)} />
               <Section title="Performance" />
+              <SliderRow label="Preview Stream FPS" desc="Camera preview display frame rate. Higher = smoother video feed view." min={15} max={60} step={5} value={settings.preview_fps || 30} unit=" fps" onChange={v => set("preview_fps", v)} />
+              <SliderRow label="AI Inference FPS" desc="Frame rate for running YOLO pose estimation on camera feeds." min={5} max={30} step={1} value={settings.inference_fps || 20} unit=" fps" onChange={v => set("inference_fps", v)} />
               <SliderRow label="Evaluation Loop FPS" desc="How many times per second the fusion evaluator scores the pose. Higher = more real-time." min={5} max={60} step={5} value={settings.evaluation_fps} unit=" fps" onChange={v => set("evaluation_fps", v)} />
               <ToggleRow label="Half Precision Inference (FP16)" desc="Use FP16 precision for GPU inference — faster but slightly less accurate." value={settings.prefer_half_precision} onChange={v => set("prefer_half_precision", v)} badge="GPU" />
             </div>
