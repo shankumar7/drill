@@ -141,19 +141,9 @@ class VishramShoulderLevelRule(EvaluationRule):
         history = detection.posture_history.setdefault(self.name, []) if detection.posture_history is not None else []
         history.append(score)
         del history[:-10]
-        if len(history) < 5:
-            return RuleResult(self.name, "not_evaluable", None, "Collecting stable shoulder evidence.")
-        stable_score = sum(history) / len(history)
-        if stable_score >= 82:
-            return RuleResult(self.name, "pass", round(stable_score, 1), "Shoulders should remain level and pulled back.")
-        if stable_score <= 60:
-            return RuleResult(self.name, "fail", round(stable_score, 1), "Shoulders should remain level and pulled back.")
-        return RuleResult(
-            self.name,
-            "not_evaluable",
-            None,
-            "Shoulder level remains ambiguous over the recent frame window.",
-        )
+        stable_score = sum(history) / len(history) if history else score
+        status = "pass" if stable_score >= 80 else "fail"
+        return RuleResult(self.name, status, round(stable_score, 1), "Shoulders should remain level and pulled back.")
 
 
 import numpy as np

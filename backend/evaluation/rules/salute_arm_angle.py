@@ -58,24 +58,22 @@ class StraightLeftArmAngleRule(EvaluationRule):
 
     def evaluate(self, detection: PoseDetection, camera_type: str = "front", **kwargs) -> RuleResult:
         k = detection.keypoints
-        # Strict NCC rule: Left arm MUST be straight at the side during salute.
-        # Left: Wrist (9), Elbow (7), Shoulder (5)
-        
         left_conf = min(k[9, 2], k[7, 2], k[5, 2])
         
         if left_conf < 0.25:
             return RuleResult(self.name, "not_evaluable", None, "Left arm keypoints not reliable enough.")
             
         wrist, elbow, shoulder = k[9, :2], k[7, :2], k[5, :2]
-            
         angle = angle_degrees(wrist, elbow, shoulder)
         
-        # Ideal straight arm is roughly 145 to 180 degrees
+        # Ideal straight arm at side during salute is 140 to 180 degrees
         score = 0.0
-        if 20.0 <= angle <= 114.2:
+        if 140.0 <= angle <= 180.0:
             score = 100.0
-        elif 10.0 <= angle < 20.0:
-            score = 100.0 - ((145 - angle) * 4.0)
+        elif 120.0 <= angle < 140.0:
+            score = max(0.0, 100.0 - ((140.0 - angle) * 4.0))
+        elif angle > 180.0:
+            score = 100.0
             
         score = max(0.0, score)
         
@@ -83,5 +81,5 @@ class StraightLeftArmAngleRule(EvaluationRule):
         if isinstance(smoothed, RuleResult):
             return smoothed
             
-        status = "pass" if smoothed >= 90 else "fail"
-        return RuleResult(self.name, status, round(smoothed, 1), f"Left Arm Angle: {angle:.1f}° (Ideal: 145-180)")
+        status = "pass" if smoothed >= 80 else "fail"
+        return RuleResult(self.name, status, round(smoothed, 1), f"Left Arm Angle: {angle:.1f}° (Ideal: 140-180°)")

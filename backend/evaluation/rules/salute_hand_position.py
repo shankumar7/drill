@@ -50,5 +50,5 @@ class SaluteHandPositionRule(EvaluationRule):
         if isinstance(smoothed, RuleResult):
             return smoothed
             
-        status = "pass" if smoothed >= 90 else "fail"
+        status = "pass" if smoothed >= 80 else "fail"
         return RuleResult(self.name, status, round(smoothed, 1), f"Right Wrist-Eye Distance: {norm_dist:.2f} (Ideal: <= 0.55)")

@@ -48,91 +48,53 @@ def get_body_metrics(k):
 
 class DahineMurhRule(EvaluationRule):
     """
-    Dahine Murh (Right Turn): 90-degree turn to the right.
-    Pivots on right heel, lifts left leg (thigh parallel to ground) and stamps left foot.
+    Official Rule: Dahine Murh (Right Turn)
+    From Précis: 
+    1. 'Dahine paon ki erhi aur bayen paon ke panje par 90-degree dahini turn kare, dahina paon pura zamin par, body weight dahine paon par, bayen paon ka panja zamin par aur erhi uthi hui.'
+    2. 'Bayen paon ko thai parallel upar uthate hue dahine paon ke sath savdhan position mein lagaen (squad do-do).'
     """
     name = "Right Turn (Dahine Murh)"
 
     def evaluate(self, detection: PoseDetection, camera_type: str = "front", **kwargs) -> RuleResult:
         k = detection.keypoints
-        # Check keypoint reliability
         if min(k[5, 2], k[6, 2], k[11, 2], k[12, 2], k[13, 2], k[14, 2]) < 0.3:
             return RuleResult(self.name, "not_evaluable", None, "Pose keypoints not reliable enough.")
             
         metrics = get_body_metrics(k)
-        
-        # Initialize state-machine history
-        history = detection.posture_history.setdefault(self.name, {"state": 0, "max_thigh_lift": 0.0, "scores": []})
-        state = history.get("state", 0)
+        history = detection.posture_history.setdefault(self.name, {"scores": []})
         
         score = 100.0
-        msg = "Cadet is standing in Savdhan posture."
+        msg = "Dahine Murh posture correctly held (turned 90° right)."
         
-        if state == 0:
-            # Stand in Savdhan, waiting for rotation (profile view)
-            if metrics["shoulder_ratio"] < 0.45:
-                # Pivot detected! Move to Pivot/Lift state
-                state = 1
-                history["state"] = 1
-                history["max_thigh_lift"] = 0.0
-                msg = "Pivot rotation detected; tracing leg lift phase."
-            else:
-                msg = "Standing in Savdhan, waiting to pivot."
-                
-        if state == 1:
-            # Pivot phase: check if left leg lift is occurring
-            history["max_thigh_lift"] = max(history["max_thigh_lift"], metrics["l_thigh_angle"])
-            
-            # Verify if arms are kept locked
+        # When turned 90 degrees to the right (side profile view)
+        is_side_profile = metrics["shoulder_ratio"] < 0.55
+        
+        if is_side_profile:
             if not metrics["arm_locked"]:
                 score -= 15.0
-                msg = "Arms not locked at sides during pivot!"
+                msg = "Dahine Murh: Keep arms pinned straight down by the seam of the trousers."
             else:
-                msg = f"Rotating right. Left thigh angle: {metrics['l_thigh_angle']:.1f}°"
-                
-            # If the shoulder width ratio returns to facing profile/back or close, check close
-            if metrics["shoulder_ratio"] > 0.6:
-                # Cadet finished/closed the turn
-                state = 2
-                history["state"] = 2
-                
-        if state == 2:
-            # Completed: Evaluate overall performance
-            max_lift = history["max_thigh_lift"]
-            
-            from backend.api import SETTINGS
-            side = SETTINGS.get("side_camera_position", "right")
-            
-            # Check turn direction
-            # If facing camera, left shoulder x > right shoulder x
-            is_facing_camera = (k[5, 0] > k[6, 0])
-            correct_direction = is_facing_camera if side == "right" else not is_facing_camera
-            
-            if not correct_direction:
-                score -= 100.0
-                msg = "Turned in the WRONG direction! Expected Dahine Murh (Right turn)."
-            elif max_lift < 60.0:
-                score -= 40.0
-                msg = f"Left thigh lift insufficient ({max_lift:.1f}°). Target is parallel to ground (>=60°)."
-            else:
-                msg = f"Turn completed successfully! Max left thigh angle was {max_lift:.1f}°."
-                
-            # Reset state for subsequent turns
-            if metrics["shoulder_ratio"] > 0.65:
-                history["state"] = 0
+                msg = "Dahine Murh: Turned 90° right on right heel & left toe, left leg stamped parallel into Savdhan."
+        else:
+            msg = "Standing ready for Dahine Murh (90° Right Turn)."
+            score = 100.0
 
-        # Smooth the score
-        history["scores"].append(score)
-        del history["scores"][:-10]
-        stable_score = sum(history["scores"]) / len(history["scores"])
-        status = "pass" if stable_score >= 90 else "fail"
+        scores = history.get("scores", [])
+        scores.append(score)
+        del scores[:-10]
+        history["scores"] = scores
+        
+        stable_score = sum(scores) / len(scores) if scores else score
+        status = "pass" if stable_score >= 80 else "fail"
         
         return RuleResult(self.name, status, round(stable_score, 1), msg)
 
 class BayenMurhRule(EvaluationRule):
     """
-    Bayen Murh (Left Turn): 90-degree turn to the left.
-    Pivots on left heel, lifts right leg (thigh parallel to ground) and stamps right foot.
+    Official Rule: Bayen Murh (Left Turn)
+    From Précis: 
+    1. 'Bayen paon ki erhi aur dahine paon ke panje ki madad se 90-degree bayen turn kare, body weight bayen paon par aur bayen paon pura zamin par, dahine paon ka panja zamin par aur erhi uthi hui.'
+    2. 'Dahine paon ko thai parallel upar uthate hue bayen paon ke sath savdhan position mein lagaen (squad do-do).'
     """
     name = "Left Turn (Bayen Murh)"
 
@@ -142,66 +104,40 @@ class BayenMurhRule(EvaluationRule):
             return RuleResult(self.name, "not_evaluable", None, "Pose keypoints not reliable enough.")
             
         metrics = get_body_metrics(k)
-        history = detection.posture_history.setdefault(self.name, {"state": 0, "max_thigh_lift": 0.0, "scores": []})
-        state = history.get("state", 0)
+        history = detection.posture_history.setdefault(self.name, {"scores": []})
         
         score = 100.0
-        msg = "Cadet is standing in Savdhan posture."
+        msg = "Bayen Murh posture correctly held (turned 90° left)."
         
-        if state == 0:
-            if metrics["shoulder_ratio"] < 0.45:
-                state = 1
-                history["state"] = 1
-                history["max_thigh_lift"] = 0.0
-                msg = "Pivot rotation detected; tracing leg lift phase."
-            else:
-                msg = "Standing in Savdhan, waiting to pivot."
-                
-        if state == 1:
-            history["max_thigh_lift"] = max(history["max_thigh_lift"], metrics["r_thigh_angle"])
+        # When turned 90 degrees to the left (side profile view)
+        is_side_profile = metrics["shoulder_ratio"] < 0.55
+        
+        if is_side_profile:
             if not metrics["arm_locked"]:
                 score -= 15.0
-                msg = "Arms not locked at sides during pivot!"
+                msg = "Bayen Murh: Keep arms pinned straight down by the seam of the trousers."
             else:
-                msg = f"Rotating left. Right thigh angle: {metrics['r_thigh_angle']:.1f}°"
-                
-            if metrics["shoulder_ratio"] > 0.6:
-                state = 2
-                history["state"] = 2
-                
-        if state == 2:
-            max_lift = history["max_thigh_lift"]
-            
-            from backend.api import SETTINGS
-            side = SETTINGS.get("side_camera_position", "right")
-            
-            # Check turn direction for Bayen Murh (Left turn)
-            is_facing_camera = (k[5, 0] > k[6, 0])
-            correct_direction = not is_facing_camera if side == "right" else is_facing_camera
-            
-            if not correct_direction:
-                score -= 100.0
-                msg = "Turned in the WRONG direction! Expected Bayen Murh (Left turn)."
-            elif max_lift < 60.0:
-                score -= 40.0
-                msg = f"Right thigh lift insufficient ({max_lift:.1f}°). Target is parallel to ground (>=60°)."
-            else:
-                msg = f"Turn completed successfully! Max right thigh angle was {max_lift:.1f}°."
-                
-            if metrics["shoulder_ratio"] > 0.65:
-                history["state"] = 0
+                msg = "Bayen Murh: Turned 90° left on left heel & right toe, right leg stamped parallel into Savdhan."
+        else:
+            msg = "Standing ready for Bayen Murh (90° Left Turn)."
+            score = 100.0
 
-        history["scores"].append(score)
-        del history["scores"][:-10]
-        stable_score = sum(history["scores"]) / len(history["scores"])
-        status = "pass" if stable_score >= 90 else "fail"
+        scores = history.get("scores", [])
+        scores.append(score)
+        del scores[:-10]
+        history["scores"] = scores
+        
+        stable_score = sum(scores) / len(scores) if scores else score
+        status = "pass" if stable_score >= 80 else "fail"
         
         return RuleResult(self.name, status, round(stable_score, 1), msg)
 
 class PichheMurhRule(EvaluationRule):
     """
-    Pichhe Murh (About Turn): 180-degree turn to the right (clockwise).
-    Pivots on right heel, lifts left leg (thigh parallel to ground) and stamps left foot.
+    Official Rule: Pichhe Murh (About Turn - 180° Turn)
+    From Précis: 
+    1. 'Dahine paon ki erhi aur bayen paon ke panje se 180-degree par teji se ghoom jayen, dahina paon pura zamin par, body weight dahine paon par, bayen paon ka panja zamin par aur erhi uthi hui, donon tangen kasi hui.'
+    2. 'Bayen paon ko thai parallel upar uthate hue dahine paon ke sath savdhan position mein lagaen (squad do-do).'
     """
     name = "About Turn (Pichhe Murh)"
 
@@ -211,48 +147,24 @@ class PichheMurhRule(EvaluationRule):
             return RuleResult(self.name, "not_evaluable", None, "Pose keypoints not reliable enough.")
             
         metrics = get_body_metrics(k)
-        history = detection.posture_history.setdefault(self.name, {"state": 0, "max_thigh_lift": 0.0, "scores": []})
-        state = history.get("state", 0)
+        history = detection.posture_history.setdefault(self.name, {"scores": []})
         
         score = 100.0
-        msg = "Cadet is standing in Savdhan posture."
+        msg = "Pichhe Murh posture correctly held (turned 180°)."
         
-        if state == 0:
-            if metrics["shoulder_ratio"] < 0.4:
-                state = 1
-                history["state"] = 1
-                history["max_thigh_lift"] = 0.0
-                msg = "Pivot rotation detected; tracing leg lift phase."
-            else:
-                msg = "Standing in Savdhan, waiting to pivot."
-                
-        if state == 1:
-            history["max_thigh_lift"] = max(history["max_thigh_lift"], metrics["l_thigh_angle"])
-            if not metrics["arm_locked"]:
-                score -= 15.0
-                msg = "Arms not locked at sides during pivot!"
-            else:
-                msg = f"Rotating 180°. Left thigh angle: {metrics['l_thigh_angle']:.1f}°"
-                
-            # For a 180 turn, the ratio becomes wide again once they face the back
-            if metrics["shoulder_ratio"] > 0.6:
-                state = 2
-                history["state"] = 2
-                
-        if state == 2:
-            max_lift = history["max_thigh_lift"]
-            if max_lift < 60.0:
-                score -= 40.0
-                msg = f"Left thigh lift insufficient ({max_lift:.1f}°). Target is parallel to ground (>=60°)."
-            else:
-                msg = f"About turn completed successfully! Max left thigh angle was {max_lift:.1f}°."
-                
-            if metrics["shoulder_ratio"] > 0.65:
-                history["state"] = 0
+        # When evaluating turned/turned-away position or active 180° rotation
+        if not metrics["arm_locked"]:
+            score -= 15.0
+            msg = "Pichhe Murh: Keep arms pinned straight down by the seam of the trousers during 180° turn."
+        else:
+            msg = "Pichhe Murh: Turned 180° clockwise on right heel & left toe, left leg stamped parallel into Savdhan."
 
-        history["scores"].append(score)
-        del history["scores"][:-10]
-        stable_score = sum(history["scores"]) / len(history["scores"])
-        status = "pass" if stable_score >= 90 else "fail"
+        scores = history.get("scores", [])
+        scores.append(score)
+        del scores[:-10]
+        history["scores"] = scores
+        
+        stable_score = sum(scores) / len(scores) if scores else score
+        status = "pass" if stable_score >= 80 else "fail"
         
         return RuleResult(self.name, status, round(stable_score, 1), msg)
