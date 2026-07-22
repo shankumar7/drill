@@ -375,7 +375,7 @@ function SettingsModal({ isOpen, onClose, mapping, onSave, baseUrl }: {
               <NumberInput label="Session Duration Limit (minutes)" desc="Auto-end the session after this many minutes. Set 0 for unlimited." value={settings.session_duration_limit} min={0} max={480} onChange={v => set("session_duration_limit", v)} />
               <Section title="About" />
               <div className="p-4 bg-stone-800/40 rounded-xl border border-white/[0.05]">
-                <div className="text-stone-200 text-sm font-semibold">Military Drill Analysis System</div>
+                <div className="text-stone-200 text-sm font-semibold">SDD-MDAS — Military Drill Analysis System</div>
                 <div className="text-stone-500 text-xs mt-1">Simulation Development Division (SDD), MCEME</div>
                 <div className="mt-3 pt-3 border-t border-white/[0.05] space-y-1">
                   <div className="text-stone-500 text-xs">Developed by <span className="text-stone-300 font-semibold">Janardhan & Shankumar</span></div>
