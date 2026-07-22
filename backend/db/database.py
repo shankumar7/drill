@@ -70,13 +70,29 @@ def login_cadet(pin: str) -> dict | None:
         return dict(row)
     return None
 
+from datetime import datetime, timezone
+
+def save_session_result(cadet_id: int, drill_type: str, score: float, is_pass: bool, cycle_count: int = 0) -> int:
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    now_iso = datetime.now(timezone.utc).isoformat()
+    cursor.execute('''
+        INSERT INTO sessions (cadet_id, drill_type, score, is_pass, cycle_count, timestamp)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', (cadet_id, drill_type, score, is_pass, cycle_count, now_iso))
+    session_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    return session_id
+
 def save_session(cadet_id: int, drill_type: str, score: float, is_pass: bool, cycle_count: int = 0) -> int:
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
+    now_iso = datetime.now(timezone.utc).isoformat()
     cursor.execute('''
-        INSERT INTO sessions (cadet_id, drill_type, score, is_pass, cycle_count)
-        VALUES (?, ?, ?, ?, ?)
-    ''', (cadet_id, drill_type, score, is_pass, cycle_count))
+        INSERT INTO sessions (cadet_id, drill_type, score, is_pass, cycle_count, timestamp)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', (cadet_id, drill_type, score, is_pass, cycle_count, now_iso))
     session_id = cursor.lastrowid
     conn.commit()
     conn.close()

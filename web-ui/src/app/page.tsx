@@ -1132,13 +1132,22 @@ function ResultsScreen({ results, activeCadet, onRestart }: { results: any[]; ac
       doc.text(statusStr, 166, 52);
 
       // Detailed Drills Table
+      const parseToLocalTime = (tsRaw: any) => {
+        if (!tsRaw) return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+        let str = String(tsRaw);
+        if (!str.includes("T")) str = str.replace(" ", "T");
+        if (!str.includes("Z") && !str.includes("+") && !str.includes("-", 10)) str += "Z";
+        const d = new Date(str);
+        return isNaN(d.getTime()) ? new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }) : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+      };
+
       const tableData = results.map((r, i) => [
         (i + 1).toString().padStart(2, "0"),
         (r.drill || "DRILL MODE").replace(/_/g, " ").toUpperCase(),
         `${Math.round(r.score || 0)}%`,
         r.pass ? "PASS" : "FAIL",
         r.cycleCount || 0,
-        r.timestamp ? new Date(r.timestamp).toLocaleTimeString() : new Date().toLocaleTimeString()
+        parseToLocalTime(r.timestamp)
       ]);
 
       autoTable(doc, {

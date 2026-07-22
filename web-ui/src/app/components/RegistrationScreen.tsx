@@ -241,9 +241,18 @@ export function RegistrationScreen({ onComplete }: { onComplete: (cadet: any) =>
         doc.setTextColor(statusColor[0], statusColor[1], statusColor[2]);
         doc.text(statusStr, 166, 52);
 
+        const parseToLocalDateTime = (tsRaw: any) => {
+          if (!tsRaw) return new Date().toLocaleString();
+          let str = String(tsRaw);
+          if (!str.includes("T")) str = str.replace(" ", "T");
+          if (!str.includes("Z") && !str.includes("+") && !str.includes("-", 10)) str += "Z";
+          const d = new Date(str);
+          return isNaN(d.getTime()) ? new Date().toLocaleString() : d.toLocaleString([], { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+        };
+
         // 4. Detailed Session History Table
         const tableData = data.sessions.map((s: any) => [
-          new Date(s.timestamp).toLocaleString(),
+          parseToLocalDateTime(s.timestamp),
           s.drill_type.replace(/_/g, " ").toUpperCase(),
           `${Math.round(s.score)}%`,
           s.is_pass ? "PASS" : "FAIL",
